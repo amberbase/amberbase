@@ -59,7 +59,7 @@ A client should add subscriptions to the server and the server should send updat
 
 ### Standard Server-Side Write Operations
 The server library should be able to provide a write api that is automatically exposed through the client library. 
-* Authorization decisions can be expressed via a callback predicate (with user context and write target as input)
+* Authorization decisions can be expressed via a callback predicate (with user context and write target as input) or through configuration
 * Invoke write operations to the database
 * Send synchronization messages to subscribed clients
 
