@@ -55,7 +55,9 @@ The client shall store the data in a way that it is available even when the serv
 > __(Question)__ We could use the localStorage and some PWA-magic to operate without initial server connection. Is that a requirement?
 
 ### Database Synchronization
-A client should add subscriptions to the server and the server should send updates to clients to keep the replica up to date. When a network outage occured, the client should reconnect and a catch-up mechanism should make sure that missing updates are replayed.
+A client should add subscriptions to the server and the server should send updates to clients to keep the replica up to date. When a network outage occurred, the client should try to reconnect (e.g. in defined time intervals) and a catch-up mechanism should make sure that missing updates are replayed as soon as a connection is established again.
+
+Along with the actual data, the client must always serve meta information about the origin of the data. This enables the user to get to know, if data comes from the server (= truth) or from a local copy (= maybe truth).
 
 ### Standard Server-Side Write Operations
 The server library should be able to provide a write api that is automatically exposed through the client library. 
