@@ -1,6 +1,6 @@
 # AmberBase Concept (draft)
 ## Why
-The idea is to create a library style system to support use cases that are often implemented by the likes of FireBase, Supabase and similar PaaS (or quasi PaaS) systems. Those tend to become proprietary dependencies and can eventually lead to unforseen cost or bottlenecks when the cost is not acceptable. Especially for small non-profit oriented projects this becomes a problem. The leading project in our effort is SongDrive and its effort to migrate away from FireBase.
+The idea is to create a library style system to support use cases that are often implemented by the likes of FireBase, Supabase and similar PaaS (or quasi PaaS) systems. Those tend to become proprietary dependencies and can eventually lead to unforseen cost or bottlenecks when the cost is not acceptable. Especially for small non-profit oriented projects this becomes a problem. The leading project in our effort is [SongDrive](https://github.com/devmount/SongDrive) and its effort to migrate away from FireBase.
 
 ## Leading Principles and Constraints
 
