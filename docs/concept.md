@@ -32,7 +32,7 @@ The supported database should be MySql/MariaDB due to their support
 * `Collection` equivalent of a table. It is identified by a name and can store multiple JSON `Documents`
 * `Document` A JSON object stored in the database in one collection, one tenant, and is identifieable via a unique id
 * `Subscription` A capability of the client library and proprietary server API to get all updates that fall under a certain `Subscription Scope`
-* `Client Cache` A copy of database objects present in the client. The goal is to synchronize this cache
+* `Client Cache` A copy of database objects present in the client. The goal is to synchronize this cache as soon as the client is connected to the server (again).
   
 
 ## Use Cases
