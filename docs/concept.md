@@ -119,21 +119,20 @@ flowchart LR;
     end
     
     subgraph Node.Js Server
-    
-    clientLib-->login[ /amber/login]    
-    clientLib-->register[ /amber/register]
-    login --> userLib[AmberServerLib.user.js]
-    register --> userLib[AmberServerLib.user.js]
-    clientLib<-.->ws[ /amber/websocket]
-    clientLib-->write[ /amber/write]
-    app --> appApi[ /app/api]
-    appApi --> dataLib
-    write --> dataLib[AmberServerLib.data.js]
-    ws <--> dataLib 
+        clientLib --> login[ /amber/login]    
+        clientLib --> register[ /amber/register]
+        login --> userLib[AmberServerLib.user.js]
+        register --> userLib[AmberServerLib.user.js]
+        clientLib<-.->ws[ /amber/websocket]
+        clientLib-->write[ /amber/write]
+        app --> appApi[ /app/api]
+        appApi --> dataLib
+        write --> dataLib[AmberServerLib.data.js]
+        ws <--> dataLib 
     end
     subgraph Database MariaDB
-    userLib ----> usersDb[(users)]
-    dataLib ----> dataDb[(collections)]
+        userLib ----> usersDb[(users)]
+        dataLib ----> dataDb[(collections)]
     end
 ```
 
