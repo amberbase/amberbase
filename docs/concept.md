@@ -15,8 +15,8 @@ We do not plan (for now) to ship any UI, only libraries and APIs
 
 We want to use the simplicity and client compatibility of JSON as the storage (and DTO) data format.
 
-We want to support offline use cases (read-only) and therefore focus on full-data synchronization (since we need client side query for that)
-> __(Question)__ Do we? Or should we have server AND client queries executed in parallel where the local might miss some results? That means that we would support partial replication into the client and only those documents would be synchronized and extended with data added after additional server side searches... Maybe not as MVP?
+We want to support offline use cases (read-only) and therefore focus on full-data synchronization (since we need client side query for that). There might be some documents that a user does not have access to, even though he or she has access to a collection. These documents should be transparently filtered out.
+> Example use case: A user has annotations (e.g. the order of song parts or the preferred key and position of a capo on a guitar) on a song that are private for him. Or a setlist that is shared only with a limited group of people.
 
 ## Technology Choices
 The libraries will support the server implementation for Node.js and the client binding in a browser, both in TS/JS.
@@ -42,10 +42,10 @@ The use cases are determined by Firebases offering and SongDrives usage and futu
 ### IAM
 A simple user management system where users can 
   * Register themselves (with email and password)
-  * __(Proposal)__ Request access to a tenant
+  * __(Proposal)__ Request access to a `tenant`
   * Be associated to roles by admin users (i.e. via a server library API)
   * Login 
-  * connect to datasources only if the role allows that
+  * Create a `subscription` to a `collection` only if the role allows that
   * Allow to store the login information to auto-login the next time (of course by using a signed token, not the real credentials)
 
 ### Database Client Replication
@@ -143,6 +143,7 @@ Since NodeJs shares a common execution context with all requests, we can send a 
 * We establish a websocket connection from every client to the server process
 * The client subscribes to collections, this subscription interest is kept server side as in memory state for the lifetime of the websocket
 * Every write to a collection is followed by a notification (containing the new data) to all subscribed websockets
+> We should build a mechanism that invalidates collection subscriptions if a users roles are changed (just kill the websocket and let the client recover)
 
 ### Catch-Up
 To enable a client to request all changes that are new to a collection, we need to introduce the concept of a "moment" that the last synchronization took place as a virtual time concept. Since we have a single server process, this can just be a monotonic counter of changes per collection we will refer to it as the collections `change-counter`. Sketching this process:
@@ -209,6 +210,25 @@ The configuration of the server side library needs to contain the connection to 
         }
     }
 }
+```
+
+This configuration can be given to the startup configuration of the amber framework. That means in JavaScript or Typescript code.
+
+## Custom authorization
+The example in the configuration shows a "static" access rights mapping between `roles` and `collections`. To create a more sophisticated row base access system, we can use callbacks.
+A use case can be a document `song` that contains a list of user ids it is shared with.
+
+```js
+var config:AmberConfig = {"db_endpoint" : "...", ...};
+var amberApp = amber(config)
+    .withCollection("songs", [{"role": "editor", "access" : "rw"},{"role": "reader", "access" : "r"}])
+    .withCollection("private", (d:document, u:user, requestedAction:actionType)=>{
+    if (u.role == "editor" && requestedAction == "read" && d.dataJson["sharedWith"].find(u.id))
+    {
+            return true;
+    }
+    // other logic for create, delete etc...
+    } );
 ```
 
 ## Predefined Roles and Bootstrap
