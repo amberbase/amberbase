@@ -23,7 +23,8 @@ const vuetify = createVuetify({
           mdi,
         }
     }
-  })
+  });
+  
   var hash = window.location.hash;
   if (hash.startsWith("#/amber/")) {
     var params = new URLSearchParams(hash.substring(8));

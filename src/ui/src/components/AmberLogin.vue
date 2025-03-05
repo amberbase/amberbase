@@ -5,6 +5,7 @@ import AmberGlobalAdmin from "./AmberGlobalAdmin.vue";
 import { state } from "@/state";
 
 var showLogin = ref(false);
+var showTenantSelector = ref(false);
 var loginFailed = ref(false);
 var userEmail = ref("");
 var userPassword = ref("");
@@ -14,13 +15,42 @@ var stayLoggedIn = ref(false);
 var roles = ref<string[]>([]);
 var login : (record:{email:string, pw:string, stayLoggedIn:boolean})=>void = ()=>{};
 var tenant = ref("*");
+var tenantsToChooseFrom = ref<{ id: string; name: string; roles: string[]; }[]>([]);
 var amber = ref<AmberClient | undefined>(undefined);
 
 tenant.value = state.amberTenant;
 
+var tenantSelectorCallback:((id:string) =>void) | null = null;
+var selectTenant = (tenantId:string)=>{
+  tenant.value = tenantId;
+  state.amberTenant = tenantId;
+  showTenantSelector.value = false;
+  tenantSelectorCallback?.(tenantId);
+}
+
 var amberInit = new AmberClientInit()
   .withPath("/amber")
-  .withTenant(tenant.value)
+  .withTenantSelector(async (tenants)=>
+  {
+    if (tenant.value != '*') return tenant.value;
+    if (!userDetails.value?.tenants["*"])
+    {
+      if (tenants.length == 1) return tenants[0].id;
+    }
+
+    return await new Promise<string>((resolve, reject)=>{
+      tenantSelectorCallback = resolve;
+      tenantsToChooseFrom.value = tenants;
+      var globalUserRoles = userDetails.value?.tenants["*"];
+      if (globalUserRoles)
+      {
+        tenantsToChooseFrom.value = [{id:"*", "name": "ALL TENANTS",roles : globalUserRoles},...tenants];
+      }
+      
+      showTenantSelector.value = true;
+    });
+  }
+)
   .withCredentialsProvider(
     (failed)=>{
     showLogin.value = true;
@@ -106,6 +136,24 @@ var amberInit = new AmberClientInit()
       <v-btn @click="doLogin()">Log In</v-btn>
     </v-card-actions>
   </v-card>
+
+  <v-card style="margin:20px" width="400px" v-if="showTenantSelector">
+    <v-card-title>Select Tenant</v-card-title>
+    <v-card-text>
+      <v-list>
+          <v-list-item v-for="tenant in tenantsToChooseFrom" :key="tenant.id">
+            <v-list-item-title>{{tenant.name}} [{{ tenant.id }}] <v-chip v-for="role in tenant.roles">{{role}}</v-chip> </v-list-item-title>
+            <v-list-item-action>
+              <v-btn @click="selectTenant(tenant.id)">Select</v-btn>
+            </v-list-item-action>
+          </v-list-item>
+        </v-list>
+    </v-card-text>
+    
+    
+    
+  </v-card>
+
   </v-row>
   <amber-global-admin :amber-client="amber!" v-if="tenant == '*' && roles.includes('admin')"> 
   </amber-global-admin>

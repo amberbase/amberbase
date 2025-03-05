@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import {ref} from "vue"
-import RuntimeExperiment from './components/RuntimeExperiment.vue'
-import WebsocketExperiment from './components/WebsocketExperiment.vue'
-import WebsocketChatExperiment from "./components/WebsocketChatExperiment.vue";
+import RuntimeExperiment from './components/experiments/RuntimeExperiment.vue'
+import WebsocketExperiment from './components/experiments/WebsocketExperiment.vue'
+import WebsocketChatExperiment from "./components/experiments/WebsocketChatExperiment.vue";
 import AmberLogin from "./components/AmberLogin.vue";
 import { state } from "./state";
 type Experiment = "runtime"|"websocket"|"websocketchat"|"amberlogin";
