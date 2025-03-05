@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+      "module": "NodeNext",
+      "noImplicitAny": true,
+      "removeComments": true,
+      "preserveConstEnums": true,
+      "sourceMap": true,
+      "outDir": "dist",
+      "target": "ES2022",
+      
+    },
+    "include": ["src/**.ts", "src/amber/config.ts"],
+    "exclude": [],
+    
+}
