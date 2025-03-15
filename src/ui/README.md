@@ -1,4 +1,4 @@
-# ui for the amber base example backend
+# UI for the Amberbase example backend
 
 ## Setup
 
