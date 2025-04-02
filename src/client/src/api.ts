@@ -1,4 +1,4 @@
-import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, CreateTenantRequest, UserWithRoles, CreateInvitationRequest, TenantWithRoles} from './dtos.js'
+import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, CreateTenantRequest, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails} from './dtos.js'
 import { CompletablePromise, sleep } from './helper.js';
 
 class ApiClient {
@@ -36,10 +36,40 @@ class ApiClient {
 
         var result = await response.json();
         if (response.status !== 200) {
-            throw new Error(result.error);
+            throw new Error(result.error || "HTTP Status indicates error: " + response.status);
         }
         return result;
     }
+
+    async fetchText(method: "GET"| "DELETE" | "POST", path: string, body:any | undefined = undefined): Promise<string> {
+        var p = this.tenant ?  path.replace(":tenant", this.tenant) : path;
+        var token = this.tokenProvider ? await this.tokenProvider() : undefined;
+        var headers:HeadersInit = {
+            'Content-Type': 'application/json'
+        };
+        if (token)
+        {
+            headers["AmberSession"] = token;
+        }
+
+        var response = await fetch(this.apiPrefix + p, {
+            method: method,
+            credentials: 'include',
+            headers: headers,
+            body: body ? JSON.stringify(body) : undefined
+        });
+
+        if (response.status === 401) {
+            throw new Error("Not authorized");
+        }
+
+        var result = await response.text();
+        if (response.status !== 200) {
+            throw new Error("HTTP Status indicates error: " + response.status);
+        }
+        return result;
+    }
+
 }
 
 export class AmberAdminApi{
@@ -53,15 +83,15 @@ export class AmberAdminApi{
     }
 
     async deleteUser(userId:string) : Promise<ActionResult> {
-        return await this.apiClient.fetch<ActionResult>("DELETE", '/tenant/:tenant/admin/users/' + userId);
+        return await this.apiClient.fetch<ActionResult>("DELETE", '/tenant/:tenant/admin/user/' + userId);
     }
 
-    async addRoleToUser(userId:string, roles:string[]) : Promise<ActionResult> {
-        return await this.apiClient.fetch<ActionResult>("POST", '/tenant/:tenant/admin/users/' + userId + '/roles', roles);
+    async setRolesOfUser(userId:string, roles:string[]) : Promise<ActionResult> {
+        return await this.apiClient.fetch<ActionResult>("POST", '/tenant/:tenant/admin/user/' + userId + '/roles', roles);
     }
 
     async createInvitation(request:CreateInvitationRequest) : Promise<string> {
-        return await this.apiClient.fetch<string>("POST", '/tenant/:tenant/admin/invitation', request);
+        return await this.apiClient.fetchText("POST", '/tenant/:tenant/admin/invitation', request);
     }
 }
 
@@ -108,5 +138,18 @@ export class AmberUserApi{
     async getUserTenants() : Promise<TenantWithRoles[]> {
         return await this.apiClient.fetch<TenantWithRoles[]>("GET", '/user/tenants');
     }
+
+    async registerUser(userName : string, userEmail : string, password : string, invitation : string) : Promise<string> {
+        return await this.apiClient.fetchText("POST", '/register', nu<RegisterRequest>({username: userName, email:userEmail, password, invitation}));
+    }
+
+    async acceptInvitation(invitation : string) : Promise<void> {
+        await this.apiClient.fetchText("POST", '/accept-invitation', nu<AcceptInvitationRequest>({invitation}));
+    }
+
+    async getInvitationDetails(invitation : string) : Promise<InvitationDetails> {
+        return await this.apiClient.fetch<InvitationDetails>("GET", '/invitation/' + invitation);
+    }
+
 }
 

@@ -5,19 +5,19 @@ import WebsocketExperiment from './components/experiments/WebsocketExperiment.vu
 import WebsocketChatExperiment from "./components/experiments/WebsocketChatExperiment.vue";
 import AmberLogin from "./components/AmberLogin.vue";
 import { state } from "./state";
-type Experiment = "runtime"|"websocket"|"websocketchat"|"amberlogin";
+import Amber from "./components/Amber.vue";
+type Experiment = "runtime"|"websocket"|"websocketchat"|"amber";
 const navOpen = ref(true);
 const experiment = ref<Experiment>("runtime");
 
 function selectExperiment (exp:Experiment) {
   experiment.value = exp;
   navOpen.value = false;
-  
   }
 
 if (state.defaultView == "amber")
 {
-  selectExperiment("amberlogin");
+  selectExperiment("amber");
 }
 </script>
 
@@ -37,7 +37,7 @@ if (state.defaultView == "amber")
       <v-list-item link title="Test runtime" @click="selectExperiment('runtime')"></v-list-item>
       <v-list-item link title="Test websocket" @click="selectExperiment('websocket')"></v-list-item>
       <v-list-item link title="Test chat" @click="selectExperiment('websocketchat')"></v-list-item>
-      <v-list-item link title="Test amber login" @click="selectExperiment('amberlogin')"></v-list-item>
+      <v-list-item link title="Test amber" @click="selectExperiment('amber')"></v-list-item>
     </v-navigation-drawer>
 
     <v-main class="d-flex" style="min-height: 300px;">
@@ -47,7 +47,7 @@ if (state.defaultView == "amber")
             <RuntimeExperiment v-if ="experiment == 'runtime'"></RuntimeExperiment>
             <WebsocketExperiment v-if ="experiment == 'websocket'"></WebsocketExperiment>
             <WebsocketChatExperiment v-if ="experiment == 'websocketchat'"></WebsocketChatExperiment>
-            <AmberLogin v-if ="experiment == 'amberlogin'"></AmberLogin>
+            <Amber v-if ="experiment == 'amber'"></Amber>
           </v-layout>
         </v-flex>
       </v-container>

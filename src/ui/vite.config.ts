@@ -4,7 +4,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({mode}) => ({
   plugins: [
     vue(),
   ],
@@ -17,6 +17,9 @@ export default defineConfig({
     outDir: "../backend/dist/static",
     emptyOutDir: true,
     sourcemap : true
+  },
+  define: {
+     __VUE_PROD_DEVTOOLS__: mode !== 'production'
   }
 
-})
+}))

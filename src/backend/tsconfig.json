@@ -9,7 +9,7 @@
       "target": "ES2022",
       
     },
-    "include": ["src/**.ts", "src/amber/config.ts"],
+    "include": ["src/**/*.ts"],
     "exclude": [],
     
 }

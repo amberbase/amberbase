@@ -1,18 +1,50 @@
 import { Express, Request, Response } from 'express';
 import {Config} from './config.js';
 import {AmberRepo, Invitation, User, UserWithRoles} from './db/repo.js';
-import {ActionResult, LoginRequest, nu, error, SessionToken as SessionTokenDto, RegisterRequest, AcceptInvitationRequest, UserDetails, CreateInvitationRequest, UserWithRoles as UserWithRolesDto, TenantWithRoles} from 'amber-client';
+import {ActionResult, LoginRequest, nu, error, SessionToken as SessionTokenDto, RegisterRequest, AcceptInvitationRequest, UserDetails, CreateInvitationRequest, UserWithRoles as UserWithRolesDto, TenantWithRoles, InvitationDetails} from 'amber-client';
 import * as crypto from 'node:crypto';
+import { sleep } from 'amber-client/dist/src/helper.js';
 
 export const tenantAdminRole = 'admin';
 export const allTenantsId = '*';
 
+var loginHeat = 0;
+var lastLogin = Date.now();
+var parallelLogins = 0;
 export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise<AmberAuth>{
     var authService = new AmberAuth(config, repo);
     await authService.init();
     
-    // This is the endpoint for  a login with credentials that will set a cookie with a user token
+    // This is the endpoint for a login with credentials that will set a cookie with a user token
     app.post(config.path + '/login', async (req, res) => {
+        
+        // this is where we need to protect against brute force attacks
+        if (parallelLogins > 10){
+            res.status(429).send(error("Too many parallel logins"));
+            return;
+        }
+
+        parallelLogins++;
+        var msSinceLastLogin = Date.now() - lastLogin;
+        if (msSinceLastLogin > 60_000){
+            loginHeat = 0;
+        } else
+        if (msSinceLastLogin < 1000 && loginHeat < 12){
+            loginHeat++;
+        }
+        else
+        {
+            if (loginHeat > 0)
+            {
+                loginHeat--;
+            }
+        }
+
+        lastLogin = Date.now();
+        await sleep(crypto.randomInt(1, 10) + (2^loginHeat)*10); // add a little delay to make timing and brute force attacks harder
+
+        parallelLogins--;
+
         var request: LoginRequest = req.body;
         var email = request.email;
         var password = request.password;
@@ -28,7 +60,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         res.send(nu<ActionResult>({success:true}));
     });
 
-    // This is the endpoint for  a login with credentials that will set a cookie with a user token
+    // This is the endpoint for a login with credentials that will set a cookie with a user token
     app.post(config.path + '/loginWithToken', async (req, res) => {
         var stayLoggedIn = req.params.stayLoggedIn;
         var oldToken = req.cookies?.auth;
@@ -103,7 +135,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         var validInvitation: Invitation | null = null;
         if (request.invitation){
             var repoinvitation = await repo.getInvitation(request.invitation);
-            if (repoinvitation && repoinvitation.valid_until > new Date() && !repoinvitation.accepted && repoinvitation.tenant === request.tenant){
+            if (repoinvitation && repoinvitation.valid_until > new Date() && !repoinvitation.accepted){
                 validInvitation = repoinvitation;
             }
         }
@@ -113,16 +145,8 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
             return;
         }
         var userId : string | undefined = undefined;
-
-        // let's see if this is an already existing and valid user
-        var user = await authService.validateUserPassword(request.email, request.password);
-
-        if (user){
-            userId = user.id;
-        }
-        else{
-            userId = await authService.createUser(request.username, request.email, request.password);
-        }
+        
+        userId = await authService.createUser(request.username, request.email, request.password);
 
         if (!userId){
             res.status(401).send(error("Unable to create user. Duplicate email?"));
@@ -133,9 +157,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
                 
                     await repo.acceptInvitation(validInvitation.id);
                     await authService.addRolesToUser(userId, validInvitation.tenant, validInvitation.roles);
-            }
-            var token = authService.createUserToken(userId, 60 * 24 * 7 * 4 * 12);
-        res.cookie('auth', token, {httpOnly: true, sameSite: 'strict', expires: request.stayLoggedIn ? new Date(Date.now() + 60 * 24 * 7 * 4 * 12 * 60_000) : undefined});
+            }            
             res.send(nu<string>(userId));
             return;
         }
@@ -154,7 +176,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         }
 
         var invitation = await repo.getInvitation(request.invitation);
-        if (!invitation || invitation.tenant !== request.tenant || new Date(invitation.valid_until) < new Date() || invitation.accepted){
+        if (!invitation || new Date(invitation.valid_until) < new Date() || invitation.accepted){
             res.status(401).send(error("Invalid invitation"));
             return;
         }
@@ -162,6 +184,20 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         await repo.acceptInvitation(request.invitation);
         await authService.addRolesToUser(userToken.userId, invitation.tenant, invitation.roles);
         
+    });
+
+    app.get(config.path + '/invitation/:invitation', async (req, res) => {
+        var invitation = await repo.getInvitation(req.params.invitation);
+        if (!invitation){
+            res.status(404).send(error("Invitation not found"));
+        }
+        res.send(nu<InvitationDetails>({
+            roles: invitation.roles,
+            tenantId: invitation.tenant,
+            expires: invitation.valid_until.getTime(),
+            isStillValid: new Date() < invitation.valid_until && !invitation.accepted,
+            tenantName: invitation.tenant == "*" ? "GLOBAL" : (await repo.getTenant(invitation.tenant))?.name 
+        }));
     });
 
     app.get(config.path + '/user', async (req, res) => {
@@ -252,6 +288,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         if (!checkAdmin(req, res)) return;
         var roles = req.body;
         repo.storeUserRoles(req.params.userid, req.params.tenant, roles);
+        res.send(nu<ActionResult>({success:true}));
     });
 
     app.post(config.path + '/tenant/:tenant/admin/invitation', async (req, res) => {

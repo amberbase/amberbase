@@ -33,6 +33,7 @@ onMounted(async ()=>{
 });
 </script>
 <template>
+  <v-container>
   <v-row>
       <h2>You are admin for all tenants</h2>
   </v-row>
@@ -56,6 +57,7 @@ onMounted(async ()=>{
       </v-card-actions>
     </v-card>
   </v-row>
+</v-container>
 </template>
 
 <style scoped>

@@ -11,9 +11,7 @@ export interface RegisterRequest{
     username:string;
     email:string;
     password:string;
-    tenant?:string;
     invitation?:string;
-    stayLoggedIn:boolean;
 }
 
 export interface ActionResult{
@@ -23,7 +21,6 @@ export interface ActionResult{
 
 export interface AcceptInvitationRequest{
     invitation:string;
-    tenant:string;
 }
 
 export interface SessionToken{
@@ -75,3 +72,10 @@ export interface TenantDetails{
     data:string;
 }
 
+export interface InvitationDetails{
+    tenantId:string;
+    tenantName:string;
+    isStillValid:boolean;
+    roles:string[];
+    expires:number;
+}

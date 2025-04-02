@@ -6,7 +6,8 @@ export interface UserWithCredential{id:string, email:string, name:string, creden
 export interface UserWithTenantsAndRoles{id:string, email:string, name:string, tenants:{[tenant:string]:string[]}};
 export interface UserWithRoles{id:string, email:string, name:string, roles:string[]};
 export interface Invitation{tenant:string, roles:string[], valid_until:Date, accepted?:Date, id:string};
-const migrationScripts:{lvl:number;sql?:string, migrate?: (conn:mariadb.PoolConnection)=>Promise<void>}[] = [
+type MigrationScript = {lvl:number, sql?:string, migrate?:(conn:mariadb.PoolConnection)=>Promise<void>};
+const migrationScripts:MigrationScript[] = [
     {lvl: 1, sql: 'CREATE TABLE IF NOT EXISTS users (`id` UUID NOT NULL, `name` VARCHAR(255), `email` VARCHAR(255), `credential_hash` VARCHAR(255), PRIMARY KEY (`email`), UNIQUE INDEX `id` (`id`))'},
     {lvl: 2, sql: 'CREATE TABLE IF NOT EXISTS roles (`user` UUID NOT NULL, `tenant` VARCHAR(255) NOT NULL, `roles` VARCHAR(255), PRIMARY KEY (`user`, `tenant`))'},
     {lvl: 3, sql: 'CREATE TABLE IF NOT EXISTS tenants (`id` VARCHAR(255) NOT NULL, `name` VARCHAR(255), `data` VARCHAR(10000), PRIMARY KEY (`id`))'},
@@ -133,6 +134,14 @@ export class AmberRepo {
             for (const role of roles){
                 tenantRoles[role.tenant] = role.roles.split(",");
             }
+
+            var globalRoles = tenantRoles["*"];
+            if (globalRoles){
+                for (const tenant in tenantRoles){
+                    tenantRoles[tenant] = [...(new Set([...tenantRoles[tenant], ...globalRoles]))];
+                }
+            }
+
             return {...result[0], tenants: tenantRoles};
         }
         finally{
@@ -173,7 +182,7 @@ export class AmberRepo {
     async getUserTenantsWithRoles(userId:string): Promise<{name:string, id:string, roles:string[]}[]> {
         var conn = await this.pool.getConnection();
         try{
-            var result = await conn.query<{name:string, id:string, roles:string}[]>("SELECT `name`, `id`, `roles` FROM tenants LEFT JOIN (SELECT `roles`, `tenant` FROM roles WHERE `user` = ?) AS r ON tenants.id = r.tenant ", [userId]);
+            var result = await conn.query<{name:string, id:string, roles:string}[]>("SELECT `name`, `tenant` AS `id`, `roles` FROM tenants RIGHT OUTER JOIN (SELECT `user`, `roles`, `tenant` FROM roles WHERE `user` = ?) AS r ON tenants.id = r.tenant ", [userId]);
             var tenantRoles =  result.map((row)=> {return {name: row.name, id :row.id, roles: row.roles ? row.roles.split(",") : []};});
             var globalRoles = tenantRoles.find((tenant)=> tenant.id === "*");
             if (globalRoles){

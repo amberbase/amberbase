@@ -84,11 +84,11 @@ export class AmberLoginManager {
         return this.userPromise.promise;
     }
 
-    async register(username: string, email: string, password: string, invitation: string, stayLoggedIn: boolean) : Promise<void> {
+    async register(username: string, email: string, password: string, invitation: string) : Promise<void> {
         var response = await fetch(this.apiPrefix + '/register', {
             method: 'POST',
             credentials: 'include',
-            body: JSON.stringify(nu<RegisterRequest>({username:username, email:email, password:password, invitation:invitation, stayLoggedIn:stayLoggedIn})),
+            body: JSON.stringify(nu<RegisterRequest>({username:username, email:email, password:password, invitation:invitation})),
             headers: {
                 'Content-Type': 'application/json'
             }
