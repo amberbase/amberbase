@@ -92,6 +92,7 @@ var amberInit = new AmberClientInit()
 
     if (newTenant!= null && newRoles != null && newRoles.length > 0 && userDetails.value)
     {
+      tenant.value = newTenant;
       var amberClient = amber.value!;
       var a : AmberClient = amberClient;
       emit('userReady', {
@@ -115,7 +116,6 @@ var amberInit = new AmberClientInit()
 
   amber.value = amberInit.start();
 
-  var getAmberClient = ()=>amber.value;
   if (state.amberInvitation)
   {
     amber.value?.getUserApi().getInvitationDetails(state.amberInvitation).then((details)=>{

@@ -207,14 +207,8 @@ export class AmberRepo {
     async getUserTenantsWithRoles(userId:string): Promise<{name:string, id:string, roles:string[]}[]> {
         var conn = await this.pool.getConnection();
         try{
-            var result = await conn.query<{name:string, id:string, roles:string}[]>("SELECT `name`, `tenant` AS `id`, `roles` FROM tenants RIGHT OUTER JOIN (SELECT `user`, `roles`, `tenant` FROM roles WHERE `user` = ?) AS r ON tenants.id = r.tenant ", [userId]);
-            var tenantRoles =  result.map((row)=> {return {name: row.name, id :row.id, roles: row.roles ? row.roles.split(",") : []};});
-            var globalRoles = tenantRoles.find((tenant)=> tenant.id === "*");
-            if (globalRoles){
-                for (const tenant of tenantRoles){
-                    tenant.roles = [...(new Set([...tenant.roles, ...globalRoles.roles]))];
-                }
-            }
+            var result = await conn.query<{name:string, tenant:string, roles:string}[]>("SELECT `name`, `id` AS `tenant`, GROUP_CONCAT( `roles` SEPARATOR ',') AS roles FROM tenants RIGHT OUTER JOIN (SELECT `user`, `roles`, `tenant` FROM roles WHERE `user` = ?) AS r ON tenants.id = r.tenant OR r.tenant = '*' GROUP BY `name`,`id`", [userId]);
+            var tenantRoles =  result.map((row)=> {return {name: row.name, id :row.tenant, roles: row.roles ? row.roles.split(",") : []};});
             return tenantRoles.filter((tenant)=> tenant.roles && tenant.roles.length > 0);
         }
         finally{

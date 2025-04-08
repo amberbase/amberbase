@@ -19,7 +19,7 @@ export function enableAdminApi(app:Express, config:Config, repo:AmberRepo, authS
         return false;
     }
 
-    // admin functionality for tenant admin user management
+    // admin functionality for tenant admin management
     app.get(config.path + '/tenants', async (req, res) => {
         if (!checkAdmin(req, res)) return;
         var tenants = await repo.getTenants();
@@ -28,6 +28,10 @@ export function enableAdminApi(app:Express, config:Config, repo:AmberRepo, authS
 
     app.delete(config.path + '/tenants/:tenant', async (req, res) => {
         if (!checkAdmin(req, res)) return;
+        var tenant = req.params.tenant;
+        if(tenant === allTenantsId) {
+            res.status(404).send(error("Unable to delete the global tenant"));
+        }
         await repo.deleteTenant(req.params.tenant);
         res.send(nu<ActionResult>({success:true}));
     });

@@ -160,8 +160,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
                     change_number: changeNumber,
                     change_user: changeUser,
                     change_time: changeTime,
-                    data: JSON.parse(data),
-                    access_tags: accessTags
+                    data: JSON.parse(data)
                 }
             });
             }
@@ -283,8 +282,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
                             change_number: document.change_number,
                             change_user: document.change_user,
                             change_time: document.change_time,
-                            data: data,
-                            access_tags: document.access_tags
+                            data: data
                         }
                     });
                 }
@@ -468,8 +466,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
                             change_number: changeNumber,
                             change_user: connection.userId,
                             change_time: new Date(),
-                            data: data,
-                            access_tags: accessTags
+                            data: data
                         }
                     });
                 }

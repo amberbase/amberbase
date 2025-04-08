@@ -1,15 +1,78 @@
 import { AmberSessionProtocolPrefix, CollectionClientWsMessage, CollectionDocument, AmberServerMessage, SubscribeCollectionMessage, AmberServerResponseMessage, AmberCollectionClientMessage, ServerError, ServerSyncDocument, DeletedCollectionDocument, UnsubscribeCollectionMessage, ServerSuccessWithDocument, CreateDocument, UpdateDocument, ServerSuccess, DeleteDocument } from "./dtos.js";
 
+/**
+ * SDK API for the amber collections
+ */
 export interface AmberCollections{
+    /**
+     * Connect to the amber server. This will open a websocket connection and start receiving messages. The connection is potentially already established, there will only be one.
+     * 
+     * @returns A promise that resolves when the connection is established.
+     */
     connect(): Promise<void>;
+
+    /**
+     * Disconnect from the amber server. This will close the websocket connection and stop receiving messages.
+     * 
+     * @returns A promise that resolves when the connection is closed.
+     */
     disconnect(): Promise<void>;
-    subscribe<T>(collection:string, lastReceivedChange:number, onDocument:(doc:CollectionDocument<T>) => void, onDocumentDelete:(docId:string) => void): void;
-    unsubscribe(collection:string): void;
-    createDoc<T>(collection:string, content:T): Promise<string>;
-    updateDoc<T>(collection:string, documentId:string, changeNumber:number, content:T): Promise<void>;
-    deleteDoc(collection:string, documentId:string): Promise<void>;
+
+    /**
+     * Listen to connection changes. If the connection already exists the callback will be immediately called with true.
+     * @param callback Listener
+     */
     onConnectionChanged(callback:(connected:boolean) => void): void;
+
+    /**
+     * Stop listening to connection changes.
+     * @param callback The same listener that was passed to onConnectionChanged
+     */
     offConnectionChanged(callback:(connected:boolean) => void): void;
+
+    /**
+     * Subscribe to a collection. This will start receiving messages for the collection. The lastReceivedChange is used to determine the starting point for the subscription.
+     * Use the generic parameter to inform typescript of the schema of the documents in the collection
+     * @param collection The collection to subscribe to
+     * @param lastReceivedChange The last change number received. This is used to determine the starting point for the subscription.
+     * @param onDocument Callback for when a document is received
+     * @param onDocumentDelete Callback for when a document is deleted
+     */
+    subscribe<T>(collection:string, lastReceivedChange:number, onDocument:(doc:CollectionDocument<T>) => void, onDocumentDelete:(docId:string) => void): void;
+
+    /**
+     * Unsubscribe from a collection. This will stop receiving messages for the collection.
+     * @param collection The collection to unsubscribe from
+     */
+    unsubscribe(collection:string): void;
+
+    /**
+     * Create a new document. This will create a new document in the collection and return the document id. 
+     * The document will be sent to the client as a sync message before the promise resolves succesfully, so the application can immediately navigate to it. 
+     * @param collection The collection to create the document in
+     * @param content The content of the document
+     * @returns The document id of the created document
+     */
+    createDoc<T>(collection:string, content:T): Promise<string>;
+
+    /**
+     * Update a document. This will update the document in the collection and return the document id. 
+     * The document will be sent to the client as a sync message before the promise resolves succesfully. 
+     * @param collection The collection to update the document in
+     * @param documentId The document id of the document to update
+     * @param content The content of the document
+     * @returns The document id of the updated document
+     */
+    updateDoc<T>(collection:string, documentId:string, changeNumber:number, content:T): Promise<void>;
+
+    /**
+     * Delete a document. This will delete the document in the collection and return the document id. 
+     * The document will be sent to the client as a sync-delete message before the promise resolves succesfully. 
+     * @param collection The collection to delete the document from
+     * @param documentId The document id of the document to delete
+     * @returns The document id of the deleted document
+     */
+    deleteDoc(collection:string, documentId:string): Promise<void>;
 }
 
 export class AmberConnectionsClient implements AmberCollections{
@@ -44,6 +107,9 @@ export class AmberConnectionsClient implements AmberCollections{
     onConnectionChanged(callback:(connected:boolean) => void)
     {
         this.connectionChangeHandlers.push(callback);
+        if(this.connected){
+            callback(true);
+        }
     }
 
     offConnectionChanged(callback:(connected:boolean) => void)
@@ -234,6 +300,4 @@ export class AmberConnectionsClient implements AmberCollections{
 
         });
     }
-
-
 }

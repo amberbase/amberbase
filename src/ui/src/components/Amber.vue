@@ -48,10 +48,10 @@ var onUserReady = (details:{client: AmberClient,userId:string, userName:string, 
     <v-row v-if ="amberUser && amberUser.tenant!='*'">
       <AmberTenantAdmin v-if="amberUser && amberClient  && amberUser.roles.includes('admin')" :amber-client="amberClient" :tenant="amberUser.tenant" :roles="['admin','editor','reader']"></AmberTenantAdmin>
     </v-row>
-    <v-row v-if ="amberUser && amberUser.tenant!='*'">
+    <v-row v-if ="amberUser && amberUser.tenant!='*' && (amberUser.roles.includes('reader') || amberUser.roles.includes('editor'))">
       <AmberToDoTest v-if="amberUser && amberClient" :amber-client="amberClient"></AmberToDoTest>
     </v-row>
-    <v-row v-if ="amberUser && amberUser.tenant!='*'">
+    <v-row v-if ="amberUser && amberUser.tenant!='*' && (amberUser.roles.includes('reader') || amberUser.roles.includes('editor'))">
       <AmberNotesTest v-if="amberUser && amberClient" :amber-client="amberClient"></AmberNotesTest>
     </v-row>
     </v-container>
