@@ -92,6 +92,8 @@ var amberInit = new AmberClientInit()
 
     if (newTenant!= null && newRoles != null && newRoles.length > 0 && userDetails.value)
     {
+      var amberClient = amber.value!;
+      var a : AmberClient = amberClient;
       emit('userReady', {
         client: amber.value!,
         userId: userDetails.value?.id || "",

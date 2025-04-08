@@ -1,13 +1,13 @@
 import { Express, Request, Response } from 'express';
 import {Config} from './config.js';
 import {AmberRepo, Invitation, User, UserWithRoles} from './db/repo.js';
-import {ActionResult, LoginRequest, nu, error, SessionToken as SessionTokenDto, RegisterRequest, AcceptInvitationRequest, UserDetails, CreateInvitationRequest, UserWithRoles as UserWithRolesDto, TenantWithRoles, InvitationDetails} from 'amber-client';
+import {ActionResult, LoginRequest, nu, error, SessionToken as SessionTokenDto, RegisterRequest, AcceptInvitationRequest, UserDetails, CreateInvitationRequest, UserWithRoles as UserWithRolesDto, TenantWithRoles, InvitationDetails, UserInfo} from 'amber-client';
 import * as crypto from 'node:crypto';
 import { sleep } from 'amber-client/dist/src/helper.js';
 
 export const tenantAdminRole = 'admin';
 export const allTenantsId = '*';
-
+export const sessionHeader = 'AmberSession';
 var loginHeat = 0;
 var lastLogin = Date.now();
 var parallelLogins = 0;
@@ -211,7 +211,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         }
         if (!userId)
         {
-            var sessionToken = req.header('AmberSession');
+            var sessionToken = req.header(sessionHeader);
             if (sessionToken){
                 var session = authService.validateSessionToken(sessionToken);
                 if (session){
@@ -260,7 +260,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
 
      
     function checkAdmin(req:Request, res: Response) : boolean {
-        var sessionToken = req.header('AmberSession');
+        var sessionToken = req.header(sessionHeader);
         if (sessionToken) {
             var session = authService.validateSessionToken(sessionToken);
             if (session && session.roles.indexOf(tenantAdminRole) !== -1 && (session.tenant === req.params.tenant || session.tenant === allTenantsId) ) {
@@ -271,12 +271,26 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         return false;
     }
 
+    //get all users for a tenant (allowed for users of the tenant). Will contain global users as well
+    app.get(config.path + '/tenant/:tenant/users', async (req, res) => {
+        var sessionToken = req.header(sessionHeader);
+        var session = authService.validateSessionToken(sessionToken);
+        if (!session || session.tenant !== req.params.tenant) {
+            res.status(401).send(error("Not authorized"));
+            return;
+        }
+        
+        var users = await repo.getUsersForTenant(req.params.tenant);
+        res.send(nu<UserInfo[]>(users));
+    });
+
     // admin functionality for tenant admin user management
     app.get(config.path + '/tenant/:tenant/admin/users', async (req, res) => {
         if (!checkAdmin(req, res)) return;
         var users = await repo.getUsersWithRoles(req.params.tenant);
         res.send(nu<UserWithRolesDto[]>(users));
     });
+
 
     app.delete(config.path + '/tenant/:tenant/admin/user/:userid', async (req, res) => {
         if (!checkAdmin(req, res)) return;
@@ -301,7 +315,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
     return authService;
 }
 
-interface SessionToken{
+export interface SessionToken{
     userId: string;
     tenant: string;
     roles: string[];
@@ -345,7 +359,11 @@ export class AmberAuth{
         return tokenPayload + "." + signature;
     }
 
-    validateSessionToken(token: string): SessionToken | undefined{
+    validateSessionToken(token: string | undefined): SessionToken | undefined{
+        if (!token)
+        {
+            return undefined;
+        }
         var [tokenPayload, signature] = token.split('.');
         
         var hmac = crypto.createHmac('sha256', this.primarySecret);

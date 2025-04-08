@@ -5,6 +5,7 @@ import AmberGlobalAdmin from "./AmberGlobalAdmin.vue";
 import AmberLogin from "./AmberLogin.vue";
 import { state } from "@/state";
 import AmberTenantAdmin from "./AmberTenantAdmin.vue";
+import AmberToDoTest from "./AmberToDoTest.vue";
 
 interface AmberUserDetails
 {
@@ -44,7 +45,10 @@ var onUserReady = (details:{client: AmberClient,userId:string, userName:string, 
       <AmberTenantAdmin :amber-client="amberClient" :tenant="amberUser.tenant" :roles="['admin']"></AmberTenantAdmin>
     </v-row>
     <v-row v-if ="amberUser && amberUser.tenant!='*'">
-      <AmberTenantAdmin v-if="amberUser && amberClient  && amberUser.roles.includes('admin')" :amber-client="amberClient" :tenant="amberUser.tenant" :roles="['admin','role1','role2']"></AmberTenantAdmin>
+      <AmberTenantAdmin v-if="amberUser && amberClient  && amberUser.roles.includes('admin')" :amber-client="amberClient" :tenant="amberUser.tenant" :roles="['admin','editor','reader']"></AmberTenantAdmin>
+    </v-row>
+    <v-row v-if ="amberUser && amberUser.tenant!='*'">
+      <AmberToDoTest v-if="amberUser && amberClient" :amber-client="amberClient"></AmberToDoTest>
     </v-row>
     </v-container>
 </template>

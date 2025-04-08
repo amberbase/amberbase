@@ -6,13 +6,38 @@ export interface UserWithCredential{id:string, email:string, name:string, creden
 export interface UserWithTenantsAndRoles{id:string, email:string, name:string, tenants:{[tenant:string]:string[]}};
 export interface UserWithRoles{id:string, email:string, name:string, roles:string[]};
 export interface Invitation{tenant:string, roles:string[], valid_until:Date, accepted?:Date, id:string};
+export interface Document{tenant:string, collection:string, id:string, change_number:number, change_user:string, change_time:Date, data:string | null, access_tags:string[]};
+export interface SyncAction{tenant:string, collection:string, id:string, change_number:number, change_time:Date, access_tags:string[] | null, new_access_tags:string[] | null, deleted:boolean};
+
 type MigrationScript = {lvl:number, sql?:string, migrate?:(conn:mariadb.PoolConnection)=>Promise<void>};
 const migrationScripts:MigrationScript[] = [
     {lvl: 1, sql: 'CREATE TABLE IF NOT EXISTS users (`id` UUID NOT NULL, `name` VARCHAR(255), `email` VARCHAR(255), `credential_hash` VARCHAR(255), PRIMARY KEY (`email`), UNIQUE INDEX `id` (`id`))'},
     {lvl: 2, sql: 'CREATE TABLE IF NOT EXISTS roles (`user` UUID NOT NULL, `tenant` VARCHAR(255) NOT NULL, `roles` VARCHAR(255), PRIMARY KEY (`user`, `tenant`))'},
     {lvl: 3, sql: 'CREATE TABLE IF NOT EXISTS tenants (`id` VARCHAR(255) NOT NULL, `name` VARCHAR(255), `data` VARCHAR(10000), PRIMARY KEY (`id`))'},
-    {lvl: 4, sql: 'CREATE TABLE IF NOT EXISTS invitations (`id` VARCHAR(50) NOT NULL,`tenant` VARCHAR(50) NULL DEFAULT NULL,`roles` VARCHAR(255) NULL DEFAULT NULL,`valid_until` DATETIME NULL DEFAULT NULL,`accepted` DATETIME NULL DEFAULT NULL,PRIMARY KEY (`id`))'}
+    {lvl: 4, sql: 'CREATE TABLE IF NOT EXISTS invitations (`id` VARCHAR(50) NOT NULL,`tenant` VARCHAR(50) NULL DEFAULT NULL,`roles` VARCHAR(255) NULL DEFAULT NULL,`valid_until` DATETIME NULL DEFAULT NULL,`accepted` DATETIME NULL DEFAULT NULL,PRIMARY KEY (`id`))'},
+    {lvl: 5, sql: "CREATE TABLE `documents` (`tenant` VARCHAR(255) NOT NULL,`collection` VARCHAR(50) NOT NULL,`id` UUID NOT NULL,`change_number` INT UNSIGNED NOT NULL DEFAULT '0',`change_user` UUID NULL,`change_time` DATETIME NOT NULL,`data` LONGTEXT NULL,`access_tags` VARCHAR(4096) NULL DEFAULT NULL,PRIMARY KEY (`id`),INDEX `tenant_collection` (`tenant`, `collection`),FULLTEXT INDEX `access_tags` (`access_tags`))"},
+    {lvl: 6, sql: "CREATE TABLE `syncactions` (`tenant` VARCHAR(255) NOT NULL,`collection` VARCHAR(50) NOT NULL,`id` UUID NOT NULL,`change_number` INT(10) UNSIGNED NOT NULL DEFAULT '0',`change_time` DATETIME NOT NULL,`access_tags` VARCHAR(4096) NULL DEFAULT NULL,`new_access_tags` VARCHAR(4096) NULL DEFAULT NULL,`deleted` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,INDEX `tenant_collection` (`tenant`, `collection`,  `change_number`) USING BTREE,FULLTEXT INDEX `access_tags` (`access_tags`))"},
+
 ];
+
+function compareArraySets(a:string[], b:string[]): boolean {
+    if (a.length !== b.length) return false;
+    var setB = new Set(b);
+    for (const item of a){
+        if (!setB.has(item)){
+            return false;
+        }
+    }
+    return true;
+}
+
+function arraySetToString(a:string[] | undefined): string {
+    if (a === undefined){
+        return "";
+    }
+    var sorted = [...(a.map(i=>i.trim()))].sort((a,b)=> a.localeCompare(b)); // sort the array to make sure that the order is the same
+    return a.join(" ");
+}
 
 // this class is a singleton! That means that it can keep some state in a cache and reuse it between requests
 export class AmberRepo {
@@ -208,6 +233,17 @@ export class AmberRepo {
         }
     }
 
+    async getUsersForTenant(tenant:string): Promise<User[]> {
+        var conn = await this.pool.getConnection();
+        try{
+            var result = await conn.query<{user:string, email:string, name:string}[]>("SELECT user, email, name FROM roles JOIN users ON roles.`user` = users.id WHERE roles.`tenant` = ? OR roles.`tenant` = '*'" , [tenant]);
+            return result.map((user)=> {return {id: user.user, email: user.email, name: user.name};});
+        }
+        finally{
+            conn.end();
+        }
+    }
+
     async storeUser(user: UserWithCredential): Promise<boolean> {
         user.email = user.email.toLowerCase();
         var conn = await this.pool.getConnection();
@@ -360,5 +396,303 @@ export class AmberRepo {
         finally{
             conn.end();
         }
+    }
+
+    async getLastChangeNumber(tenant:string, collection:string): Promise<number> {
+        var conn = await this.pool.getConnection();
+        try{
+            // changes are either in the documents, or in case that a document has been deleted, in the syncactions table. We need to get the max change number from both tables and return the higher one
+            var resultDocs = await conn.query<{change_number:number}[]>("SELECT MAX(change_number) AS change_number FROM documents WHERE tenant = ? AND collection = ?", [tenant, collection]);
+            var resultActions = await conn.query<{change_number:number}[]>("SELECT MAX(change_number) AS change_number FROM syncactions WHERE tenant = ? AND collection = ?", [tenant, collection]);
+            var res = 0;
+            if (resultDocs.length > 0){
+                res = resultDocs[0].change_number;
+            }
+
+            if (resultActions.length > 0){
+                res = Math.max(res, resultActions[0].change_number);
+            }
+            return res;
+        }
+        finally{
+            conn.end();
+        }
+    }
+
+    changeNumberCache: Map<string, number> = new Map(); // cache for change numbers
+
+    async getLastChangeNumberFromCache(tenant:string, collection:string): Promise<number> {
+        var cached = this.changeNumberCache.get(`${tenant}.${collection}`);
+        if (cached!== undefined){
+            
+            return cached;
+        }
+        // if the change number is not in the cache, we need to get it from the database
+        var changeNumber = await this.getLastChangeNumber(tenant, collection);
+        this.changeNumberCache.set(`${tenant}.${collection}`, changeNumber);
+        return changeNumber;    
+    }
+
+    async incrementLastChangeNumberFromCache(tenant:string, collection:string): Promise<number> {
+        var lastNumber = await this.getLastChangeNumberFromCache(tenant, collection);
+        lastNumber++;
+        this.changeNumberCache.set(`${tenant}.${collection}`, lastNumber);
+        return lastNumber;
+    }
+
+    async getDocument(tenant:string, collection:string, id:string): Promise<Document | undefined> {
+        var conn = await this.pool.getConnection();
+        try{
+            var result = await conn.query<{tenant:string, collection:string, id:string, change_number:number, change_user:string, change_time:Date, data:string, access_tags:string}[]>("SELECT tenant, collection, id, change_number, change_user, change_time, data, access_tags FROM documents WHERE tenant = ? AND collection = ? AND id = ?", [tenant, collection, id]);
+            if (result.length === 0){
+                return undefined;
+            }
+            return {
+                tenant: result[0].tenant,
+                collection: result[0].collection,
+                id: result[0].id,
+                change_number: result[0].change_number,
+                change_user: result[0].change_user,
+                change_time: result[0].change_time,
+                data: result[0].data,
+                access_tags: result[0].access_tags ? result[0].access_tags.split(" ") : []
+            };
+        }
+        finally{
+            conn.end();
+        }
+    }
+
+    /**
+     * Create a new document in the database. The document is created with a new id and a change number that is incremented from the last change number.
+     * @param tenant tenant id
+     * @param collection collection id
+     * @param changeUser the users uuid issuing the document
+     * @param data new data
+     * @param accessTags new access tags
+     * @returns the new document id or undefined if the document could not be created
+     */
+    async createDocument(tenant:string, collection:string, changeUser:string | undefined, data:string, accessTags:string[]): Promise<Document | undefined> {
+        var conn = await this.pool.getConnection();
+        var id = crypto.randomUUID();
+        var changeTime = new Date();
+        var changeNumber = await this.incrementLastChangeNumberFromCache(tenant, collection);
+        try{
+            await conn.query(
+                "INSERT INTO documents (tenant, collection, id, change_number, change_user, change_time, data, access_tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+                [tenant, collection, id, changeNumber, changeUser || null, changeTime, data, arraySetToString(accessTags)]);
+            return {
+                tenant: tenant,
+                collection: collection,
+                id: id,
+                change_number: changeNumber,
+                change_user: changeUser,
+                change_time: changeTime,
+                data: data,
+                access_tags: accessTags
+            };
+        }
+        finally{
+            conn.end();
+        }
+    }
+
+    /**
+     * Update an existing document
+     * @param tenant tenant id
+     * @param collection collection id
+     * @param id the id of the document to alter
+     * @param changeUser the users uuid issuing the document
+     * @param data the new data for the document. 
+     * @param accessTags Old and new access tags. It will only be updated if it is not undefined and store a sync action accordingly as well.
+     * @param oldDocument we need the old document anyway in the flow. So we use it for optimistic concurrency and to see if we need to add a sync action or not.
+     * @returns The new changeNumber or 0 if no change was performed.
+     */
+    async updateDocument(tenant:string, collection:string, id:string, changeUser:string | undefined, data:string, accessTags:string[], oldDoc : Document): Promise<number> {
+        if (data === undefined ){
+            return 0; // nothing to do, and we just did that
+        }
+
+        var conn = await this.pool.getConnection();
+        
+        var changeTime = new Date();
+        var changeNumber = await this.incrementLastChangeNumberFromCache(tenant, collection);
+        
+        try{
+            var result = await conn.query(
+                `UPDATE documents SET data = ?, access_tags = ?, change_number = ?, change_user = ?, change_time = ? WHERE tenant = ? AND collection = ? AND id = ? AND change_number = ?;`, 
+                [
+                    data,
+                    arraySetToString(accessTags) , 
+                    changeNumber, changeUser ||null, changeTime, tenant, collection, id, 
+                    oldDoc.change_number, 
+                ]
+                );
+
+            if (result.affectedRows === 0){
+                return 0;
+            }
+
+            // if the access tags have changed, we need to add a sync action for that
+            if (oldDoc.access_tags !== undefined && accessTags !== undefined && !compareArraySets(oldDoc.access_tags, accessTags)){
+                await conn.query(
+                    `INSERT INTO syncactions (tenant, collection, id, change_number, change_time, access_tags, new_access_tags) VALUES (?, ?, ?, ?, ?, ?, ?);`, 
+                    [tenant, collection, id, changeNumber, changeTime, arraySetToString(oldDoc.access_tags), arraySetToString(accessTags)]);
+            }
+            return changeNumber;
+        }
+        finally{
+            conn.end();
+        }
+        return 0;
+    }
+
+    /**
+     * Deletes a document from the database. This is in fact a soft delete, we will otherwise have a problem with clients that "miss" the deletion by being offline and caching the data
+     * @param tenant tenant id
+     * @param collection collection id
+     * @param id the id of the document to delete
+     * @returns the change number on success, 0 otherwise
+     */
+    async deleteDocument(tenant:string, collection:string, id:string): Promise<number> {
+        var conn = await this.pool.getConnection();
+        var changeTime = new Date();
+        // we need to increment the change number for the sync action, but not for the document itself. The document is deleted, so it will not be synced anymore.
+        var changeNumberForSyncAction = await this.incrementLastChangeNumberFromCache(tenant, collection);
+
+        try{
+            var result = await conn.query(
+`START TRANSACTION;
+DELETE FROM documents WHERE tenant = ? AND collection = ? AND id = ?;
+INSERT INTO syncactions (tenant, collection, id, change_number, change_time, deleted) VALUES (?, ?, ?, ?, ?, 1);
+COMMIT;`,
+ [tenant, collection, id, tenant, collection, id, changeNumberForSyncAction,changeTime]);
+            if (result.affectedRows === 0){
+                return 0;
+            }
+            return changeNumberForSyncAction;
+        }
+        finally{
+            conn.end();
+        }
+    }
+
+    async getAllDocuments(tenant:string, collection:string, newerThanChangeNumber:number | undefined, withOneOfTheseAccessTags:string[] | undefined): Promise<Document[]> {
+        var conn = await this.pool.getConnection();
+        var accessTagFilter:string | undefined = undefined;
+        if (withOneOfTheseAccessTags !== undefined){
+            if (withOneOfTheseAccessTags.length === 0){
+                return []; // we cannot match anything with an empty access tag list
+            }
+            accessTagFilter = "AND (" + withOneOfTheseAccessTags.map((tag)=> `MATCH(access_tags) AGAINST(? IN BOOLEAN MODE)`).join(" OR ") + ")";
+        }
+        withOneOfTheseAccessTags !== undefined ? withOneOfTheseAccessTags.map((tag)=> `+${tag}`).join(" ") : undefined;
+        try{
+            var result = await conn.query<{tenant:string, collection:string, id:string, change_number:number, change_user:string, change_time:Date, data:string, access_tags:string}[]>
+                (`SELECT tenant, collection, id, change_number, change_user, change_time, data, access_tags FROM documents WHERE tenant = ? AND collection = ?${newerThanChangeNumber !== undefined ? " AND change_number > ?" : ""}${accessTagFilter !== undefined ? accessTagFilter : ""}`, 
+                [tenant, collection, 
+                    ...(newerThanChangeNumber !== undefined ? [newerThanChangeNumber] : []), 
+                    ...(withOneOfTheseAccessTags !== undefined ? withOneOfTheseAccessTags : [])
+                ]);
+            return result.map((doc)=> {return {tenant: doc.tenant, collection: doc.collection, id: doc.id, change_number: doc.change_number, change_user: doc.change_user, change_time: doc.change_time, data: doc.data, access_tags: doc.access_tags ? doc.access_tags.split(" ") : []};});
+        }
+        finally{
+            conn.end();
+        }
+    }
+
+    /**
+     * Stream the documents of a collection to the client. The documents are streamed in rows, so the client can process them as they arrive.
+     * @param tenant tenant id
+     * @param collection collection id
+     * @param newerThanChangeNumber last change number that the client has. The server will only send documents with a higher change number.
+     * @param withOneOfTheseAccessTags filter for access tags. The server will only send documents that match at least one of the access tags. If this is undefined, all documents are sent.
+     * @param rowCallback callback for streaming the data. The callback is called for each row in the result set.
+     * @returns A promise that is only resolved when the stream is finished. The promise will be rejected if an error occurs during streaming.
+     */
+    async streamAllDocuments(tenant:string, collection:string, newerThanChangeNumber:number | undefined, withOneOfTheseAccessTags:string[] | undefined, rowCallback:(doc:Document)=>void): Promise<void> {
+        
+        var conn = await this.pool.getConnection();
+        var accessTagFilter:string | undefined = undefined;
+        if (withOneOfTheseAccessTags !== undefined){
+            if (withOneOfTheseAccessTags.length === 0){
+                return; // we cannot match anything with an empty access tag list
+            }
+            accessTagFilter = "AND (" + withOneOfTheseAccessTags.map((tag)=> `MATCH(access_tags) AGAINST(? IN BOOLEAN MODE)`).join(" OR ") + ")";
+        }
+        
+            var p = new Promise<void>((resolve, reject)=>{
+                try{
+                    conn.queryStream
+                        (`SELECT tenant, collection, id, change_number, change_user, change_time, data, access_tags FROM documents WHERE tenant = ? AND collection = ?${newerThanChangeNumber !== undefined ? " AND change_number > ?" : ""}${accessTagFilter !== undefined ? accessTagFilter : ""}`, 
+                        [tenant, collection, 
+                            ...(newerThanChangeNumber !== undefined ? [newerThanChangeNumber] : []), 
+                            ...(withOneOfTheseAccessTags !== undefined ? withOneOfTheseAccessTags : [])
+                        ])
+                        .on("data", 
+                            (doc:{tenant:string, collection:string, id:string, change_number:number, change_user:string, change_time:Date, data:string | null, access_tags:string})=> 
+                            {
+                                rowCallback({tenant: doc.tenant, collection: doc.collection, id: doc.id, change_number: doc.change_number, change_user: doc.change_user, change_time: doc.change_time, data: doc.data, access_tags: doc.access_tags ? doc.access_tags.split(" ") : []});
+                            }
+                        )
+                        .on("end", ()=> {
+                            resolve();
+                        });
+                }
+                catch (e){
+                    reject(e);
+                }
+                finally{
+                    conn.end();
+                }
+            });
+            await p;
+    }
+
+    /**
+     * Stream the documents of a collection to the client. The documents are streamed in rows, so the client can process them as they arrive.
+     * @param tenant tenant id
+     * @param collection collection id
+     * @param newerThanChangeNumber last change number that the client has. The server will only send documents with a higher change number.
+     * @param withOneOfTheseAccessTags filter for access tags. The server will only send documents that match at least one of the access tags. If this is undefined, all documents are sent.
+     * @param rowCallback callback for streaming the data. The callback is called for each row in the result set.
+     * @returns A promise that is only resolved when the stream is finished. The promise will be rejected if an error occurs during streaming.
+     */
+    async streamAllSyncActions(tenant:string, collection:string, newerThanChangeNumber:number, withOneOfTheseAccessTags:string[] | undefined, rowCallback:(doc:SyncAction)=>void): Promise<void> {
+        
+        var conn = await this.pool.getConnection();
+        var accessTagFilter:string | undefined = undefined;
+        if (withOneOfTheseAccessTags !== undefined){
+            if (withOneOfTheseAccessTags.length === 0){
+                return; // we cannot match anything with an empty access tag list
+            }
+            accessTagFilter = "AND (" + withOneOfTheseAccessTags.map((tag)=> `MATCH(access_tags) AGAINST(? IN BOOLEAN MODE)`).join(" OR ") + ")";
+        }
+        
+            var p = new Promise<void>((resolve, reject)=>{
+                try{
+                    conn.queryStream
+                        (`SELECT tenant, collection, id, change_number, change_time, access_tags, new_access_tags, deleted FROM syncactions WHERE tenant = ? AND collection = ? AND change_number > ?${accessTagFilter !== undefined ? accessTagFilter : ""}`, 
+                        [tenant, collection, newerThanChangeNumber, 
+                            ...(withOneOfTheseAccessTags !== undefined ? withOneOfTheseAccessTags : [])
+                        ])
+                        .on("data", 
+                            (doc:{tenant:string, collection:string, id:string, change_number:number, change_time:Date, access_tags:string, new_access_tags:string, deleted:boolean})=> 
+                            {
+                                rowCallback({tenant: doc.tenant, collection: doc.collection, id: doc.id, change_number: doc.change_number, change_time: doc.change_time, access_tags: doc.access_tags ? doc.access_tags.split(" ") : [], new_access_tags: doc.new_access_tags ? doc.new_access_tags.split(" ") : [], deleted:doc.deleted});
+                            }
+                        )
+                        .on("end", ()=> {
+                            resolve();
+                        });
+                }
+                catch (e){
+                    reject(e);
+                }
+                finally{
+                    conn.end();
+                }
+            });
+            await p;
     }
 }

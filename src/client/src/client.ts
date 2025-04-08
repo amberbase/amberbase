@@ -1,4 +1,5 @@
-import { AmberUserApi } from "./api.js";
+import { AmberApi, AmberUserApi } from "./api.js";
+import { AmberCollections, AmberConnectionsClient } from "./collections.js";
 import { UserDetails } from "./dtos.js";
 import { AmberLoginManager } from "./login.js";
 
@@ -123,7 +124,7 @@ export class AmberClient{
         
     }
 
-    getAmberApi(){
+    getAmberApi() : AmberApi | undefined{
         if (this.loginManager){
             return this.loginManager.getAmberApi();
         }
@@ -131,5 +132,25 @@ export class AmberClient{
 
     getUserApi(){
         return new AmberUserApi(this.apiPrefix);
+    }
+
+    connectionsClient : AmberConnectionsClient | null = null;
+    
+    /**
+     * Get the collections client for this tenant
+     * @returns the collections client for this tenant
+     */
+    getCollectionsApi(): AmberCollections{
+        if (this.connectionsClient == null){
+            var tenant = this.loginManager.tenant;
+            if (tenant == null){
+                throw new Error("No tenant set in login manager yet");
+            }
+            this.connectionsClient = new AmberConnectionsClient(this.apiPrefix, 
+                tenant ,
+                ()=>this.loginManager.sessionToken()
+            );
+        }
+        return this.connectionsClient;
     }
 }

@@ -1,17 +1,12 @@
 import express from 'express'
-import * as http from 'http'
 import {amber} from './amber/amber.js'
 import {relativeTimeFromDates} from './timeHelper.js'
 import * as path from 'path';
-import {simpleWebsockets} from './amber/websocket/websocket.js'
 import {chat} from './test/chat.js'
-
-import {loadConfig} from './amber/config.js'
-
-import {AmberRepo} from './amber/db/repo.js'
 
 import {fileURLToPath} from 'url';
 import cookieParser from 'cookie-parser';
+import { AccessAction } from './amber/collections.js';
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -33,6 +28,14 @@ app.get('/starttime', (req, res) => {
 app.get('/test', (req, res) => {
     res.send(`What's up?`)
   });
+
+
+ //This is just for the demo. Would be in some models.ts file
+interface ToDoEntity {
+  title: string;
+  description: string;
+  completed: boolean;
+}
 
 var amberInit = amber(app)
               .withConfig({
@@ -71,6 +74,20 @@ var amberInit = amber(app)
                   };
                 }
                 return undefined;
-            });
+            }).withCollection<ToDoEntity>("todos",
+              {
+                accessRights:{
+                  "editor":['create',"update","delete","read"],
+                  "reader":['read']
+                },
+                validator:(user, oldDoc:ToDoEntity, newDoc:ToDoEntity | null, action:AccessAction) => {
+                  if (action == 'create' || action == 'update') 
+                  {
+                    if (newDoc.title.length < 3) return false;
+                  }
+                  return true;
+                }
+              }
+            );
 var amberApp = await amberInit.start(port);
 amberApp.auth.addUserIfNotExists('admin',"Christians Admin Account","password", "*",["admin"]);

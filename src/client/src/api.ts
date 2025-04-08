@@ -1,4 +1,4 @@
-import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, CreateTenantRequest, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails} from './dtos.js'
+import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, CreateTenantRequest, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails, UserInfo} from './dtos.js'
 import { CompletablePromise, sleep } from './helper.js';
 
 class ApiClient {
@@ -122,6 +122,10 @@ export class AmberApi{
     apiClient: ApiClient;
     constructor(prefix: string, tenant:string, tokenProvider: () => Promise<string>){
         this.apiClient = new ApiClient(prefix, tenant, tokenProvider);
+    }
+
+    async getUsers() : Promise<UserInfo[]> {
+        return await this.apiClient.fetch<UserInfo[]>("GET", '/tenant/:tenant/users');
     }
 }
 
