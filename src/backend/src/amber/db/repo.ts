@@ -236,7 +236,7 @@ export class AmberRepo {
     async getUsersForTenant(tenant:string): Promise<User[]> {
         var conn = await this.pool.getConnection();
         try{
-            var result = await conn.query<{user:string, email:string, name:string}[]>("SELECT user, email, name FROM roles JOIN users ON roles.`user` = users.id WHERE roles.`tenant` = ? OR roles.`tenant` = '*'" , [tenant]);
+            var result = await conn.query<{user:string, email:string, name:string}[]>("SELECT DISTINCT user, email, name FROM roles JOIN users ON roles.`user` = users.id WHERE roles.`tenant` = ? OR roles.`tenant` = '*'" , [tenant]);
             return result.map((user)=> {return {id: user.user, email: user.email, name: user.name};});
         }
         finally{
@@ -561,13 +561,16 @@ export class AmberRepo {
         var changeNumberForSyncAction = await this.incrementLastChangeNumberFromCache(tenant, collection);
 
         try{
-            var result = await conn.query(
-`START TRANSACTION;
-DELETE FROM documents WHERE tenant = ? AND collection = ? AND id = ?;
-INSERT INTO syncactions (tenant, collection, id, change_number, change_time, deleted) VALUES (?, ?, ?, ?, ?, 1);
-COMMIT;`,
- [tenant, collection, id, tenant, collection, id, changeNumberForSyncAction,changeTime]);
-            if (result.affectedRows === 0){
+            await conn.beginTransaction();
+            try{
+            await conn.batch(`DELETE FROM documents WHERE tenant = ? AND collection = ? AND id = ?;`, 
+                [tenant, collection, id]);	
+            await conn.batch(`INSERT INTO syncactions (tenant, collection, id, change_number, change_time, deleted) VALUES (?, ?, ?, ?, ?, 1);`,
+                 [tenant, collection, id, changeNumberForSyncAction, changeTime]);
+            await conn.commit();
+            }
+             catch(err){
+                await conn.rollback();
                 return 0;
             }
             return changeNumberForSyncAction;
@@ -618,17 +621,18 @@ COMMIT;`,
             if (withOneOfTheseAccessTags.length === 0){
                 return; // we cannot match anything with an empty access tag list
             }
-            accessTagFilter = "AND (" + withOneOfTheseAccessTags.map((tag)=> `MATCH(access_tags) AGAINST(? IN BOOLEAN MODE)`).join(" OR ") + ")";
+            withOneOfTheseAccessTags = withOneOfTheseAccessTags.map((tag)=> `"${tag}"`);
+            accessTagFilter = " AND (" + withOneOfTheseAccessTags.map((tag)=> `MATCH(access_tags) AGAINST(? IN BOOLEAN MODE)`).join(" OR ") + ")";
         }
         
             var p = new Promise<void>((resolve, reject)=>{
                 try{
-                    conn.queryStream
-                        (`SELECT tenant, collection, id, change_number, change_user, change_time, data, access_tags FROM documents WHERE tenant = ? AND collection = ?${newerThanChangeNumber !== undefined ? " AND change_number > ?" : ""}${accessTagFilter !== undefined ? accessTagFilter : ""}`, 
-                        [tenant, collection, 
-                            ...(newerThanChangeNumber !== undefined ? [newerThanChangeNumber] : []), 
-                            ...(withOneOfTheseAccessTags !== undefined ? withOneOfTheseAccessTags : [])
-                        ])
+                    var query = `SELECT tenant, collection, id, change_number, change_user, change_time, data, access_tags FROM documents WHERE tenant = ? AND collection = ?${newerThanChangeNumber !== undefined ? " AND change_number > ?" : ""}${accessTagFilter !== undefined ? accessTagFilter : ""}`;
+                    var params = [tenant, collection, 
+                        ...(newerThanChangeNumber !== undefined ? [newerThanChangeNumber] : []), 
+                        ...(withOneOfTheseAccessTags !== undefined ? withOneOfTheseAccessTags : [])
+                    ];
+                    conn.queryStream(query, params)
                         .on("data", 
                             (doc:{tenant:string, collection:string, id:string, change_number:number, change_user:string, change_time:Date, data:string | null, access_tags:string})=> 
                             {
@@ -666,7 +670,8 @@ COMMIT;`,
             if (withOneOfTheseAccessTags.length === 0){
                 return; // we cannot match anything with an empty access tag list
             }
-            accessTagFilter = "AND (" + withOneOfTheseAccessTags.map((tag)=> `MATCH(access_tags) AGAINST(? IN BOOLEAN MODE)`).join(" OR ") + ")";
+            withOneOfTheseAccessTags = withOneOfTheseAccessTags.map((tag)=> `"${tag}"`);
+            accessTagFilter = " AND (" + withOneOfTheseAccessTags.map((tag)=> `MATCH(access_tags) AGAINST(? IN BOOLEAN MODE)`).join(" OR ") + ")";
         }
         
             var p = new Promise<void>((resolve, reject)=>{

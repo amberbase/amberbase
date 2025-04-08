@@ -6,6 +6,7 @@ var props = defineProps<{
   tenant : string,
   roles : string[]
 }>();
+var show = ref(false);
 var users = ref<UserWithRoles[]>([]);
 var loadingUsers = ref(false);
 var loadingInvitation = ref(false);
@@ -87,9 +88,12 @@ var onAddRole = async (user:UserWithRoles, role:string)=>{
 <template>
   <v-container>
   <v-row>
-      <h2>You are admin for {{ props.tenant }}</h2>
+      <h2>You are admin for {{ props.tenant }}
+        <v-btn v-if="!show" icon="mdi-menu-down" @click="show = true"></v-btn>
+          <v-btn v-if="show" icon="mdi-menu-up" @click="show = false"></v-btn>
+      </h2>
   </v-row>
-  <v-row>
+  <v-row v-if="show">
     <v-card width="100%">
       <v-card-title>Invitation</v-card-title>
       <v-card-actions>
@@ -113,7 +117,7 @@ var onAddRole = async (user:UserWithRoles, role:string)=>{
       
     </v-card>
   </v-row>
-  <v-row>
+  <v-row v-if="show">
     <v-card width="100%">
       <v-card-title>Users</v-card-title>
       <v-card-text>

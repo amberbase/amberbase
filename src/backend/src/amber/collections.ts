@@ -42,7 +42,7 @@ export interface CollectionSettings<T>{
      * @returns a set of tags. Only documents with one of these tags are accessible for the user.
      */
     accessTagsFromUser?: (user: UserContext)=>string[];
-    accessTagsFromDocument?: (doc: any)=>string[];
+    accessTagsFromDocument?: (doc: T)=>string[];
 
     /**
      * Validate the document before creating or updating it. This is executed server to ensure integrity.
@@ -305,7 +305,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             return errorResponse(message, `Document not found in collection ${message.collection}`);
         }
 
-        if (!this.checkAccessRight(connection, collectionSettings, ActionDelete, null))
+        if (!this.checkAccessRight(connection, collectionSettings, ActionDelete, JSON.parse(oldDocument.data)))
         {
             return errorResponse(message, `You don't have delete access to the collection ${message.collection}`);
         }
@@ -363,7 +363,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             return errorResponse(message, `Document change number mismatch in collection ${message.collection}. Concurrent update?`);
         }
 
-        if (!this.checkAccessRight(connection, collectionSettings, ActionUpdate, oldDocument))
+        if (!this.checkAccessRight(connection, collectionSettings, ActionUpdate, JSON.parse(oldDocument.data)))
         {
             return errorResponse(message, `You don't have update access to the collection ${message.collection}`);
         }

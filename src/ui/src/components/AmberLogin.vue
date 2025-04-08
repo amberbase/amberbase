@@ -225,7 +225,8 @@ var amberInit = new AmberClientInit()
 <template>
   <v-card style="margin:20px" v-if="userDetails != null && !showTenantSelector" :title="'Welcome ' + userDetails.name" :min-width="400">
     <template v-slot:append>
-          <v-btn @click="showUserDetails = !showUserDetails">...</v-btn>
+        <v-btn v-if="!showUserDetails" icon="mdi-menu-down" @click="showUserDetails = true"></v-btn>
+        <v-btn v-if="showUserDetails" icon="mdi-menu-up" @click="showUserDetails = false"></v-btn>
     </template>
     <v-card-text v-if ="showUserDetails">
       

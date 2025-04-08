@@ -7,6 +7,7 @@ import {chat} from './test/chat.js'
 import {fileURLToPath} from 'url';
 import cookieParser from 'cookie-parser';
 import { AccessAction } from './amber/collections.js';
+import { UserContext } from './amber/connection.js';
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -35,6 +36,14 @@ interface ToDoEntity {
   title: string;
   description: string;
   completed: boolean;
+}
+
+interface NoteEntity {
+  title: string;
+  description: string;
+  owner:string;
+  sharedWith:string[];
+  isPublic:boolean;
 }
 
 var amberInit = amber(app)
@@ -74,7 +83,8 @@ var amberInit = amber(app)
                   };
                 }
                 return undefined;
-            }).withCollection<ToDoEntity>("todos",
+            })
+            .withCollection<ToDoEntity>("todos",
               {
                 accessRights:{
                   "editor":['create',"update","delete","read"],
@@ -84,6 +94,55 @@ var amberInit = amber(app)
                   if (action == 'create' || action == 'update') 
                   {
                     if (newDoc.title.length < 3) return false;
+                  }
+                  return true;
+                }
+              }
+            )
+            .withCollection<NoteEntity>("notes",
+              {
+                accessRights:(user:UserContext, doc:NoteEntity | null, action:AccessAction) => {
+                  if(action == 'create' || action == 'update' || action == 'delete'){
+                    if(!user.roles.includes("editor")){
+                      return false;
+                    }
+                    if(action == 'create'){
+                     return true;
+                    }
+                  }
+
+                  if (action == 'update' || action == 'delete'){
+                    if(doc.owner != user.userId ){
+                      return false;
+                    }
+                    else{
+                      return true;
+                    }
+                  }
+                  if (action == 'read'){ // the filter to only see the subset of documents is allowed to see is handled by the accessTags
+                    if(user.roles.includes("editor") || user.roles.includes("reader")){
+                      return true;
+                    }
+                    return false;
+                  }
+                  return false;
+                },
+                accessTagsFromDocument:( doc:NoteEntity) => [
+                    "owner-" + doc.owner, 
+                    ...doc.sharedWith.map(s=>"sharedWith-" + s),
+                    ...(doc.isPublic ? ["public"] : [])
+                  ],
+                accessTagsFromUser:(user:UserContext) => [
+                    "owner-" + user.userId,
+                    "sharedWith-" + user.userId,
+                    "public"
+                ],
+                validator:(user, oldDoc:NoteEntity, newDoc:NoteEntity | null, action:AccessAction) => {
+                  if (action == 'create' || action == 'update') 
+                  {
+                    if (newDoc.title.length < 3) return false;
+                    if(!newDoc.owner) return false;
+                    if(!newDoc.sharedWith) return false;
                   }
                   return true;
                 }

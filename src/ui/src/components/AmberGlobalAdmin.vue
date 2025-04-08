@@ -6,7 +6,7 @@ var props = defineProps<{amberClient: AmberClient}>();
 var allTenants = ref<Tenant[]>([]);
 var newTenantName = ref("");
 var newTenantId = ref("");
-
+var show = ref(false);
 var adminApi = props.amberClient.getGlobalAdminApi()!;
 var deleteTenant = async (tenantId :string)=>{
  
@@ -35,9 +35,12 @@ onMounted(async ()=>{
 <template>
   <v-container>
   <v-row>
-      <h2>You are admin for all tenants</h2>
-  </v-row>
-  <v-row>
+      <h2>You are admin for all tenants
+        <v-btn v-if="!show" icon="mdi-menu-down" @click="show = true"></v-btn>
+        <v-btn v-if="show" icon="mdi-menu-up" @click="show = false"></v-btn>
+      </h2>
+    </v-row>
+    <v-row v-if="show">
     <v-card width="100%">
       <v-card-title>Manage tenants</v-card-title>
       <v-card-text>

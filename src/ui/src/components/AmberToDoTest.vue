@@ -20,6 +20,7 @@ interface ToDoEntity {
 var props = defineProps<{
   amberClient: AmberClient, 
 }>();
+var show = ref(false);
 var roles = ref<string[]>([]);
 var isAdmin = ()=> roles.value.includes("admin");
 var isEditor = ()=> roles.value.includes("editor");
@@ -181,9 +182,12 @@ onMounted(async () => {
 <template>
   <v-container>
     <v-row>
-        <h2>Amber powered ToDo app</h2>
+        <h2>Amber powered ToDo app
+          <v-btn v-if="!show" icon="mdi-menu-down" @click="show = true"></v-btn>
+          <v-btn v-if="show" icon="mdi-menu-up" @click="show = false"></v-btn>
+        </h2>
     </v-row>
-    <v-row>
+    <v-row v-if="show">
       <v-col cols="3">
         <v-btn @click="selectToDo(null)" v-if="isEditor()">Create New</v-btn>
         <v-list>

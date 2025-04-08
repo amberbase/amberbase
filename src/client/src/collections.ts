@@ -1,4 +1,4 @@
-import { AmberSessionProtocolPrefix, CollectionClientWsMessage, CollectionDocument, AmberServerMessage, SubscribeCollectionMessage, AmberServerResponseMessage, AmberCollectionClientMessage, ServerError, ServerSyncDocument, DeletedCollectionDocument, UnsubscribeCollectionMessage, ServerSuccessWithDocument, CreateDocument, UpdateDocument, ServerSuccess } from "./dtos.js";
+import { AmberSessionProtocolPrefix, CollectionClientWsMessage, CollectionDocument, AmberServerMessage, SubscribeCollectionMessage, AmberServerResponseMessage, AmberCollectionClientMessage, ServerError, ServerSyncDocument, DeletedCollectionDocument, UnsubscribeCollectionMessage, ServerSuccessWithDocument, CreateDocument, UpdateDocument, ServerSuccess, DeleteDocument } from "./dtos.js";
 
 export interface AmberCollections{
     connect(): Promise<void>;
@@ -7,6 +7,7 @@ export interface AmberCollections{
     unsubscribe(collection:string): void;
     createDoc<T>(collection:string, content:T): Promise<string>;
     updateDoc<T>(collection:string, documentId:string, changeNumber:number, content:T): Promise<void>;
+    deleteDoc(collection:string, documentId:string): Promise<void>;
     onConnectionChanged(callback:(connected:boolean) => void): void;
     offConnectionChanged(callback:(connected:boolean) => void): void;
 }
@@ -107,6 +108,16 @@ export class AmberConnectionsClient implements AmberCollections{
     async updateDoc<T>(collection:string, documentId:string, changeNumber:number, content:T) : Promise<void> 
     {
         await this.sendAndReceive<UpdateDocument, ServerSuccess>({action:"update-doc", collection:collection, requestId:this.requestId++, documentId:documentId, content:content, expectedChangeNumber:changeNumber});
+    }
+
+    /**
+     * Delete a document.
+     * @param collection The collection to delete from
+     * @param documentId The document id to delete
+     */
+    async deleteDoc<T>(collection:string, documentId:string) : Promise<void> 
+    {
+        await this.sendAndReceive<DeleteDocument, ServerSuccess>({action:"delete-doc", collection:collection, requestId:this.requestId++, documentId:documentId});
     }
 
        
