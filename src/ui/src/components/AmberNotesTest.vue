@@ -290,6 +290,7 @@ onMounted(async () => {
           <v-btn v-if="show" icon="mdi-menu-up" @click="show = false"></v-btn>
         </h2>
     </v-row>
+    <v-alert v-if="show && !connectedToAmber" text="No connection to amber" type="warning"></v-alert>
     <v-row v-if="show">
       <v-col cols="3">
         <v-btn @click="selectNote(null)" v-if="isEditor()">Create New</v-btn>
