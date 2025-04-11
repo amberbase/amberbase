@@ -8,11 +8,15 @@ import {fileURLToPath} from 'url';
 import cookieParser from 'cookie-parser';
 import { AccessAction } from './amber/collections.js';
 import { UserContext } from './amber/connection.js';
+import * as uberspace from './integration/uberspace.js';
 
 const __filename = fileURLToPath(import.meta.url);
-
-
 const __dirname = path.dirname(__filename);
+
+var uberspaceConfig = uberspace.loadConfig('.my.cnf');
+
+var db_username = uberspaceConfig?.client?.user || process.env.Mariadb_user;
+var db_password = uberspaceConfig?.client?.password || process.env.Mariadb_password;
 
 const app = express();
 const port = 3000;
@@ -48,8 +52,9 @@ interface NoteEntity {
 
 var amberInit = amber(app)
               .withConfig({
-                db_password:process.env.Mariadb_password,
-                db_username:process.env.Mariadb_user,
+                db_password:db_password,
+                db_username:db_username,
+                db_name:'amber',
               })
               .withPath('/amber')
               .addWebsocketHandler(chat('/ws-chat'))
@@ -148,5 +153,5 @@ var amberInit = amber(app)
                 }
               }
             );
-var amberApp = await amberInit.start(port);
+var amberApp = await amberInit.start("0.0.0.0",port);
 amberApp.auth.addUserIfNotExists('admin',"Christians Admin Account","password", "*",["admin"]);

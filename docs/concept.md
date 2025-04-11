@@ -12,7 +12,8 @@ It should be a workable mix of the two tier architecture inspired by something l
 
 The leading frontend library that we want to guarantee a good interaction with is Vue.js 3 (derived from the SongDrive lead product).
 
-We do not plan (for now) to ship any UI, only libraries and APIs
+We do not plan (for now) to ship any UI, only libraries and APIs. 
+> This might change for common admin tasks and user-self-service tasks.
 
 We want to use the simplicity and client compatibility of JSON as the storage (and DTO) data format.
 
@@ -31,10 +32,13 @@ The supported database should be MySql/MariaDB due to their support
 * `Tenant` __(Proposal)__ A top-level labeling of all data to host multiple separate instances of the same application on one database. All operations are relative to a tenant and scope to a tenant. Example: SongDrive being hosted once but used by multiple churches.
 * `User` An identified user of the web application
 * `Role` A server defined set of permissions that can be given to a user
+* `Invitation` A token that is not associated to a user yet, but can be used by a new or existing user to gain access to a tenant and to be associated with roles.
 * `Collection` equivalent of a table. It is identified by a name and can store multiple JSON `Documents`
 * `Document` A JSON object stored in the database in one collection, one tenant, and is identifiable via a unique id
 * `Subscription` A capability of the client library and proprietary server API to get all updates that fall under a certain `Subscription Scope`
 * `Client Cache` A copy of database objects present in the client. The goal is to synchronize this cache as soon as the client is connected to the server (again).
+* `Access Tag` A tag on a document that can be used to filter documents based on a users access rights or identity.
+
 
 ## Use Cases
 
@@ -46,10 +50,12 @@ A simple user management system where users can
 
 * Register themselves (with email and password)
 * __(Proposal)__ Request access to a `tenant`
+* Forward access to a `tenant` by `invitations` that can be redeemed by a user
 * Be associated to roles by admin users (i.e. via a server library API)
 * Login
 * Create a `subscription` to a `collection` only if the role allows that
 * Allow to store the login information to auto-login the next time (of course by using a signed token, not the real credentials)
+* Create a concept to limit documents to certain users (private for owner, sharing with users...)
 
 ### Database Client Replication
 
@@ -70,7 +76,7 @@ The server library should be able to provide a write api that is automatically e
 
 * Authorization decisions can be expressed via a callback predicate (with user context and write target as input) or through configuration
 * Invoke write operations to the database
-* Send synchronization messages to subscribed clients
+* Send synchronization messages to subscribed clients. This needs to include new documents, updated documents and deletion of documents
 
 ### Custom Server-Side Write Operations
 
@@ -140,7 +146,8 @@ flowchart LR;
         app --> appApi[ /app/api]
         appApi --> dataLib
         write --> dataLib[AmberServerLib.data.js]
-        ws <--> dataLib 
+        ws -->|write, delete, update| dataLib 
+        dataLib -->|sync| ws
     end
     subgraph Database MariaDB
         userLib ----> usersDb[(users)]
@@ -171,12 +178,25 @@ To enable a client to request all changes that are new to a collection, we need 
 * Every client that connects or reconnects sends the highest `change-number` it has in its local replica when it subscribes to a collection.
 * The server will send the updates of the documents that have a higher `change-number` to update the replica
 
+There is one tricky situation: If a client persists a cache and comes online again it not only needs to be informed about updates and new documents. It also needs deleted and documents that the user lost access to. For that we need to introduce a new table to store those actions (changes in `access tags` and deletions)
+
 ## Concurrency
 
 Due to the single execution thread nature of Node.Js we can easily manage most server side concurrency challenges. For client originated write operations we want to use the concept of "optimistic concurrency":
 
 * Every write operation that targets an existing document needs to include the `change-number` as it is present on the client (e.g. from a replica)
 * The server will check the `change-number` provided against the actual `change-number` in the database before changing the document and reject the request if they do not match.
+
+## Server Side Filter for Per-User-Access
+To support use cases where some document should only be accessible (that means read and writable) by dedicated users without reading all documents from the database and filter them out in code, we need to have a concept to support some database side filtering. 
+We do that by deriving `access tags` from documents (configurable per `collection` by JS code) and using them to index the database. We also derive `access tags` from users (again using some JS code as configuration per `collection`). A document shall only be accesssible if at least one `user` derived `access tag` is also part of the `document` `access tag`. This filtering can be supported by the database.
+
+With that we can, for example, have the following access tags derived from a user:
+
+* UserId `123` with roles `editor` and `batman` ➡️ derived `access tags`: [`user-123`,`sharedWith-123`, `public`, `onlyBatman`]
+* Document `{isPublic:false, forBatman:false, user:123, shared:[]}` ➡️ derived `access tags`: [`user-123`]  ➡️ overlapping tags, access granted
+* Document `{isPublic:true, forBatman:false, user:234, shared:[42,21]}` ➡️ derived `access tags`: [`shared-42`,`shared-42`, ] ➡️ overlapping tags, access granted
+
 
 ## Database Structure
 

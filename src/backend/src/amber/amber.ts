@@ -84,7 +84,7 @@ export class AmberInit{
     /**
      * Starts the amber (and express) application on the given port. It initializes the database, sets up the authentication and starts the server.
      */
-    async start(port:number) : Promise<Amber>{
+    async start(host:string, port:number) : Promise<Amber>{
 
         var repo = new AmberRepo(this.config);
         await repo.initDb();
@@ -95,7 +95,7 @@ export class AmberInit{
             enableAdminApi(this.app, this.config, repo, amberAuth);
         }
         
-        var server = this.app.listen(port, () => {
+        var server = this.app.listen(port,host, () => {
             console.log(`This amber app is listening on port ${port}`)
           });
         

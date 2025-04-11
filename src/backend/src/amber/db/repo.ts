@@ -11,13 +11,13 @@ export interface SyncAction{tenant:string, collection:string, id:string, change_
 
 type MigrationScript = {lvl:number, sql?:string, migrate?:(conn:mariadb.PoolConnection)=>Promise<void>};
 const migrationScripts:MigrationScript[] = [
-    {lvl: 1, sql: 'CREATE TABLE IF NOT EXISTS users (`id` UUID NOT NULL, `name` VARCHAR(255), `email` VARCHAR(255), `credential_hash` VARCHAR(255), PRIMARY KEY (`email`), UNIQUE INDEX `id` (`id`))'},
-    {lvl: 2, sql: 'CREATE TABLE IF NOT EXISTS roles (`user` UUID NOT NULL, `tenant` VARCHAR(255) NOT NULL, `roles` VARCHAR(255), PRIMARY KEY (`user`, `tenant`))'},
+    {lvl: 1, sql: 'CREATE TABLE IF NOT EXISTS users (`id` VARCHAR(36) NOT NULL, `name` VARCHAR(255), `email` VARCHAR(255), `credential_hash` VARCHAR(255), PRIMARY KEY (`email`), UNIQUE INDEX `id` (`id`))'},
+    {lvl: 2, sql: 'CREATE TABLE IF NOT EXISTS roles (`user` VARCHAR(36) NOT NULL, `tenant` VARCHAR(255) NOT NULL, `roles` VARCHAR(255), PRIMARY KEY (`user`, `tenant`))'},
     {lvl: 3, sql: 'CREATE TABLE IF NOT EXISTS tenants (`id` VARCHAR(255) NOT NULL, `name` VARCHAR(255), `data` VARCHAR(10000), PRIMARY KEY (`id`))'},
     {lvl: 4, sql: 'CREATE TABLE IF NOT EXISTS invitations (`id` VARCHAR(50) NOT NULL,`tenant` VARCHAR(50) NULL DEFAULT NULL,`roles` VARCHAR(255) NULL DEFAULT NULL,`valid_until` DATETIME NULL DEFAULT NULL,`accepted` DATETIME NULL DEFAULT NULL,PRIMARY KEY (`id`))'},
-    {lvl: 5, sql: "CREATE TABLE `documents` (`tenant` VARCHAR(255) NOT NULL,`collection` VARCHAR(50) NOT NULL,`id` UUID NOT NULL,`change_number` INT UNSIGNED NOT NULL DEFAULT '0',`change_user` UUID NULL,`change_time` DATETIME NOT NULL,`data` LONGTEXT NULL,`access_tags` VARCHAR(4096) NULL DEFAULT NULL,PRIMARY KEY (`id`),INDEX `tenant_collection` (`tenant`, `collection`),FULLTEXT INDEX `access_tags` (`access_tags`))"},
-    {lvl: 6, sql: "CREATE TABLE `syncactions` (`tenant` VARCHAR(255) NOT NULL,`collection` VARCHAR(50) NOT NULL,`id` UUID NOT NULL,`change_number` INT(10) UNSIGNED NOT NULL DEFAULT '0',`change_time` DATETIME NOT NULL,`access_tags` VARCHAR(4096) NULL DEFAULT NULL,`new_access_tags` VARCHAR(4096) NULL DEFAULT NULL,`deleted` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,INDEX `tenant_collection` (`tenant`, `collection`,  `change_number`) USING BTREE,FULLTEXT INDEX `access_tags` (`access_tags`))"},
-
+    {lvl: 5, sql: "CREATE TABLE `documents` (`tenant` VARCHAR(255) NOT NULL,`collection` VARCHAR(50) NOT NULL,`id` VARCHAR(36) NOT NULL,`change_number` INT UNSIGNED NOT NULL DEFAULT '0',`change_user` VARCHAR(36) NULL,`change_time` DATETIME NOT NULL,`data` LONGTEXT NULL,`access_tags` VARCHAR(4096) NULL DEFAULT NULL,PRIMARY KEY (`id`),INDEX `tenant_collection` (`tenant`, `collection`),FULLTEXT INDEX `access_tags` (`access_tags`))"},
+    {lvl: 6, sql: "CREATE TABLE `syncactions` (`tenant` VARCHAR(255) NOT NULL,`collection` VARCHAR(50) NOT NULL,`id` VARCHAR(36) NOT NULL,`change_number` INT(10) UNSIGNED NOT NULL DEFAULT '0',`change_time` DATETIME NOT NULL,`access_tags` VARCHAR(4096) NULL DEFAULT NULL,`new_access_tags` VARCHAR(4096) NULL DEFAULT NULL,`deleted` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,INDEX `tenant_collection` (`tenant`, `collection`,  `change_number`) USING BTREE,FULLTEXT INDEX `access_tags` (`access_tags`))"},
+    {lvl: 7, sql: "INSERT IGNORE INTO `tenants` (`id`, `name`, `data`) VALUES ('*', 'Global', '')"},	
 ];
 
 function compareArraySets(a:string[], b:string[]): boolean {
