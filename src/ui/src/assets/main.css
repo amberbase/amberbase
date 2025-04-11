@@ -1,0 +1,13 @@
+table.items{
+    width: 100%;
+}
+
+table.items th{
+    text-align: left;
+    font-weight: bold;
+    padding: 10px;
+}
+
+table.items td:last-child{
+    text-align: right;
+}

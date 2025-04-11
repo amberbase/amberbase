@@ -1,0 +1,478 @@
+import { AmberClientMessage, AmberCollectionClientMessage, AmberServerResponseMessage, CollectionClientWsMessage,  CreateDocument,  DeleteDocument,  ServerError, ServerSuccess, ServerSuccessWithDocument, ServerSyncDocument, SubscribeCollectionMessage, UnsubscribeCollectionMessage, UpdateDocument} from "amber-client";
+import { SessionToken } from "./auth.js";
+import { Config } from "./config.js";
+import { AmberRepo, Document } from "./db/repo.js";
+import { SimpleWebsocket, WebsocketHandler } from "./websocket/websocket.js";
+import { ActiveConnection, AmberConnectionManager, AmberConnectionMessageHandler, errorResponse, sendToClient, successResponse, UserContext } from "./connection.js";
+
+export const ActionCreate = "create";
+export const ActionRead = "read";
+export const ActionUpdate = "update";
+export const ActionDelete = "delete";
+export type AccessAction =  "create" | "read" | "update" | "delete";
+
+
+
+
+interface DocumentContent{
+    data: any;
+    accessTags: string[];
+}
+
+function content(doc: Document): DocumentContent {
+    return {
+        data: JSON.parse(doc.data),
+        accessTags: doc.access_tags
+    };
+}
+
+function collectionItem(collection: string): string {
+    return "collection." + collection;
+}
+
+export interface CollectionSettings<T>{
+
+    /**
+     * Either a map of roles with the actions they are allowed to perform or a function that takes the user context, the document and the action and returns true if the user is allowed to perform the action on the document.
+     */
+    accessRights: {[role:string]:AccessAction[]} | ((user: UserContext, document: T | null, action:AccessAction)=>boolean);
+    /**
+     * Filter the accessible documents for the user. This is executed server side to limit the documents to the user.
+     * @param user the user to filter the collection for
+     * @returns a set of tags. Only documents with one of these tags are accessible for the user.
+     */
+    accessTagsFromUser?: (user: UserContext)=>string[];
+    accessTagsFromDocument?: (doc: T)=>string[];
+
+    /**
+     * Validate the document before creating or updating it. This is executed server to ensure integrity.
+     */
+    validator?: (user: UserContext, oldDocument: T | null, newDocument: T | null, action: AccessAction) => boolean;
+
+    // todo: onDocumentChange (tenant:string, oldDocument: T | null, newDocument: T | null, action: AccessAction)=>Promise<void>;
+}
+
+export interface AmberCollections{ // the API to be used by the server side app
+    createDocument(tenant: string, collection:string, userId:string, data: any, accessTags:string[]): Promise<string | undefined>;
+    deleteDocument(tenant: string, collection:string, documentId:string): Promise<boolean>;
+    updateDocument(tenant: string, collection:string, documentId:string, userId : string | undefined, data: any, expectedChangeNumber:number|undefined): Promise<boolean>;
+}
+
+export class CollectionsService implements AmberConnectionMessageHandler, AmberCollections{
+    config: Config;
+    repo: AmberRepo;
+    collectionSettings: Map<string, CollectionSettings<any>>;
+    connectionManager: AmberConnectionManager;
+    
+    constructor(config: Config, repo: AmberRepo, collections: Map<string, CollectionSettings<any>>, connectionManager: AmberConnectionManager) {
+        this.config = config;
+        this.repo = repo;
+        this.collectionSettings = collections;
+        this.connectionManager = connectionManager;
+    }
+
+    async handleMessage(connection: ActiveConnection, message: AmberClientMessage): Promise<AmberServerResponseMessage | undefined> {
+        var collectionMessage = message as AmberCollectionClientMessage;
+        if (!collectionMessage.collection)
+        {
+            return; // not a collection message
+        }
+
+        let collectionSettings = this.collectionSettings.get(collectionMessage.collection);
+        if (!collectionSettings)
+        {
+            return errorResponse(message, `Collection ${collectionMessage.collection} not found`);
+        }
+
+        if(message.action === "subscribe-collection")
+        {
+            return await this.handleSubscribe(connection, message as SubscribeCollectionMessage, collectionSettings);
+        }
+
+        if(message.action === "unsubscribe-collection")
+        {
+            return await this.handleUnsubscribe(connection, message as UnsubscribeCollectionMessage, collectionSettings);
+        }
+        if(message.action === "create-doc")
+        {
+            return await this.handleCreate(connection, message as CreateDocument, collectionSettings);
+        }
+        if(message.action === "delete-doc")
+        {
+            return await this.handleDelete(connection, message as DeleteDocument, collectionSettings);
+        }
+        if(message.action === "update-doc")
+        {
+            return await this.handleUpdate(connection, message as UpdateDocument, collectionSettings);
+        }
+    }
+    
+
+    private checkAccessRight(user: UserContext, collectionSettings: CollectionSettings<any>, action: AccessAction, doc: any | null): boolean {
+        if (collectionSettings.accessRights && typeof collectionSettings.accessRights === 'object')
+        {
+            let hasAccess = false;
+            for (const role of user.roles) {
+                if (collectionSettings.accessRights[role] && collectionSettings.accessRights[role].includes(action)) {
+                    hasAccess = true;
+                    break;
+                }
+            }
+            return hasAccess;
+        }
+        else if (typeof collectionSettings.accessRights === 'function') {
+            return collectionSettings.accessRights(user, doc, action);
+        }
+        return false;
+    }
+
+    private async handleSubscribe(connection:ActiveConnection, message:SubscribeCollectionMessage, collectionSettings:CollectionSettings<any>): Promise<AmberServerResponseMessage> {
+        // check if the user has read access to the collection
+        if (connection.items.has(collectionItem(message.collection)))
+        {
+            return errorResponse(message, `Already subscribed to the collection ${message.collection}`);
+        }
+
+        if(!this.checkAccessRight(connection, collectionSettings, ActionRead, null))
+        {
+            return errorResponse(message, `You don't have read access to the collection ${message.collection}`);
+        }
+
+        var accessTags = collectionSettings.accessTagsFromUser ? collectionSettings.accessTagsFromUser({userId: connection.userId, roles: connection.roles}) : undefined;
+        connection.items.set(collectionItem(message.collection), message.start);
+        let documentIdsSend = new Set<string>();
+        await this.repo.streamAllDocuments(connection.tenant, message.collection, message.start, accessTags, async (document) => {
+
+            let changeNumber = document.change_number;
+            let changeUser = document.change_user;
+            let changeTime = document.change_time;
+            let data = document.data;
+            let accessTags = document.access_tags;
+            
+            if (data != null)
+            {            
+                documentIdsSend.add(document.id);
+                sendToClient<ServerSyncDocument>(connection,{
+                collection: message.collection,
+                type: "sync-document",
+                document: {
+                    id: document.id,
+                    change_number: changeNumber,
+                    change_user: changeUser,
+                    change_time: changeTime,
+                    data: JSON.parse(data)
+                }
+            });
+            }
+        });
+
+        if (message.start > 0)
+        {
+            // send the last removed documents
+            this.repo.streamAllSyncActions(connection.tenant, message.collection, message.start,accessTags,  (syncAction) => {
+                if(!syncAction.deleted)
+                {
+                    var stillHasAccess = documentIdsSend.has(syncAction.id); // it was sent just now, so the access is still there
+                    if (!stillHasAccess) {
+                        // the user HAD access but does not have anymore. So we need to send a remove message
+                        sendToClient<ServerSyncDocument>(connection, {
+                            collection: message.collection,
+                            type: "sync-document",
+                            document: {
+                                id: syncAction.id,
+                                change_number: syncAction.change_number,
+                                removed:true,
+                            }
+                        });
+                    }
+                }
+                else if (syncAction.deleted)
+                {
+                    sendToClient<ServerSyncDocument>(connection, {
+                        collection: message.collection,
+                        type: "sync-document",
+                        document: {
+                            id: syncAction.id,
+                            change_number: syncAction.change_number,
+                            removed:true,
+                        }
+                    }); 
+                }
+
+            });
+        }
+
+        return successResponse(message, `Subscribed to the collection ${message.collection}`);
+    }
+
+    private async handleUnsubscribe(connection:ActiveConnection, message:UnsubscribeCollectionMessage, collectionSettings:CollectionSettings<any>): Promise<AmberServerResponseMessage> {
+        if (!connection.items.has(collectionItem(message.collection)))
+        {
+            return errorResponse(message, `Not subscribed to the collection ${message.collection}`);
+        }
+        connection.items.delete(collectionItem(message.collection));
+        return successResponse(message, `Unsubscribed from the collection ${message.collection}`);
+    }
+
+    private async handleCreate(connection:ActiveConnection, message:CreateDocument, collectionSettings:CollectionSettings<any>): Promise<AmberServerResponseMessage> {
+        if (!this.checkAccessRight(connection, collectionSettings, ActionCreate, null))
+        {
+            return errorResponse(message, `You don't have create access to the collection ${message.collection}`);
+        }
+
+        if (collectionSettings.validator)
+        {
+            if(!collectionSettings.validator(connection, null,  message.content, ActionCreate))
+            {
+                return errorResponse(message, `Document creation validation failed for the collection ${message.collection}`);
+            }
+        }
+
+        var documentId = await this.createDocument(connection.tenant, message.collection, connection.userId, message.content);
+        
+        if (documentId) {
+            var successMessage : ServerSuccessWithDocument =  {
+                type : "success-document",
+                responseTo: message.requestId,
+                documentId: documentId
+            };
+            return successMessage;
+        } else {
+            return errorResponse(message, `Failed to create document in collection ${message.collection}`);
+        }
+    }
+
+    async createDocument( tenant: string, collection:string, userId:string, data: any): Promise<string | undefined> {
+        let collectionSettings = this.collectionSettings.get(collection);
+        if (!collectionSettings)
+        {
+            return undefined; // collection not found
+        }
+
+        var accessTags = collectionSettings.accessTagsFromDocument ? collectionSettings.accessTagsFromDocument(data) : [];
+
+        let document = await this.repo.createDocument(tenant, collection,userId, JSON.stringify(data), accessTags);
+        if (document)
+        {
+            for (const connection of this.connectionManager.activeConnections) {
+                if (connection.tenant == tenant && connection.items.has(collectionItem( collection))) {
+                    // we need to check if the collection is filtered by access tags
+                    let accessTagsForUser = collectionSettings.accessTagsFromUser ? collectionSettings.accessTagsFromUser({userId: connection.userId, roles: connection.roles}) : undefined;
+
+                    if (accessTagsForUser)
+                    {
+                        // we must have at least one tag in common with the document
+                        let hasAccess = false;
+                        for (const tag of accessTags) {
+                            if (accessTagsForUser.includes(tag)) {
+                                hasAccess = true;
+                                break;
+                            }
+                        }
+                        if (!hasAccess) {
+                            continue; // skip this connection
+                        }
+                    }
+
+                    sendToClient<ServerSyncDocument>(connection, {
+                        collection: collection,
+                        type: "sync-document",
+                        document: {
+                            id: document.id,
+                            change_number: document.change_number,
+                            change_user: document.change_user,
+                            change_time: document.change_time,
+                            data: data
+                        }
+                    });
+                }
+            }
+            return document.id;
+        }
+        else
+        {
+            return undefined;
+        }
+    }
+
+    async handleDelete(connection:ActiveConnection, message:DeleteDocument, collectionSettings:CollectionSettings<any>): Promise<AmberServerResponseMessage> {
+
+        let oldDocument = await this.repo.getDocument(connection.tenant, message.collection, message.documentId);
+
+        if (!oldDocument) {
+            return errorResponse(message, `Document not found in collection ${message.collection}`);
+        }
+
+        if (!this.checkAccessRight(connection, collectionSettings, ActionDelete, JSON.parse(oldDocument.data)))
+        {
+            return errorResponse(message, `You don't have delete access to the collection ${message.collection}`);
+        }
+
+        if (collectionSettings.validator)
+        {
+            if(!collectionSettings.validator(connection, oldDocument.data, null, ActionDelete))
+            {
+                return errorResponse(message, `Document deletion validation failed for the collection ${message.collection}`);
+            }
+        }
+
+        var success = await this.deleteDocument(connection.tenant, message.collection, message.documentId);
+
+        if (success) {
+
+            return successResponse(message, `Document deleted in collection ${message.collection}`);
+        } else {
+            return errorResponse(message, `Failed to delete document in collection ${message.collection}`);
+        }
+    }
+
+    async deleteDocument( tenant: string, collection:string, documentId:string): Promise<boolean> {
+        
+        let changeNumber = await this.repo.deleteDocument(tenant, collection, documentId);
+
+        if (changeNumber) {
+            for (const connection of this.connectionManager.activeConnections) {
+                if (connection.tenant == tenant && connection.items.has(collectionItem(collection)) ) {
+                    // we might send a delete message to a client that does not have access to the document via the access tags. We accept this for now.
+                    sendToClient<ServerSyncDocument>(connection, {
+                        collection: collection,
+                        type: "sync-document",
+                        document: {
+                            id: documentId,
+                            change_number: changeNumber,
+                            removed:true,
+                        }
+                    });
+                }
+            }
+        }
+        return changeNumber > 0;
+    }
+
+    private async handleUpdate(connection:ActiveConnection, message:UpdateDocument, collectionSettings:CollectionSettings<any>): Promise<AmberServerResponseMessage> {
+        var oldDocument = await this.repo.getDocument(connection.tenant, message.collection, message.documentId);
+
+        if (!oldDocument) {
+            return errorResponse(message, `Document not found in collection ${message.collection}`);
+        }
+
+        // check if the document is already updated by another client
+        if (message.expectedChangeNumber !== oldDocument.change_number) {
+            return errorResponse(message, `Document change number mismatch in collection ${message.collection}. Concurrent update?`);
+        }
+
+        if (!this.checkAccessRight(connection, collectionSettings, ActionUpdate, JSON.parse(oldDocument.data)))
+        {
+            return errorResponse(message, `You don't have update access to the collection ${message.collection}`);
+        }
+
+        if (collectionSettings.validator)
+        {
+            if(!collectionSettings.validator(connection, oldDocument.data, message.content, ActionUpdate))
+            {
+                return errorResponse(message, `Document update validation failed for the collection ${message.collection}`);
+            }
+        }
+
+        var success = await this.updateDocumentWithOld(connection.tenant, message.collection, message.documentId, connection.userId, message.content, oldDocument);
+        if (success) {
+            return successResponse(message, `Document updated in collection ${message.collection}`);
+        } else {
+            return errorResponse(message, `Failed to update document in collection ${message.collection}`);
+        }
+    }
+
+
+    public async updateDocument( tenant: string, collection:string, documentId:string, userId : string | undefined, data: any, expectedChangeNumber:number | undefined): Promise<boolean> 
+    {
+        var oldDocument = await this.repo.getDocument(tenant, collection, documentId);
+        if (!oldDocument) {
+            return false; // document not found
+        }
+        if (expectedChangeNumber !== undefined && expectedChangeNumber !== oldDocument.change_number) {
+            return false; // change number mismatch
+        }
+        return await this.updateDocumentWithOld(tenant, collection, documentId, userId, data, oldDocument);    
+    }
+    /**
+     * We need to know the old one to properly update
+     * @param tenant 
+     * @param collection 
+     * @param documentId 
+     * @param userId 
+     * @param data 
+     * @param accessTags 
+     * @param expectedChangeNumber 
+     * @returns 
+     */
+    private async updateDocumentWithOld( tenant: string, collection:string, documentId:string, userId : string | undefined, data: any| undefined, oldDoc :Document): Promise<boolean> {
+
+        let collectionSettings = this.collectionSettings.get(collection);
+        if (!collectionSettings)
+        {
+            return false; // collection not found
+        }
+
+        let accessTags = collectionSettings.accessTagsFromDocument ? collectionSettings.accessTagsFromDocument(data) : [];
+        let oldAccessTags = oldDoc.access_tags;
+        let changeNumber = await this.repo.updateDocument(tenant, collection, documentId,userId, data != undefined ? JSON.stringify(data) : undefined, accessTags, oldDoc);
+        
+        if (changeNumber) {
+            for (const connection of this.connectionManager.activeConnections) {
+                if (connection.tenant == tenant && connection.items.has(collectionItem(collection))) {
+                    
+                     // we need to check if the collection is filtered by access tags
+                     let userAccessTags = collectionSettings.accessTagsFromUser ? collectionSettings.accessTagsFromUser({userId: connection.userId, roles: connection.roles}) : undefined;
+
+                     if (userAccessTags)
+                     {
+                         // we must have at least one tag in common with the new document to send an update
+                         let hasAccess = false;
+                         for (const tag of userAccessTags) {
+                             if (accessTags.includes(tag)) {
+                                 hasAccess = true;
+                                 break;
+                             }
+                         }
+                         if (!hasAccess) {
+                             // let's see if the user had access to the old document
+                            let hasAccessOld = false;
+                            for (const tag of userAccessTags) {
+                                if (oldAccessTags.includes(tag)) {
+                                    hasAccessOld = true;
+                                    break;
+                                }
+                            }
+                            if (hasAccessOld) {
+                                // send a delete message for the old document since it is not accessible anymore
+                                sendToClient<ServerSyncDocument>(connection, {
+                                    collection: collection,
+                                    type: "sync-document",
+                                    document: {
+                                        id: documentId,
+                                        change_number: changeNumber,
+                                        removed:true,
+                                    }
+                                });
+                            }
+                            continue; // skip this connection
+                         }
+                     }
+                    sendToClient<ServerSyncDocument>(connection, {
+                        collection: collection,
+                        type: "sync-document",
+                        document: {
+                            id: documentId,
+                            change_number: changeNumber,
+                            change_user: connection.userId,
+                            change_time: new Date(),
+                            data: data
+                        }
+                    });
+                }
+            }
+        }
+        return changeNumber > 0;
+    }
+
+}
