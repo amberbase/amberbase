@@ -41,6 +41,8 @@ var notesSortedByTitle = ()=> {
   return  [...notes.value].sort((a, b) => a.title.localeCompare(b.title));
 };
 
+var collectionApi = props.amberClient.getCollectionsApi().getCollection<NoteEntity>("notes");
+
 var editDescription = ref<string>("");
 var editTitle = ref<string>("");
 
@@ -76,8 +78,7 @@ var save = async () => {
     const note = selectedNote.value;
     
     try {
-      await props.amberClient.getCollectionsApi()?.updateDoc<NoteEntity>(
-        "notes",
+      await collectionApi.updateDoc(
         note.id,
         note.changeNumber,
         {
@@ -100,8 +101,7 @@ var deleteNote = async () => {
     const note = selectedNote.value;
     
     try {
-      await props.amberClient.getCollectionsApi()?.deleteDoc(
-        "notes",
+      await collectionApi.deleteDoc(
         note.id
       );
     } catch (error) {
@@ -116,8 +116,7 @@ var makePublic = async (p:boolean) => {
     const note = selectedNote.value;
     
     try {
-      await props.amberClient.getCollectionsApi()?.updateDoc<NoteEntity>(
-        "notes",
+      await collectionApi.updateDoc(
         note.id,
         note.changeNumber,
         {
@@ -142,8 +141,7 @@ var share = async (userId:string) => {
     try {
       var sharedWith = new Set<string>(note.sharedWith);
       sharedWith.add(userId);
-      await props.amberClient.getCollectionsApi()?.updateDoc<NoteEntity>(
-        "notes",
+      await collectionApi.updateDoc(
         note.id,
         note.changeNumber,
         {
@@ -168,8 +166,7 @@ var unshare = async (userId:string) => {
     try {
       var sharedWith = new Set<string>(note.sharedWith);
       sharedWith.delete(userId);
-      await props.amberClient.getCollectionsApi()?.updateDoc<NoteEntity>(
-        "notes",
+      await collectionApi.updateDoc(
         note.id,
         note.changeNumber,
         {
@@ -197,8 +194,7 @@ var create = async () => {
       sharedWith:[]
     } as NoteEntity;
     
-    const createdDoc = await props.amberClient.getCollectionsApi()?.createDoc<NoteEntity>(
-      "notes",
+    const createdDoc = await collectionApi.createDoc(
       newNote
     );
     editMode.value = false;
@@ -231,8 +227,7 @@ onMounted(async () => {
         return;
       }
 
-      collectionsApi.subscribe<NoteEntity>(
-        "notes",
+      collectionApi.subscribe(
         0,
         (doc)=>{
             const index = notes.value.findIndex((note) => note.id === doc.id);

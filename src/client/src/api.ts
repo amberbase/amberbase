@@ -1,4 +1,4 @@
-import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, CreateTenantRequest, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails, UserInfo} from './dtos.js'
+import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, CreateTenantRequest, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails, UserInfo, AmberMetricsBucket} from './dtos.js'
 
 /**
  * Internal class to wrap REST like api calls to the amber server for convenience
@@ -146,6 +146,14 @@ export class AmberAdminApi{
     async createInvitation(request:CreateInvitationRequest) : Promise<string> {
         return await this.apiClient.fetchText("POST", '/tenant/:tenant/admin/invitation', request);
     }
+
+    async getMetricsByMinutes() : Promise<AmberMetricsBucket[]> {
+        return await this.apiClient.fetch<AmberMetricsBucket[]>("GET", '/tenant/:tenant/metrics/minute');
+    }
+
+    async getMetricsByHour() : Promise<AmberMetricsBucket[]> {
+        return await this.apiClient.fetch<AmberMetricsBucket[]>("GET", '/tenant/:tenant/metrics/hour');
+    }
 }
 
 /**
@@ -172,7 +180,7 @@ export class AmberGlobalAdminApi{
      * @returns Action result with success or error message
      */
     async deleteTenant(tenantId:string) : Promise<ActionResult> {
-        return await this.apiClient.fetch<ActionResult>("DELETE", '/tenants/' + tenantId);
+        return await this.apiClient.fetch<ActionResult>("DELETE", '/tenant/' + tenantId);
     }
 
     /**
@@ -191,7 +199,15 @@ export class AmberGlobalAdminApi{
      * @returns Action result with success or error message
      */
     async updateTenant(tenantId:string, request:TenantDetails) : Promise<ActionResult> {
-        return await this.apiClient.fetch<ActionResult>("POST", '/tenants/' + tenantId, request);
+        return await this.apiClient.fetch<ActionResult>("POST", '/tenant/' + tenantId, request);
+    }
+
+    async getMetricsByMinutes() : Promise<AmberMetricsBucket[]> {
+        return await this.apiClient.fetch<AmberMetricsBucket[]>("GET", '/metrics/minute');
+    }
+
+    async getMetricsByHour() : Promise<AmberMetricsBucket[]> {
+        return await this.apiClient.fetch<AmberMetricsBucket[]>("GET", '/metrics/hour');
     }
 }
 

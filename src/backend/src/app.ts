@@ -14,7 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 var uberspaceConfig = uberspace.loadConfig('.my.cnf');
-
+var buildInfo = uberspace.loadBuildInfo();
 var db_username = uberspaceConfig?.client?.user || process.env.Mariadb_user;
 var db_password = uberspaceConfig?.client?.password || process.env.Mariadb_password;
 
@@ -22,16 +22,17 @@ const app = express();
 const port = 3000;
 const startTime =  new Date();
 const serverInstanceId = crypto.randomUUID();
+const version = "0.0.1"; // todo: we could use the value from package.json...
 
 app.use(cookieParser())
 app.use(express.static(path.join(__dirname, 'static')));
 app.use(express.json());
 app.get('/starttime', (req, res) => {
-    res.send(`We are here since ${startTime.toISOString()}, that is ${relativeTimeFromDates(startTime)}`)
+    res.send(`We are here since ${startTime.toISOString()}, that is ${relativeTimeFromDates(startTime)}`);
 })
 
-app.get('/test', (req, res) => {
-    res.send(`What's up?`)
+app.get('/version', (req, res) => {
+    res.send(`Version: ${version} Build Time: ${buildInfo.buildtime}, Up Since: ${startTime.toISOString()}`);
   });
 
 
@@ -48,6 +49,20 @@ interface NoteEntity {
   owner:string;
   sharedWith:string[];
   isPublic:boolean;
+}
+
+interface DocumentEntity {
+  title: string;
+  description: string;
+  changeTimestamp: number;
+}
+
+interface LoadtestCommand{
+  start: boolean;
+  intervalMs?: number;
+  jitterMs?: number;
+  updatePercentage?: number;
+  deletionPercentage?: number;
 }
 
 var amberInit = amber(app)
@@ -152,6 +167,17 @@ var amberInit = amber(app)
                   return true;
                 }
               }
-            );
+            )
+            .withChannel<string>("selected-todo",{
+              subchannels:false
+            })
+            .withCollection<DocumentEntity>("loadtest",{
+              accessRights:{
+                "editor":['create',"update","delete","read"]
+              }
+            })
+            .withChannel<LoadtestCommand>("loadtest-command",{
+              subchannels:false
+            });
 var amberApp = await amberInit.start("0.0.0.0",port);
 amberApp.auth.addUserIfNotExists('admin',"Christians Admin Account","password", "*",["admin"]);

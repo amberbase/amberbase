@@ -9,6 +9,7 @@ export interface Config {
     db_password: string,
     path: string,
     enableAdminApi?: boolean,
+    enableStatsApi?: boolean,
     inviteOnly?: boolean
 };
 
@@ -30,6 +31,7 @@ export var defaultConfig = {
     db_password: "root",
     path: "/api/amber",
     enableAdminApi: true,
+    enableStatsApi: true,
     inviteOnly: true
 };
 

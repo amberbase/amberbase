@@ -7,6 +7,8 @@ import { state } from "@/state";
 import AmberTenantAdmin from "./AmberTenantAdmin.vue";
 import AmberToDoTest from "./AmberToDoTest.vue";
 import AmberNotesTest from "./AmberNotesTest.vue";
+import AmberTenantStats from "./AmberTenantStats.vue";
+import AmberLoadTest from "./AmberLoadTest.vue";
 
 interface AmberUserDetails
 {
@@ -45,6 +47,9 @@ var onUserReady = (details:{client: AmberClient,userId:string, userName:string, 
       <AmberGlobalAdmin :amber-client="amberClient"></AmberGlobalAdmin>
       <AmberTenantAdmin :amber-client="amberClient" :tenant="amberUser.tenant" :roles="['admin']"></AmberTenantAdmin>
     </v-row>
+    <v-row v-if ="amberUser && amberUser.roles.includes('admin')">
+      <AmberTenantStats v-if="amberUser && amberClient" :amber-client="amberClient" :tenant="amberUser.tenant" :roles="['admin','editor','reader']"></AmberTenantStats>
+    </v-row>
     <v-row v-if ="amberUser && amberUser.tenant!='*'">
       <AmberTenantAdmin v-if="amberUser && amberClient  && amberUser.roles.includes('admin')" :amber-client="amberClient" :tenant="amberUser.tenant" :roles="['admin','editor','reader']"></AmberTenantAdmin>
     </v-row>
@@ -53,6 +58,9 @@ var onUserReady = (details:{client: AmberClient,userId:string, userName:string, 
     </v-row>
     <v-row v-if ="amberUser && amberUser.tenant!='*' && (amberUser.roles.includes('reader') || amberUser.roles.includes('editor'))">
       <AmberNotesTest v-if="amberUser && amberClient" :amber-client="amberClient"></AmberNotesTest>
+    </v-row>
+    <v-row v-if ="amberUser && amberUser.tenant!='*' &&  amberUser.roles.includes('editor')">
+      <AmberLoadTest v-if="amberUser && amberClient" :amber-client="amberClient"></AmberLoadTest>
     </v-row>
     </v-container>
 </template>

@@ -45,6 +45,9 @@ if [ -f "app.zip" ]; then
 fi
 echo "Creating app.zip..."
 cd package
+TZ=UTC0 printf -v date '%(%Y-%m-%d %H:%M:%S)T' -1
+echo "{\"buildtime\":\"$date UTC\"}" > buildinfo.json
+
 zip -r ../app.zip * &>/dev/null
 cd ..
 echo "Clean up.."

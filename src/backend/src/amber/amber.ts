@@ -8,6 +8,8 @@ import { AmberAuth, auth } from './auth.js';
 import { enableAdminApi } from './admin.js';
 import { AmberCollections, CollectionSettings, CollectionsService } from './collections.js';
 import { AmberConnectionManager } from './connection.js';
+import { AmberChannels, ChannelService, ChannelSettings } from './channels.js';
+import { amberStats, enableStatsApis } from './stats.js';
 
 
 
@@ -29,6 +31,7 @@ export class AmberInit{
     app: Express;
     config: Config = defaultConfig;
     collections: Map<string,CollectionSettings<any>> = new Map();
+    channels: Map<string,ChannelSettings<any>> = new Map();
     constructor(app:Express){
         this.app = app;
     }
@@ -81,6 +84,11 @@ export class AmberInit{
         return this;
     }
 
+    withChannel<T>(name:string, settings:ChannelSettings<T>): AmberInit{
+        this.channels.set(name,settings);
+        return this;
+    }
+
     /**
      * Starts the amber (and express) application on the given port. It initializes the database, sets up the authentication and starts the server.
      */
@@ -94,6 +102,11 @@ export class AmberInit{
         {
             enableAdminApi(this.app, this.config, repo, amberAuth);
         }
+
+        if (this.config.enableStatsApi)
+        {
+            enableStatsApis(this.app, this.config, amberAuth);
+        }
         
         var server = this.app.listen(port,host, () => {
             console.log(`This amber app is listening on port ${port}`)
@@ -105,9 +118,16 @@ export class AmberInit{
 
         var collectionsService = new CollectionsService(this.config, repo, this.collections, connectionManager);
         connectionManager.registerHandler(collectionsService);
+
+        amberStats.addStatsProvider(collectionsService);
+
+        var channelService = new ChannelService(this.channels, connectionManager);
+        connectionManager.registerHandler(channelService);
+        amberStats.addStatsProvider(channelService);
+
         simpleWebsockets(server, this.wsHandler, this.config.path, amberAuth);
 
-        return new Amber(this.app, this.config, server, repo, amberAuth, collectionsService);
+        return new Amber(this.app, this.config, server, repo, amberAuth, collectionsService, channelService);
     }
 }
 
@@ -121,8 +141,9 @@ export class Amber{
     repo: AmberRepo;
     auth: AmberAuth;
     collections: AmberCollections;
+    channels: AmberChannels;
 
-    constructor(app:Express, config: Config, server: http.Server<typeof http.IncomingMessage,typeof  http.ServerResponse>, repo: AmberRepo, auth : AmberAuth, collections: AmberCollections)
+    constructor(app:Express, config: Config, server: http.Server<typeof http.IncomingMessage,typeof  http.ServerResponse>, repo: AmberRepo, auth : AmberAuth, collections: AmberCollections, channels: AmberChannels)
     {
         this.app = app;
         this.config = config;
@@ -130,5 +151,6 @@ export class Amber{
         this.repo = repo;
         this.auth = auth;
         this.collections = collections;
+        this.channels = channels;
     }
 }
