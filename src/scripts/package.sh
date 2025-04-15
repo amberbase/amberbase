@@ -46,7 +46,9 @@ fi
 echo "Creating app.zip..."
 cd package
 TZ=UTC0 printf -v date '%(%Y-%m-%d %H:%M:%S)T' -1
-echo "{\"buildtime\":\"$date UTC\"}" > buildinfo.json
+branch=$(git symbolic-ref --short HEAD)
+commitId=$(git rev-parse --verify HEAD)
+echo "{\"buildtime\":\"$date UTC\", \"branch\":\"$branch\", \"commit\":\"$commitId\"}" > buildinfo.json
 
 zip -r ../app.zip * &>/dev/null
 cd ..

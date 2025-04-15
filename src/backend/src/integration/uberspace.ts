@@ -5,20 +5,20 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export function loadBuildInfo():{buildtime:string}
+export function loadBuildInfo():{buildtime:string, branch:string, commit:string}
 {
-    var buildInfoFilePath = path.join(__dirname, '../buildinfo.json');
+    var buildInfoFilePath = path.join(__dirname, '../../buildinfo.json');
     if (fs.existsSync(buildInfoFilePath)) {
         try {
             var content = fs.readFileSync(buildInfoFilePath, 'utf8');
             var buildInfo = JSON.parse(content);
             return buildInfo;
         } catch (e) {
-            return {buildtime:'unknown'};
+            return {buildtime:'unknown', branch:'unknown', commit:'unknown'};
         }
     } else {
         console.warn('Build info file not found:', buildInfoFilePath);
-        return {buildtime:'unknown'};
+        return {buildtime:'unknown', branch:'unknown', commit:'unknown'};
     }
 }
 

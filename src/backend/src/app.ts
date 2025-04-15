@@ -32,7 +32,7 @@ app.get('/starttime', (req, res) => {
 })
 
 app.get('/version', (req, res) => {
-    res.send(`Version: ${version} Build Time: ${buildInfo.buildtime}, Up Since: ${startTime.toISOString()}`);
+    res.send(`Version: ${version} (${buildInfo.commit} @ ${buildInfo.branch}) Build Time: ${buildInfo.buildtime}, Up Since: ${startTime.toISOString()}`);
   });
 
 
