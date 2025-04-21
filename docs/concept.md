@@ -1,4 +1,5 @@
 # Amberbase Concept (draft)
+
 ## Why
 
 The idea is to create a library style system to support use cases that are often implemented by the likes of FireBase, Supabase and similar PaaS (or quasi PaaS) systems. Those tend to become proprietary dependencies and can eventually lead to unforeseen cost or bottlenecks when the cost is not acceptable. Especially for small non-profit oriented projects this becomes a problem. The leading project in our effort is [SongDrive](https://github.com/devmount/SongDrive) and its effort to migrate away from FireBase.
@@ -12,7 +13,7 @@ It should be a workable mix of the two tier architecture inspired by something l
 
 The leading frontend library that we want to guarantee a good interaction with is Vue.js 3 (derived from the SongDrive lead product).
 
-We do not plan (for now) to ship any UI, only libraries and APIs. 
+We do not plan (for now) to ship any UI, only libraries and APIs.
 > This might change for common admin tasks and user-self-service tasks.
 
 We want to use the simplicity and client compatibility of JSON as the storage (and DTO) data format.
@@ -38,7 +39,6 @@ The supported database should be MySql/MariaDB due to their support
 * `Subscription` A capability of the client library and proprietary server API to get all updates that fall under a certain `Subscription Scope`
 * `Client Cache` A copy of database objects present in the client. The goal is to synchronize this cache as soon as the client is connected to the server (again).
 * `Access Tag` A tag on a document that can be used to filter documents based on a users access rights or identity.
-
 
 ## Use Cases
 
@@ -188,7 +188,8 @@ Due to the single execution thread nature of Node.Js we can easily manage most s
 * The server will check the `change-number` provided against the actual `change-number` in the database before changing the document and reject the request if they do not match.
 
 ## Server Side Filter for Per-User-Access
-To support use cases where some document should only be accessible (that means read and writable) by dedicated users without reading all documents from the database and filter them out in code, we need to have a concept to support some database side filtering. 
+
+To support use cases where some document should only be accessible (that means read and writable) by dedicated users without reading all documents from the database and filter them out in code, we need to have a concept to support some database side filtering.
 We do that by deriving `access tags` from documents (configurable per `collection` by JS code) and using them to index the database. We also derive `access tags` from users (again using some JS code as configuration per `collection`). A document shall only be accesssible if at least one `user` derived `access tag` is also part of the `document` `access tag`. This filtering can be supported by the database.
 
 With that we can, for example, have the following access tags derived from a user:
@@ -196,7 +197,6 @@ With that we can, for example, have the following access tags derived from a use
 * UserId `123` with roles `editor` and `batman` ➡️ derived `access tags`: [`user-123`,`sharedWith-123`, `public`, `onlyBatman`]
 * Document `{isPublic:false, forBatman:false, user:123, shared:[]}` ➡️ derived `access tags`: [`user-123`]  ➡️ overlapping tags, access granted
 * Document `{isPublic:true, forBatman:false, user:234, shared:[42,21]}` ➡️ derived `access tags`: [`shared-42`,`shared-42`, ] ➡️ overlapping tags, access granted
-
 
 ## Database Structure
 
