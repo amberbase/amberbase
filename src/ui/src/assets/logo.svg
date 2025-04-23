@@ -1,0 +1,14 @@
+<svg width="90" height="85" version="1.1" viewBox="-5 -7.5 90 85" xmlns="http://www.w3.org/2000/svg">
+ <g transform="translate(-50 -92.5)" stroke-width=".26458">
+  <path d="m90 90-25 65h50z" fill="#ffd21f"/>
+  <path d="m80 85h20l-10 9.9777z" fill="#d74e00"/>
+  <g fill="#fea101">
+   <path d="m80 85-35 60 20 10 25-60z"/>
+   <path d="m100 85 35 60-20 10-25-60z"/>
+   <path d="m65 155 5 15h40l5-15z"/>
+  </g>
+  <path d="m45 145 25 25-5-15z" fill="#d74e00"/>
+  <path d="m110 170 25-25-20 10z" fill="#d74e00"/>
+  <path d="m45 145 45-10 45 10-20 10h-50z" fill="#fff" fill-opacity=".28235"/>
+ </g>
+</svg>
