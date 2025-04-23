@@ -1,9 +1,10 @@
-import { AmberClientMessage, AmberCollectionClientMessage, AmberServerResponseMessage, CollectionClientWsMessage,  CreateDocument,  DeleteDocument,  ServerError, ServerSuccess, ServerSuccessWithDocument, ServerSyncDocument, SubscribeCollectionMessage, UnsubscribeCollectionMessage, UpdateDocument} from "amber-client";
+import { AmberClientMessage, AmberCollectionClientMessage, AmberMetricName, AmberServerResponseMessage, CollectionClientWsMessage,  CreateDocument,  DeleteDocument,  ServerError, ServerSuccess, ServerSuccessWithDocument, ServerSyncDocument, SubscribeCollectionMessage, UnsubscribeCollectionMessage, UpdateDocument} from "amber-client";
 import { SessionToken } from "./auth.js";
 import { Config } from "./config.js";
 import { AmberRepo, Document } from "./db/repo.js";
 import { SimpleWebsocket, WebsocketHandler } from "./websocket/websocket.js";
 import { ActiveConnection, AmberConnectionManager, AmberConnectionMessageHandler, errorResponse, sendToClient, successResponse, UserContext } from "./connection.js";
+import { amberStats, Stats, StatsProvider } from "./stats.js";
 
 export const ActionCreate = "create";
 export const ActionRead = "read";
@@ -58,7 +59,7 @@ export interface AmberCollections{ // the API to be used by the server side app
     updateDocument(tenant: string, collection:string, documentId:string, userId : string | undefined, data: any, expectedChangeNumber:number|undefined): Promise<boolean>;
 }
 
-export class CollectionsService implements AmberConnectionMessageHandler, AmberCollections{
+export class CollectionsService implements AmberConnectionMessageHandler, AmberCollections, StatsProvider{
     config: Config;
     repo: AmberRepo;
     collectionSettings: Map<string, CollectionSettings<any>>;
@@ -69,6 +70,16 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         this.repo = repo;
         this.collectionSettings = collections;
         this.connectionManager = connectionManager;
+    }
+
+    async stats(): Promise<Stats>
+    {
+        var collectionSubscriptionsPerTenant = this.connectionManager.countActiveConnectionsGroupedByTenant( (items)=>items.filter((item) => item.startsWith("collection.")).length);
+        var docsPerTenant = await this.repo.getDocumentCountPerTenant();
+        return {
+            'col-sub': collectionSubscriptionsPerTenant,
+            'col-docs': docsPerTenant,
+        };
     }
 
     async handleMessage(connection: ActiveConnection, message: AmberClientMessage): Promise<AmberServerResponseMessage | undefined> {
@@ -202,7 +213,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             });
         }
 
-        return successResponse(message, `Subscribed to the collection ${message.collection}`);
+        return successResponse(message);
     }
 
     private async handleUnsubscribe(connection:ActiveConnection, message:UnsubscribeCollectionMessage, collectionSettings:CollectionSettings<any>): Promise<AmberServerResponseMessage> {
@@ -211,7 +222,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             return errorResponse(message, `Not subscribed to the collection ${message.collection}`);
         }
         connection.items.delete(collectionItem(message.collection));
-        return successResponse(message, `Unsubscribed from the collection ${message.collection}`);
+        return successResponse(message);
     }
 
     private async handleCreate(connection:ActiveConnection, message:CreateDocument, collectionSettings:CollectionSettings<any>): Promise<AmberServerResponseMessage> {
@@ -252,10 +263,11 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         var accessTags = collectionSettings.accessTagsFromDocument ? collectionSettings.accessTagsFromDocument(data) : [];
 
         let document = await this.repo.createDocument(tenant, collection,userId, JSON.stringify(data), accessTags);
+        amberStats.trackMetric("col-crt", 1, tenant);
         if (document)
         {
-            for (const connection of this.connectionManager.activeConnections) {
-                if (connection.tenant == tenant && connection.items.has(collectionItem( collection))) {
+            for (const connection of this.connectionManager.activeConnectionsForTenant(tenant)) {
+                if (connection.items.has(collectionItem( collection))) {
                     // we need to check if the collection is filtered by access tags
                     let accessTagsForUser = collectionSettings.accessTagsFromUser ? collectionSettings.accessTagsFromUser({userId: connection.userId, roles: connection.roles}) : undefined;
 
@@ -320,7 +332,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
 
         if (success) {
 
-            return successResponse(message, `Document deleted in collection ${message.collection}`);
+            return successResponse(message);
         } else {
             return errorResponse(message, `Failed to delete document in collection ${message.collection}`);
         }
@@ -330,9 +342,11 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         
         let changeNumber = await this.repo.deleteDocument(tenant, collection, documentId);
 
+        amberStats.trackMetric("col-del", 1, tenant);
+
         if (changeNumber) {
-            for (const connection of this.connectionManager.activeConnections) {
-                if (connection.tenant == tenant && connection.items.has(collectionItem(collection)) ) {
+            for (const connection of this.connectionManager.activeConnectionsForTenant(tenant)) {
+                if (connection.items.has(collectionItem(collection)) ) {
                     // we might send a delete message to a client that does not have access to the document via the access tags. We accept this for now.
                     sendToClient<ServerSyncDocument>(connection, {
                         collection: collection,
@@ -376,7 +390,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
 
         var success = await this.updateDocumentWithOld(connection.tenant, message.collection, message.documentId, connection.userId, message.content, oldDocument);
         if (success) {
-            return successResponse(message, `Document updated in collection ${message.collection}`);
+            return successResponse(message);
         } else {
             return errorResponse(message, `Failed to update document in collection ${message.collection}`);
         }
@@ -417,9 +431,11 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         let oldAccessTags = oldDoc.access_tags;
         let changeNumber = await this.repo.updateDocument(tenant, collection, documentId,userId, data != undefined ? JSON.stringify(data) : undefined, accessTags, oldDoc);
         
+        amberStats.trackMetric("col-upd", 1, tenant);
+
         if (changeNumber) {
-            for (const connection of this.connectionManager.activeConnections) {
-                if (connection.tenant == tenant && connection.items.has(collectionItem(collection))) {
+            for (const connection of this.connectionManager.activeConnectionsForTenant(tenant)) {
+                if (connection.items.has(collectionItem(collection))) {
                     
                      // we need to check if the collection is filtered by access tags
                      let userAccessTags = collectionSettings.accessTagsFromUser ? collectionSettings.accessTagsFromUser({userId: connection.userId, roles: connection.roles}) : undefined;

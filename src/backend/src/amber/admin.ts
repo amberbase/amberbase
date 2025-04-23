@@ -7,27 +7,16 @@ import {AmberAuth, tenantAdminRole, allTenantsId} from './auth.js';
 
 export function enableAdminApi(app:Express, config:Config, repo:AmberRepo, authService: AmberAuth)  {
     
-    function checkAdmin(req:Request, res: Response) : boolean {
-        var sessionToken = req.header('AmberSession');
-        if (sessionToken) {
-            var session = authService.validateSessionToken(sessionToken);
-            if (session && session.roles.indexOf(tenantAdminRole) !== -1 && ( session.tenant === allTenantsId) ) {
-                return true;
-            }
-        }
-        res.status(401).send(error("Not authorized"));
-        return false;
-    }
 
     // admin functionality for tenant admin management
     app.get(config.path + '/tenants', async (req, res) => {
-        if (!checkAdmin(req, res)) return;
+        if (!authService.checkAdmin(req, res)) return;
         var tenants = await repo.getTenants();
         res.send(nu<Tenant[]>(tenants));
     });
 
-    app.delete(config.path + '/tenants/:tenant', async (req, res) => {
-        if (!checkAdmin(req, res)) return;
+    app.delete(config.path + '/tenant/:tenant', async (req, res) => {
+        if (!authService.checkAdmin(req, res, true)) return;
         var tenant = req.params.tenant;
         if(tenant === allTenantsId) {
             res.status(404).send(error("Unable to delete the global tenant"));
@@ -37,7 +26,7 @@ export function enableAdminApi(app:Express, config:Config, repo:AmberRepo, authS
     });
 
     app.post(config.path + '/tenants', async (req, res) => {
-        if (!checkAdmin(req, res)) return;
+        if (!authService.checkAdmin(req, res)) return;
         var request : CreateTenantRequest = req.body;
         try{
         await repo.createTenant(request.id, request.name, request.data);
@@ -51,8 +40,8 @@ export function enableAdminApi(app:Express, config:Config, repo:AmberRepo, authS
 
     });
 
-    app.post(config.path + '/tenants/:tenant', async (req, res) => {
-        if (!checkAdmin(req, res)) return;
+    app.post(config.path + '/tenant/:tenant', async (req, res) => {
+        if (!authService.checkAdmin(req, res)) return;
         var request : TenantDetails = req.body;
         try{
         await repo.updateTenant(req.params.tenant, request.name, request.data);

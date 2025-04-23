@@ -1,5 +1,7 @@
 import { AmberApi, AmberUserApi } from "./api.js";
-import { AmberCollections, AmberConnectionsClient } from "./collections.js";
+import { AmberChannels, AmberChannelssClient } from "./channels.js";
+import { AmberCollectionsClient, AmberCollections } from "./collections.js";
+import { AmberConnectionsClient } from "./connection.js";
 import { UserDetails } from "./dtos.js";
 import { AmberLoginManager } from "./login.js";
 
@@ -135,7 +137,9 @@ export class AmberClient{
     }
 
     connectionsClient : AmberConnectionsClient | null = null;
-    
+    collectionsClient : AmberCollectionsClient | null = null;
+    channelsClient : AmberChannelssClient | null = null;
+
     /**
      * Get the collections client for this tenant
      * @returns the collections client for this tenant
@@ -151,6 +155,30 @@ export class AmberClient{
                 ()=>this.loginManager.sessionToken()
             );
         }
-        return this.connectionsClient;
+        if (this.collectionsClient == null){
+            this.collectionsClient = new AmberCollectionsClient( this.connectionsClient);
+        }
+        return this.collectionsClient;
+    }
+
+    /**
+     * Get the collections client for this tenant
+     * @returns the collections client for this tenant
+     */
+    getChannelsApi(): AmberChannels{
+        if (this.connectionsClient == null){ // collections and channels are sharing the same connection
+            var tenant = this.loginManager.tenant;
+            if (tenant == null){
+                throw new Error("No tenant set in login manager yet");
+            }
+            this.connectionsClient = new AmberConnectionsClient(this.apiPrefix, 
+                tenant ,
+                ()=>this.loginManager.sessionToken()
+            );
+        }
+        if (this.channelsClient == null){
+            this.channelsClient = new AmberChannelssClient( this.connectionsClient);
+        }
+        return this.channelsClient;
     }
 }

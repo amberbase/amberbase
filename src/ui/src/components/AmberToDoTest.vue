@@ -35,7 +35,8 @@ var todosSortedByTitle = ()=> {
   return  [...todos.value].sort((a, b) => a.title.localeCompare(b.title));
 };
 
-
+var collectionApi = props.amberClient.getCollectionsApi().getCollection<ToDoEntity>("todos");
+var channelApi = props.amberClient.getChannelsApi().getChannel<string>("selected-todo");
 
 var editDescription = ref<string>("");
 var editTitle = ref<string>("");
@@ -45,8 +46,7 @@ var complete = async () => {
     const todo = selectedTodo.value;
     
     try {
-      await props.amberClient.getCollectionsApi()?.updateDoc<ToDoEntity>(
-        "todos",
+      await collectionApi.updateDoc(
         todo.id,
         todo.changeNumber,
         {
@@ -61,12 +61,15 @@ var complete = async () => {
   }
 };
 
-var selectToDo = (todo: ToDo|null) => {
+var selectToDo = (todo: ToDo|null, notifyRemote?:boolean | undefined) => {
   selectedTodo.value = todo;
   if (todo) {
     editDescription.value = todo.description;
     editTitle.value = todo.title;
     editMode.value = false;
+    if (notifyRemote) {
+      channelApi.send(todo.id);
+    }
   } else {
     editDescription.value = "";
     editTitle.value = "";
@@ -79,8 +82,7 @@ var save = async () => {
     const todo = selectedTodo.value;
     
     try {
-      await props.amberClient.getCollectionsApi()?.updateDoc<ToDoEntity>(
-        "todos",
+      await collectionApi.updateDoc(
         todo.id,
         todo.changeNumber,
         {
@@ -104,8 +106,7 @@ var create = async () => {
       completed: false,
     } as ToDoEntity;
     
-    const createdDoc = await props.amberClient.getCollectionsApi()?.createDoc<ToDoEntity>(
-      "todos",
+    const createdDoc = await collectionApi.createDoc(
       newTodo
     );
     editMode.value = false;
@@ -138,8 +139,7 @@ onMounted(async () => {
         return;
       }
 
-      collectionsApi.subscribe<ToDoEntity>(
-        "todos",
+      collectionApi.subscribe(
         0,
         (doc)=>{
             const index = todos.value.findIndex((todo) => todo.id === doc.id);
@@ -172,6 +172,15 @@ onMounted(async () => {
           connectedToAmber.value = connected;
         });
 
+      channelApi.subscribe(
+        (docId:string)=>{
+          const todo = todos.value.find((todo) => todo.id === docId);
+          if (todo) {
+            selectToDo(todo);
+          }
+        }
+      );
+
       collectionsApi.connect();
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -192,7 +201,7 @@ onMounted(async () => {
       <v-col cols="3">
         <v-btn @click="selectToDo(null)" v-if="isEditor()">Create New</v-btn>
         <v-list>
-            <v-list-item v-for="todo in todosSortedByTitle()" :key="todo.title" @click="selectToDo(todo)">
+            <v-list-item v-for="todo in todosSortedByTitle()" :key="todo.title" @click="selectToDo(todo, true)" :active="selectedTodo?.id === todo.id" active-color="amber">
               <v-list-item-content>
                 <v-list-item-title>{{ todo.title }}</v-list-item-title>
                 <v-list-item-subtitle><v-icon :icon="todo.completed? 'mdi-check-circle-outline':'mdi-clock-outline'"></v-icon></v-list-item-subtitle>

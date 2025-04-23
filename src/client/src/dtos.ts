@@ -285,7 +285,7 @@ export type CollectionClientWsMessage = SubscribeCollectionMessage | Unsubscribe
 /**
  * Channel specific client messages (not implemented yet)
  */
-export type ChannelClientWsMessage = SubscribeChannelMessage | UnsubscribeChannelMessage;
+export type ChannelClientWsMessage = SubscribeChannelMessage | UnsubscribeChannelMessage | SendToChannelMessage;
 
 
 export interface AmberServerMessage{
@@ -394,14 +394,9 @@ export interface ServerChannelMessage extends AmberServerMessage{
     type:"channel-message";
 
     /**
-     * The channel the message belongs to.
+     * The channel the message belongs to. Can be a subchannel in the form of "channel/subchannel".
      */
     channel:string;
-
-    /**
-     * This can be used to have different messages even in the same channel. It should indicate the schema of the message
-     */
-    messageType:string;
 
     /**
      * The message. This is the actual data of the message. It is a JSON object.
@@ -521,20 +516,57 @@ export interface SendToChannelMessage extends AmberClientMessage{
     action:"send-to-channel";
 
     /**
-     * The channel to send the message to
+     * The channel to send the message to. Can be a subchannel in the form of "channel/subchannel".
      */
     channel:string;
-    /**
-     * This can be used to have different messages even in the same channel. It should indicate the schema of the message
-     */
-    messageType:string;
-
     /**
      * The message. This is the actual data of the message. It is a JSON object.
      */
     message:any;
 }
 
+export function splitChannelName(channel: string): { channel: string, subchannel: string | null } | null {
+    if (!channel || typeof channel !== 'string') {
+        return null;
+    }
+    var splitChannel = channel.split('/');
+    
+    if (splitChannel.length >= 2){
+        return { channel: splitChannel[0], subchannel: splitChannel.slice(1).join('/') };
+        
+    }
+    else {
+        return { channel: splitChannel[0], subchannel: null };
+    }
+}
 
+export function joinChannelName(channel: string, subchannel: string | null | undefined): string {
+    if (!subchannel) {
+        return channel;
+    }
+    return `${channel}/${subchannel}`;
+}
 
+export type AmberMetricName = "col-crt" | "col-upd" | "col-del" | "col-sub" | "col-docs" | "chan-sub" | "chan-send" | "login-token" | "login-register";
+
+export interface MetricValue{
+    min: number;
+    max: number;
+    sum:number;
+    count:number;
+}
+
+export type Metrics = {
+    [name in AmberMetricName]?: {
+        min:number,
+        max:number,
+        sum:number,
+        count:number
+    }
+};
+
+export interface AmberMetricsBucket{
+    bucket:string,
+    metrics:Metrics;
+}
 

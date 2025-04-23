@@ -28,7 +28,7 @@ export function errorResponse(message: AmberClientMessage, error: string): Serve
     };
 }
 
-export function successResponse(message: AmberClientMessage, error: string): ServerSuccess {
+export function successResponse(message: AmberClientMessage): ServerSuccess {
     return {
         type: "success",
         responseTo: message.requestId
@@ -47,7 +47,21 @@ export class AmberConnectionManager{
     registerHandler(handler: AmberConnectionMessageHandler): void {
         this.handlers.push(handler);
     }
-        
+    
+    activeConnectionsForTenant(tenant: string): ActiveConnection[] {
+        return this.activeConnections.filter(c => c.tenant === tenant);
+    }
+
+    countActiveConnectionsGroupedByTenant(counter?:((itemKeys:string[])=>number) | undefined):{[tenant:string]:number}  {
+        let result: {[tenant:string]:number} = {};
+        for (const connection of this.activeConnections) {
+            if (!result[connection.tenant]) {
+                result[connection.tenant] = 0;
+            }
+            result[connection.tenant] += counter? counter(Array.from(connection.items.keys())) : 1;
+        }
+        return result;
+    }
 
     websocketBinding(): WebsocketHandler
         {

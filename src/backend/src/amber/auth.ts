@@ -343,6 +343,27 @@ export class AmberAuth{
         this.secondarySecret = Buffer.from(await this.repo.getOrCreateSystemSetting("secondary_secret", ()=> crypto.randomBytes(32).toString('hex')), 'hex');
     }
 
+    /**
+     * Utility function to check wether a user is logged in with a session and has the admin role for the given tenant (or the global tenant).
+     * If the path does not contain a tenant, it will check for the global tenants admin role.
+     * @param req Request to handle
+     * @param res Response to potentially send the 401 to
+     * @returns Boolean if the use is an admin
+     */
+    checkAdmin(req:Request, res: Response, onlyAllowGlobal?: boolean | undefined) : boolean {
+        var tenantToCheck = onlyAllowGlobal? allTenantsId : (req.params.tenant || allTenantsId);
+        var sessionToken = req.header('AmberSession');
+        if (sessionToken) {
+            var session = this.validateSessionToken(sessionToken);
+            if (session && session.roles.indexOf(tenantAdminRole) !== -1 && ( session.tenant === tenantToCheck) || session.tenant === allTenantsId) {
+                return true;
+            }
+        }
+        res.status(401).send(error("Not authorized"));
+        return false;
+    }
+
+
     // our session tokens are only used for internal communication, so we don't need to worry about JWT standards
     createSessionToken(userId: string, tenant : string, roles:string[], validityMinutes:number): string{
         var token = {
@@ -487,3 +508,4 @@ export class AmberAuth{
         }
     }
 }
+

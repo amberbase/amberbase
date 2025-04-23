@@ -574,6 +574,22 @@ export class AmberRepo {
         }
     }
 
+
+    async getDocumentCountPerTenant(): Promise<{[tenant:string]:number}> {
+        var conn = await this.pool.getConnection();
+        try{
+            var result = await conn.query<{tenant:string, count:BigInt}[]>("SELECT `tenant`, COUNT(*) AS count FROM documents GROUP BY `tenant`");
+            var tenantCount:{[tenant:string]:number} = {};
+            for (const row of result){
+                tenantCount[row.tenant] = Number(row.count);
+            }
+            return tenantCount;
+        }
+        finally{
+            conn.end();
+        }
+    }
+
     async getAllDocuments(tenant:string, collection:string, newerThanChangeNumber:number | undefined, withOneOfTheseAccessTags:string[] | undefined): Promise<Document[]> {
         var conn = await this.pool.getConnection();
         var accessTagFilter:string | undefined = undefined;
