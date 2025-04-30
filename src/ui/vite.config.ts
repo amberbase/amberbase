@@ -14,12 +14,13 @@ export default defineConfig(({mode}) => ({
     }
   },
   build:{
-    outDir: "../backend/dist/static",
+    outDir: "../backend/dist/ui",
     emptyOutDir: true,
     sourcemap : true
   },
   define: {
      __VUE_PROD_DEVTOOLS__: mode !== 'production'
-  }
+  },
+  base: "./"
 
 }))

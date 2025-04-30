@@ -1,21 +1,20 @@
 import { Express, Request, Response } from 'express';
 import {Config} from './config.js';
-import {AmberRepo, User} from './db/repo.js';
-import {ActionResult, LoginRequest, nu, error, SessionToken as SessionTokenDto, RegisterRequest, AcceptInvitationRequest, UserDetails, CreateInvitationRequest, Tenant, TenantDetails, CreateTenantRequest} from 'amber-client';
-import * as crypto from 'node:crypto';
-import {AmberAuth, tenantAdminRole, allTenantsId} from './auth.js';
+import {AmberRepo} from './db/repo.js';
+import {ActionResult, nu, error, Tenant, TenantDetails, CreateTenantRequest} from 'amber-client';
+import {AmberAuth, allTenantsId} from './auth.js';
 
 export function enableAdminApi(app:Express, config:Config, repo:AmberRepo, authService: AmberAuth)  {
     
 
     // admin functionality for tenant admin management
-    app.get(config.path + '/tenants', async (req, res) => {
+    app.get('/tenants', async (req, res) => {
         if (!authService.checkAdmin(req, res)) return;
         var tenants = await repo.getTenants();
         res.send(nu<Tenant[]>(tenants));
     });
 
-    app.delete(config.path + '/tenant/:tenant', async (req, res) => {
+    app.delete('/tenant/:tenant', async (req, res) => {
         if (!authService.checkAdmin(req, res, true)) return;
         var tenant = req.params.tenant;
         if(tenant === allTenantsId) {
@@ -25,7 +24,7 @@ export function enableAdminApi(app:Express, config:Config, repo:AmberRepo, authS
         res.send(nu<ActionResult>({success:true}));
     });
 
-    app.post(config.path + '/tenants', async (req, res) => {
+    app.post('/tenants', async (req, res) => {
         if (!authService.checkAdmin(req, res)) return;
         var request : CreateTenantRequest = req.body;
         try{
@@ -40,7 +39,7 @@ export function enableAdminApi(app:Express, config:Config, repo:AmberRepo, authS
 
     });
 
-    app.post(config.path + '/tenant/:tenant', async (req, res) => {
+    app.post('/tenant/:tenant', async (req, res) => {
         if (!authService.checkAdmin(req, res)) return;
         var request : TenantDetails = req.body;
         try{

@@ -2,12 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.ico">
+    <link rel="icon" href="favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amber Testbench</title>
+    <title>Amberbase Log In</title>
   </head>
   <body>
     <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="src/main.ts"></script>
+    <script>
+      var amberUiConfigStr = "**AMBER_UI_CONFIG**";
+      if (amberUiConfigStr) {
+        try {
+          var amberUiConfig = JSON.parse(amberUiConfigStr);
+          window.amberUiConfig = amberUiConfig;
+        } catch (e) {
+          console.error("Failed to parse AMBER_UI_CONFIG:", e);
+        }
+      } else {
+        console.warn("AMBER_UI_CONFIG is not defined.");
+      }
+    </script>
   </body>
 </html>

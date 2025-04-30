@@ -166,7 +166,7 @@ function trackInBucket(buckets:AmberMetricsBucket[], maxBuckets:number, bucketNa
 
 export function enableStatsApis(app:Express, config:Config, authService: AmberAuth)  {
 
-    app.get( config.path +'/tenant/:tenant/metrics/minute', (req: Request, res: Response) => {
+    app.get( '/tenant/:tenant/metrics/minute', (req: Request, res: Response) => {
         if (!authService.checkAdmin(req, res)) return;
         var tenant = req.params.tenant;
         if (tenant == allTenantsId) {
@@ -178,7 +178,7 @@ export function enableStatsApis(app:Express, config:Config, authService: AmberAu
         }
     });
     
-    app.get( config.path +'/tenant/:tenant/metrics/hour', (req: Request, res: Response) => {
+    app.get( '/tenant/:tenant/metrics/hour', (req: Request, res: Response) => {
         if (!authService.checkAdmin(req, res)) return;
         var tenant = req.params.tenant;
         if (tenant == allTenantsId) {
@@ -190,11 +190,11 @@ export function enableStatsApis(app:Express, config:Config, authService: AmberAu
         }
     });
 
-    app.get( config.path +'/metrics/minute', (req: Request, res: Response) => {
+    app.get( '/metrics/minute', (req: Request, res: Response) => {
         if (!authService.checkAdmin(req, res)) return;
         res.json(amberStats.getGlobalMinuteMetrics());
     });
-    app.get( config.path +'/metrics/hour', (req: Request, res: Response) => {
+    app.get( '/metrics/hour', (req: Request, res: Response) => {
         if (!authService.checkAdmin(req, res)) return;
         res.json(amberStats.getGlobalHourMetrics());
     });

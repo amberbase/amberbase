@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-
+import {UiConfig} from './../../../ui/src/config.js';
 export interface Config {
     db_name: string,
     db_type: string,
@@ -10,7 +10,8 @@ export interface Config {
     path: string,
     enableAdminApi?: boolean,
     enableStatsApi?: boolean,
-    inviteOnly?: boolean
+    inviteOnly?: boolean,
+    ui?: UiConfig
 };
 
 export interface ConfigOptionals {

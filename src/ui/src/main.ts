@@ -9,9 +9,16 @@ import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
 
-import App from './App.vue'
+import Amber from './components/Amber.vue'
 import { state } from './state'
 import { amber } from 'vuetify/util/colors'
+import type { UiConfig } from './config'
+
+declare global {
+  interface Window{
+    amberUiConfig?: UiConfig
+  }
+}
 
 const vuetify = createVuetify({
     components,
@@ -26,7 +33,7 @@ const vuetify = createVuetify({
   });
   
   var hash = window.location.hash;
-  if (hash.startsWith("#/amber/")) {
+  if (hash.startsWith("#/")) {
     var params = new URLSearchParams(hash.substring(8));
     
     state.amberTenant = params.get("tenant") || "*";
@@ -37,4 +44,9 @@ const vuetify = createVuetify({
   if(state.amberTenant !== "*"){
     state.defaultView = "amber";
   }
-  createApp(App).use(vuetify).mount('#app')
+
+  if (window.amberUiConfig) {
+    state.uiConfig = window.amberUiConfig;
+  }
+
+  createApp(Amber).use(vuetify).mount('#app')

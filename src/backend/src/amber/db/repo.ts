@@ -17,9 +17,15 @@ const migrationScripts:MigrationScript[] = [
     {lvl: 4, sql: 'CREATE TABLE IF NOT EXISTS invitations (`id` VARCHAR(50) NOT NULL,`tenant` VARCHAR(50) NULL DEFAULT NULL,`roles` VARCHAR(255) NULL DEFAULT NULL,`valid_until` DATETIME NULL DEFAULT NULL,`accepted` DATETIME NULL DEFAULT NULL,PRIMARY KEY (`id`))'},
     {lvl: 5, sql: "CREATE TABLE `documents` (`tenant` VARCHAR(255) NOT NULL,`collection` VARCHAR(50) NOT NULL,`id` VARCHAR(36) NOT NULL,`change_number` INT UNSIGNED NOT NULL DEFAULT '0',`change_user` VARCHAR(36) NULL,`change_time` DATETIME NOT NULL,`data` LONGTEXT NULL,`access_tags` VARCHAR(4096) NULL DEFAULT NULL,PRIMARY KEY (`id`),INDEX `tenant_collection` (`tenant`, `collection`),FULLTEXT INDEX `access_tags` (`access_tags`))"},
     {lvl: 6, sql: "CREATE TABLE `syncactions` (`tenant` VARCHAR(255) NOT NULL,`collection` VARCHAR(50) NOT NULL,`id` VARCHAR(36) NOT NULL,`change_number` INT(10) UNSIGNED NOT NULL DEFAULT '0',`change_time` DATETIME NOT NULL,`access_tags` VARCHAR(4096) NULL DEFAULT NULL,`new_access_tags` VARCHAR(4096) NULL DEFAULT NULL,`deleted` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,INDEX `tenant_collection` (`tenant`, `collection`,  `change_number`) USING BTREE,FULLTEXT INDEX `access_tags` (`access_tags`))"},
-    {lvl: 7, sql: "INSERT IGNORE INTO `tenants` (`id`, `name`, `data`) VALUES ('*', 'Global', '')"},	
+    {lvl: 7, sql: "INSERT IGNORE INTO `tenants` (`id`, `name`, `data`) VALUES ('*', 'Global', '')"}, // this is the global tenant as it is used to assign roles to users that are not tenant specific but global and inherited into the local tenants	
 ];
 
+/**
+ * Checks if two arrays of strings are equal in a "set-theory sense". That means the order of the elements does not matter.
+ * @param a set of strings
+ * @param b set of strings
+ * @returns true for equal, false otherwise
+ */
 function compareArraySets(a:string[], b:string[]): boolean {
     if (a.length !== b.length) return false;
     var setB = new Set(b);
@@ -31,6 +37,11 @@ function compareArraySets(a:string[], b:string[]): boolean {
     return true;
 }
 
+/**
+ * Create a string from an array of strings. The array is sorted and the elements are trimmed. If the array is undefined, an empty string is returned.
+ * @param a String array to convert to string
+ * @returns string created from the array as expected by this database layer. That means separated by spaces and sorted.
+ */
 function arraySetToString(a:string[] | undefined): string {
     if (a === undefined){
         return "";
@@ -49,6 +60,9 @@ export class AmberRepo {
         this.config = config;
     }
 
+    /**
+     * Init the database. This will create the database and the tables if they do not exist through the migration scripts.
+     */
     async initDb() {
         var pool = mariadb.createPool({host: this.config.db_host, user: this.config.db_username, connectionLimit: 5, password: this.config.db_password});
         var conn = await pool.getConnection();
@@ -84,6 +98,12 @@ export class AmberRepo {
         this.pool = mariadb.createPool({host: this.config.db_host, user: this.config.db_username, connectionLimit: 5, password: this.config.db_password, database: this.config.db_name});     
     }
 
+    /**
+     * Get a system setting from the database. If the setting does not exist, it will be created with the provided function.
+     * @param name The name of the setting
+     * @param create The function to create the setting if it does not exist
+     * @returns The value of the setting
+     */
     async getOrCreateSystemSetting(name:string, create:()=>string): Promise<string> {
         var cached = this.cache.get(name);
         if (cached)

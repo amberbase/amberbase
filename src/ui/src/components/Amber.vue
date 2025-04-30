@@ -21,7 +21,7 @@ interface AmberUserDetails
 
 const amberUser = ref<AmberUserDetails | null>(null);
 const amberClient= ref<AmberClient | null>(null);
-
+const theme = ref(state.uiConfig.theme);
 var onUserReady = (details:{client: AmberClient,userId:string, userName:string, userEmail:string, tenant:string,roles:string[]} | null)=>
 {
   if(details!=null)
@@ -39,6 +39,7 @@ var onUserReady = (details:{client: AmberClient,userId:string, userName:string, 
 </script>
 
 <template>
+  <v-app :theme="theme">
     <v-container>
     <v-row>
       <AmberLogin @user-ready="onUserReady"></AmberLogin>
@@ -63,6 +64,7 @@ var onUserReady = (details:{client: AmberClient,userId:string, userName:string, 
       <AmberLoadTest v-if="amberUser && amberClient" :amber-client="amberClient"></AmberLoadTest>
     </v-row>
     </v-container>
+  </v-app>
 </template>
 
 <style scoped>
