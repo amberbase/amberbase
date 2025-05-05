@@ -1,4 +1,4 @@
-import { AmberClientMessage, AmberCollectionClientMessage, AmberMetricName, AmberServerResponseMessage, CollectionClientWsMessage,  CreateDocument,  DeleteDocument,  ServerError, ServerSuccess, ServerSuccessWithDocument, ServerSyncDocument, SubscribeCollectionMessage, UnsubscribeCollectionMessage, UpdateDocument} from "amber-client";
+import { AmberClientMessage, AmberCollectionClientMessage, AmberMetricName, AmberServerResponseMessage, CollectionClientWsMessage,  CreateDocument,  DeleteDocument,  ServerError, ServerSuccess, ServerSuccessWithDocument, ServerSyncDocument, SubscribeCollectionMessage, UnsubscribeCollectionMessage, UpdateDocument} from './../../../client/src/shared/dtos.js';
 import { SessionToken } from "./auth.js";
 import { Config } from "./config.js";
 import { AmberRepo, Document } from "./db/repo.js";

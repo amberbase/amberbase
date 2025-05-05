@@ -2,11 +2,18 @@
 import {ref} from "vue"
 import {  AmberClient, AmberClientInit, type InvitationDetails, type UserDetails} from "amber-client"
 import AmberGlobalAdmin from "./AmberGlobalAdmin.vue";
-import { state } from "@/state";
 import type { VForm } from "vuetify/components";
 
 const emit = defineEmits<{
-  (e: 'userReady', details: {client: AmberClient,userId:string, userName:string, userEmail:string, tenant:string,roles:string[]} | null): void
+  (e: 'userInTenant', details: {client: AmberClient,userId:string, userName:string, userEmail:string, tenant:string,roles:string[]} | null): void,
+  (e: 'userReady', details: {client: AmberClient,userId:string, userName:string, userEmail:string} | null): void,
+}>();
+
+var props = defineProps<{
+  tenant?:string,
+  allowGlobalTenantSelection?:boolean,
+  skipTenantSelection?: boolean
+  invitation?:string 
 }>();
 
 var tab = ref("login");
@@ -21,26 +28,25 @@ var userDetails = ref<UserDetails| null>(null);
 var stayLoggedIn = ref(false);
 var roles = ref<string[]>([]);
 var login : (record:{email:string, pw:string, stayLoggedIn:boolean})=>void = ()=>{};
-var tenant = ref("*");
+var tenant = ref("");
 var tenantsToChooseFrom = ref<{ id: string; name: string; roles: string[]; }[]>([]);
 var amber = ref<AmberClient | undefined>(undefined);
 var invitationDetails = ref<InvitationDetails | null>(null);
 var invitationFailure = ref("");
 var registrationForm = ref<VForm|null>(null);
 
-if (state.amberInvitation)
+if (props.invitation)
 {
   invitationFailure.value = "Loading invitation details";
 }
 var askedForLogin = false;
-tenant.value = state.amberTenant;
+tenant.value = props.tenant || "";
 
 var shouldShowRegisterUser = ()=>!!invitationDetails.value;
 
 var tenantSelectorCallback:((id:string) =>void) | null = null;
 var selectTenant = (tenantId:string)=>{
   tenant.value = tenantId;
-  state.amberTenant = tenantId;
   showTenantSelector.value = false;
   tenantSelectorCallback?.(tenantId);
 }
@@ -49,7 +55,7 @@ var amberInit = new AmberClientInit()
   .withPath("/amber")
   .withTenantSelector(async (tenants)=>
   {
-    if (tenant.value != '*') return tenant.value;
+    if (tenant.value != '') return tenant.value;
     if (!userDetails.value?.tenants["*"])
     {
       if (tenants.length == 1) return tenants[0].id;
@@ -57,7 +63,7 @@ var amberInit = new AmberClientInit()
 
     return await new Promise<string>((resolve, reject)=>{
       tenantSelectorCallback = resolve;
-      tenantsToChooseFrom.value = tenants;
+      tenantsToChooseFrom.value = tenants.filter(t=>t.id != "*" || props.allowGlobalTenantSelection);
       showTenantSelector.value = true;
     });
   }
@@ -74,12 +80,34 @@ var amberInit = new AmberClientInit()
     })
   });
 
-  amberInit.onUserChanged((user)=>{
+  amberInit.onUserChanged(async (user)=>{
     userDetails.value = user;
     userEmail.value = user?.email || "";
-    if(state.amberInvitation && invitationFailure.value == "")
+    if(props.invitation && invitationFailure.value == "")
     {
-      amber.value?.getUserApi()?.acceptInvitation(state.amberInvitation);
+      var p = amber.value?.getUserApi()?.acceptInvitation(props.invitation);
+      if (p)
+      {
+        await p;
+      }
+    }
+
+    if (user == null)
+    {
+      showLogin.value = true;
+      showTenantSelector.value = false;
+      emit('userReady', null);
+    }
+    else
+    {
+      showLogin.value = false;
+      showTenantSelector.value = false;
+      emit('userReady', {
+        client: amber.value!,
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email
+      });
     }
   });
 
@@ -95,7 +123,7 @@ var amberInit = new AmberClientInit()
       tenant.value = newTenant;
       var amberClient = amber.value!;
       var a : AmberClient = amberClient;
-      emit('userReady', {
+      emit('userInTenant', {
         client: amber.value!,
         userId: userDetails.value?.id || "",
         userName: userDetails.value?.name || "",
@@ -106,19 +134,15 @@ var amberInit = new AmberClientInit()
     }
     else
     {
-      emit('userReady', null);
-    }
-
-    if (newTenant == '*' && newRoles.includes('admin')){
-      
+      emit('userInTenant', null);
     }
   });
 
   amber.value = amberInit.start();
 
-  if (state.amberInvitation)
+  if (props.invitation)
   {
-    amber.value?.getUserApi().getInvitationDetails(state.amberInvitation).then((details)=>{
+    amber.value?.getUserApi().getInvitationDetails(props.invitation).then((details)=>{
       if(!details.isStillValid)
       {
         invitationFailure.value = "Invitation is no longer valid";
@@ -201,7 +225,7 @@ var amberInit = new AmberClientInit()
       registerUserName.value,
       registerUserEmail.value,
       registerUserPassword.value,
-      state.amberInvitation
+      props.invitation
     );
 
     // well, we could just log in now

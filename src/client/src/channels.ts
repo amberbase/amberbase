@@ -1,5 +1,5 @@
 import { AmberConnectionsClient, ConnectionHandler } from "./connection.js";
-import { AmberSessionProtocolPrefix, CollectionClientWsMessage, CollectionDocument, AmberServerMessage, SubscribeCollectionMessage, AmberServerResponseMessage, AmberCollectionClientMessage, ServerError, ServerSyncDocument, DeletedCollectionDocument, UnsubscribeCollectionMessage, ServerSuccessWithDocument, CreateDocument, UpdateDocument, ServerSuccess, DeleteDocument, joinChannelName, SubscribeChannelMessage, ServerChannelMessage, UnsubscribeChannelMessage, SendToChannelMessage } from "./dtos.js";
+import { AmberSessionProtocolPrefix, CollectionClientWsMessage, CollectionDocument, AmberServerMessage, SubscribeCollectionMessage, AmberServerResponseMessage, AmberCollectionClientMessage, ServerError, ServerSyncDocument, DeletedCollectionDocument, UnsubscribeCollectionMessage, ServerSuccessWithDocument, CreateDocument, UpdateDocument, ServerSuccess, DeleteDocument, joinChannelName, SubscribeChannelMessage, ServerChannelMessage, UnsubscribeChannelMessage, SendToChannelMessage } from "./shared/dtos.js";
 
 /**
  * SDK API for the amber channels

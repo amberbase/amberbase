@@ -2,7 +2,7 @@ import { AmberApi, AmberUserApi } from "./api.js";
 import { AmberChannels, AmberChannelssClient } from "./channels.js";
 import { AmberCollectionsClient, AmberCollections } from "./collections.js";
 import { AmberConnectionsClient } from "./connection.js";
-import { UserDetails } from "./dtos.js";
+import { UserDetails } from "./shared/dtos.js";
 import { AmberLoginManager } from "./login.js";
 
 export class AmberClientInit{
@@ -71,17 +71,18 @@ export class AmberClientInit{
             throw new Error("No credentials provider or credentials set");
         }
 
-        if(this.tenant == null && !this.tenantSelector){
-            throw new Error("No tenant or tenant selector set");
+        if (this.tenant)
+        {
+            this.tenantSelector = async (availableTenants) => {
+                return this.tenant!;
+            }
         }
 
         var client =  new AmberClient(
             this.apiPrefix, 
             this.credentialsProvider, 
             this.cleanUser,
-            this.tenantSelector || (async (availableTenants) => {
-                return this.tenant || "*";
-            })
+            this.tenantSelector
         );
         
         var loginManager = client.loginManager;
@@ -101,7 +102,7 @@ export class AmberClient{
     apiPrefix:string;
     loginManager: AmberLoginManager;
     constructor(apiPrefix:string | undefined, credentialsProvider: ((failed:boolean) => Promise<{ email: string; pw: string; stayLoggedIn:boolean }>), cleanUser:boolean = false,
-        tenantSelector: (availableTenants:{id:string, name:string, roles:string[]}[]) => Promise<string>){
+        tenantSelector: ((availableTenants:{id:string, name:string, roles:string[]}[]) => Promise<string>) | undefined){
         this.apiPrefix = apiPrefix || '/amber';
         this.loginManager = new AmberLoginManager(this.apiPrefix, credentialsProvider, cleanUser, tenantSelector);     
     }

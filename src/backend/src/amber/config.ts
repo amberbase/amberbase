@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import {UiConfig} from './../../../ui/src/config.js';
+import {AmberUiConfig} from '../../../shared/src/ui/model.js';
 export interface Config {
     db_name: string,
     db_type: string,
@@ -11,7 +11,7 @@ export interface Config {
     enableAdminApi?: boolean,
     enableStatsApi?: boolean,
     inviteOnly?: boolean,
-    ui?: UiConfig
+    ui?: AmberUiConfig
 };
 
 export interface ConfigOptionals {

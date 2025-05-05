@@ -1,9 +1,9 @@
 import { Express, Request, Response } from 'express';
 import {Config} from './config.js';
 import {AmberRepo, Invitation, User} from './db/repo.js';
-import {ActionResult, LoginRequest, nu, error, SessionToken as SessionTokenDto, RegisterRequest, AcceptInvitationRequest, UserDetails, CreateInvitationRequest, UserWithRoles as UserWithRolesDto, TenantWithRoles, InvitationDetails, UserInfo} from 'amber-client';
+import {ActionResult, LoginRequest, nu, error, SessionToken as SessionTokenDto, RegisterRequest, AcceptInvitationRequest, UserDetails, CreateInvitationRequest, UserWithRoles as UserWithRolesDto, TenantWithRoles, InvitationDetails, UserInfo} from './../../../client/src/shared/dtos.js';
 import * as crypto from 'node:crypto';
-import { sleep } from 'amber-client/dist/src/helper.js';
+import { sleep } from './../../../client/src/shared/helper.js';
 
 export const tenantAdminRole = 'admin';
 export const allTenantsId = '*';

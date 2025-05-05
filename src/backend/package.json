@@ -13,7 +13,6 @@
   "license": "MIT",
   "description": "",
   "dependencies": {
-    "amber-client": "file:../client",
     "cookie-parser": "^1.4.7",
     "express": "^4.21.1",
     "mariadb": "^3.3.2",

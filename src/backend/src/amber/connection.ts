@@ -1,4 +1,4 @@
-import { AmberClientMessage, AmberServerMessage, AmberServerResponseMessage, ServerError, ServerSuccess } from "amber-client";
+import { AmberClientMessage, AmberServerMessage, AmberServerResponseMessage, ServerError, ServerSuccess } from './../../../client/src/shared/dtos.js';
 import { SessionToken } from "./auth.js";
 import { SimpleWebsocket, WebsocketHandler } from "./websocket/websocket.js";
 

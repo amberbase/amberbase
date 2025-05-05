@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {ref, onMounted} from "vue"
-import { AmberClient, type Tenant, type UserDetails} from "amber-client"
+import { AmberClient, type Tenant} from "amber-client"
 var props = defineProps<{amberClient: AmberClient}>();
 
 var allTenants = ref<Tenant[]>([]);

@@ -4,7 +4,6 @@
   "module": "dist/index.js",
   "version": "1.0.0",
   "description": "The client library for an Amberbase app",
-  "main": "dist/index.js",
   "types": "dist/index.d.ts",
     "scripts": {
      "build": "tsc"

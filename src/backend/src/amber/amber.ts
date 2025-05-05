@@ -13,7 +13,7 @@ import { amberStats, enableStatsApis } from './stats.js';
 import express from 'express'
 import cookieParser from 'cookie-parser';
 import { enableUi } from './ui.js';
-import {UiConfig} from './../../../ui/src/config.js';
+import {AmberUiConfig} from '../../../shared/src/ui/model.js';
 
 
 /**
@@ -94,7 +94,7 @@ export class AmberInit{
     /**
      * Enable the standard UI for common managment and user profile tasks.
      */
-    withUi(config:UiConfig): AmberInit{
+    withUi(config:AmberUiConfig): AmberInit{
         this.config.ui = config; // we will have more configuration options later
         return this;    
     }

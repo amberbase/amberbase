@@ -1,4 +1,4 @@
-import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, CreateTenantRequest, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails, UserInfo, AmberMetricsBucket} from './dtos.js'
+import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, CreateTenantRequest, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails, UserInfo, AmberMetricsBucket} from './shared/dtos.js'
 
 /**
  * Internal class to wrap REST like api calls to the amber server for convenience
@@ -263,7 +263,7 @@ export class AmberUserApi{
      * @param invitation A potential invitation link to add the user to a tenant with some roles
      * @returns the user id
      */
-    async registerUser(userName : string, userEmail : string, password : string, invitation : string) : Promise<string> {
+    async registerUser(userName : string, userEmail : string, password : string, invitation? : string) : Promise<string> {
         return await this.apiClient.fetchText("POST", '/register', nu<RegisterRequest>({username: userName, email:userEmail, password, invitation}));
     }
 

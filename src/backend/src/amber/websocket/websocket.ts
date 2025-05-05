@@ -1,7 +1,7 @@
 import * as http from 'http'
 import * as WebSocket from 'ws'
 import { AmberAuth, SessionToken } from '../auth.js';
-import { AmberSessionProtocolPrefix } from 'amber-client';
+import { AmberSessionProtocolPrefix } from './../../../../client/src/shared/dtos.js'
 
 export interface SimpleWebsocket{
     onClose(callback: ()=>void): void;

@@ -8,8 +8,7 @@ ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale,
 
 var props = defineProps<{
   amberClient: AmberClient, 
-  tenant : string,
-  roles : string[]
+  tenant : string
 }>();
 var show = ref(false);
 

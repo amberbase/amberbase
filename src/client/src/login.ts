@@ -1,7 +1,7 @@
 import { AmberAdminApi, AmberApi, AmberGlobalAdminApi, AmberUserApi } from './api.js';
 import { AmberClient } from './client.js';
-import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest} from './dtos.js'
-import { CompletablePromise, sleep } from './helper.js';
+import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest} from './shared/dtos.js'
+import { CompletablePromise, sleep } from './shared/helper.js';
 
 export class AmberLoginManager {
 
@@ -15,18 +15,16 @@ export class AmberLoginManager {
     tenant: string | null = null;
     stop: boolean = false;
     provider: (failed: boolean) => Promise<{ email: string; pw: string; stayLoggedIn:boolean }>;
-    tenantSelector: ((availableTenants:{id:string, name:string, roles:string[]}[]) => Promise<string>);
+    tenantSelector?: ((availableTenants:{id:string, name:string, roles:string[]}[]) => Promise<string>) | undefined ;
 
     sessionTokenValidity: number = 0;
     sessionTokenValue: string = "";
-
     
-
     constructor(
         apiPrefix : string, 
         provider:(failed:boolean)=>Promise<{email:string, pw:string; stayLoggedIn:boolean}>,
         cleanUser:boolean = false,
-        tenantSelector : ((availableTenants:{id:string, name:string, roles:string[]}[]) => Promise<string>)) 
+        tenantSelector : ((availableTenants:{id:string, name:string, roles:string[]}[]) => Promise<string> ) | undefined) 
     {
         this.apiPrefix = apiPrefix;
         this.tenantSelector = tenantSelector;
@@ -63,8 +61,6 @@ export class AmberLoginManager {
         
         return new AmberUserApi(this.apiPrefix);
     }
-
-
 
     setRoles( roles: string[]) {
         if (this.roles.length !== roles.length || this.roles.some((role, index) => roles.indexOf(role) === -1)) {
@@ -127,7 +123,7 @@ export class AmberLoginManager {
                         if (userFetched)
                         {
                             console.log("Logged in now as " + userFetched.email);
-                            if(this.tenant == null)
+                            if(this.tenant == null && this.tenantSelector)
                             {
                                 console.log("Selecting tenant");
                                 var tenants = await this.getAmberUserApi().getUserTenants();

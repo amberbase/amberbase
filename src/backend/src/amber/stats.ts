@@ -1,4 +1,4 @@
-import { AmberMetricName, AmberMetricsBucket } from "amber-client";
+import { AmberMetricName, AmberMetricsBucket } from './../../../client/src/shared/dtos.js';
 
 import { Express, Request, Response } from 'express';
 import { Config } from "./config.js";

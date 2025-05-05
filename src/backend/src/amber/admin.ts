@@ -1,7 +1,7 @@
 import { Express, Request, Response } from 'express';
 import {Config} from './config.js';
 import {AmberRepo} from './db/repo.js';
-import {ActionResult, nu, error, Tenant, TenantDetails, CreateTenantRequest} from 'amber-client';
+import {ActionResult, nu, error, Tenant, TenantDetails, CreateTenantRequest} from './../../../client/src/shared/dtos.js';
 import {AmberAuth, allTenantsId} from './auth.js';
 
 export function enableAdminApi(app:Express, config:Config, repo:AmberRepo, authService: AmberAuth)  {
