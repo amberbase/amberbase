@@ -10,10 +10,9 @@
     <div id="app"></div>
     <script type="module" src="src/main.ts"></script>
     <script>
-      var amberUiConfigJson = "**AMBER_UI_CONFIG**";
-      if (amberUiConfigJson) {
+      var amberUiConfig = "**AMBER_UI_CONFIG**";
+      if (amberUiConfig) {
         try {
-          var amberUiConfig = JSON.parse(amberUiConfigJson);
           window.amberUiConfig = amberUiConfig;
         } catch (e) {
           console.error("Failed to parse AMBER_UI_CONFIG:", e);
@@ -22,10 +21,9 @@
         console.warn("AMBER_UI_CONFIG is not defined.");
       }
 
-      var amberUiContextJson = "**AMBER_UI_CONTEXT**";
-      if (amberUiContextJson) {
+      var amberUiContext = "**AMBER_UI_CONTEXT**";
+      if (amberUiContext) {
         try {
-          var amberUiContext = JSON.parse(amberUiContextJson);
           window.amberUiContext = amberUiContext;
         } catch (e) {
           console.error("Failed to parse AMBER_UI_CONTEXT:", e);

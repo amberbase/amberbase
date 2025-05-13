@@ -6,7 +6,7 @@ import { CompletablePromise, sleep } from './shared/helper.js';
 export class AmberLoginManager {
 
     onUserChanged: (user: UserDetails| null) => void = (user) => {};
-    onRolesChanged: (tenant : string | null, roles: string[]) => void = (tenant, roles) => {};
+    onRolesChanged: (tenant : string | null, roles: string[], user: UserDetails | null) => void = (tenant, roles) => {};
     userPromise: CompletablePromise<UserDetails|null> = new CompletablePromise<UserDetails|null>();
     user: UserDetails | null = null;
     roles: string[] = [];
@@ -59,13 +59,13 @@ export class AmberLoginManager {
 
     public getAmberUserApi(){
         
-        return new AmberUserApi(this.apiPrefix);
+        return new AmberUserApi(this.apiPrefix, this);
     }
 
     setRoles( roles: string[]) {
         if (this.roles.length !== roles.length || this.roles.some((role, index) => roles.indexOf(role) === -1)) {
             this.roles = roles;
-            this.onRolesChanged(this.tenant, roles);
+            this.onRolesChanged(this.tenant, roles, this.user);
         }
     }
     

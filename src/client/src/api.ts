@@ -1,3 +1,4 @@
+import { AmberLoginManager } from './login.js';
 import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, CreateTenantRequest, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails, UserInfo, AmberMetricsBucket} from './shared/dtos.js'
 
 /**
@@ -235,8 +236,10 @@ export class AmberApi{
  */
 export class AmberUserApi{
     apiClient: ApiClient;
-    constructor(prefix: string){
+    loginManager: AmberLoginManager | null;
+    constructor(prefix: string, loginManager: AmberLoginManager | null){
         this.apiClient = new ApiClient(prefix);
+        this.loginManager = loginManager;
     }
 
     /**
@@ -255,6 +258,13 @@ export class AmberUserApi{
         return await this.apiClient.fetch<TenantWithRoles[]>("GET", '/user/tenants');
     }
 
+    /**
+     * Logout the current user
+     * @returns 
+     */
+    logout() : Promise<void> {
+        return this.loginManager ? this.loginManager.logout() : Promise.resolve();
+    }
     /**
      * Register a new user and login the user in one go
      * @param userName New user name

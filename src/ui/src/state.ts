@@ -10,7 +10,9 @@ export var state:{
     amberTenant: "*",
     amberInvitation: "",
     uiConfig:{
-        theme:"dark"    
+        theme:"dark",
+        availableRoles:[],
+        title:"Amberbase App"
     },
     uiContext:{
         view: "login"

@@ -6,13 +6,11 @@ import { SimpleWebsocket, WebsocketHandler } from "./websocket/websocket.js";
 import { ActiveConnection, AmberConnectionManager, AmberConnectionMessageHandler, errorResponse, sendToClient, successResponse, UserContext } from "./connection.js";
 import { amberStats, Stats, StatsProvider } from "./stats.js";
 
-export const ActionCreate = "create";
-export const ActionRead = "read";
-export const ActionUpdate = "update";
-export const ActionDelete = "delete";
-export type AccessAction =  "create" | "read" | "update" | "delete";
-
-
+export const CollectionActionCreate = "create";
+export const CollectionActionRead = "read";
+export const CollectionActionUpdate = "update";
+export const CollectionActionDelete = "delete";
+export type CollectionAccessAction =  "create" | "read" | "update" | "delete";
 
 
 interface DocumentContent{
@@ -36,7 +34,7 @@ export interface CollectionSettings<T>{
     /**
      * Either a map of roles with the actions they are allowed to perform or a function that takes the user context, the document and the action and returns true if the user is allowed to perform the action on the document.
      */
-    accessRights: {[role:string]:AccessAction[]} | ((user: UserContext, document: T | null, action:AccessAction)=>boolean);
+    accessRights: {[role:string]:CollectionAccessAction[]} | ((user: UserContext, document: T | null, action:CollectionAccessAction)=>boolean);
     /**
      * Filter the accessible documents for the user. This is executed server side to limit the documents to the user.
      * @param user the user to filter the collection for
@@ -48,7 +46,7 @@ export interface CollectionSettings<T>{
     /**
      * Validate the document before creating or updating it. This is executed server to ensure integrity.
      */
-    validator?: (user: UserContext, oldDocument: T | null, newDocument: T | null, action: AccessAction) => boolean;
+    validator?: (user: UserContext, oldDocument: T | null, newDocument: T | null, action: CollectionAccessAction) => boolean;
 
     // todo: onDocumentChange (tenant:string, oldDocument: T | null, newDocument: T | null, action: AccessAction)=>Promise<void>;
 }
@@ -119,7 +117,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
     }
     
 
-    private checkAccessRight(user: UserContext, collectionSettings: CollectionSettings<any>, action: AccessAction, doc: any | null): boolean {
+    private checkAccessRight(user: UserContext, collectionSettings: CollectionSettings<any>, action: CollectionAccessAction, doc: any | null): boolean {
         if (collectionSettings.accessRights && typeof collectionSettings.accessRights === 'object')
         {
             let hasAccess = false;
@@ -144,7 +142,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             return errorResponse(message, `Already subscribed to the collection ${message.collection}`);
         }
 
-        if(!this.checkAccessRight(connection, collectionSettings, ActionRead, null))
+        if(!this.checkAccessRight(connection, collectionSettings, CollectionActionRead, null))
         {
             return errorResponse(message, `You don't have read access to the collection ${message.collection}`);
         }
@@ -226,14 +224,14 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
     }
 
     private async handleCreate(connection:ActiveConnection, message:CreateDocument, collectionSettings:CollectionSettings<any>): Promise<AmberServerResponseMessage> {
-        if (!this.checkAccessRight(connection, collectionSettings, ActionCreate, null))
+        if (!this.checkAccessRight(connection, collectionSettings, CollectionActionCreate, null))
         {
             return errorResponse(message, `You don't have create access to the collection ${message.collection}`);
         }
 
         if (collectionSettings.validator)
         {
-            if(!collectionSettings.validator(connection, null,  message.content, ActionCreate))
+            if(!collectionSettings.validator(connection, null,  message.content, CollectionActionCreate))
             {
                 return errorResponse(message, `Document creation validation failed for the collection ${message.collection}`);
             }
@@ -315,14 +313,14 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             return errorResponse(message, `Document not found in collection ${message.collection}`);
         }
 
-        if (!this.checkAccessRight(connection, collectionSettings, ActionDelete, JSON.parse(oldDocument.data)))
+        if (!this.checkAccessRight(connection, collectionSettings, CollectionActionDelete, JSON.parse(oldDocument.data)))
         {
             return errorResponse(message, `You don't have delete access to the collection ${message.collection}`);
         }
 
         if (collectionSettings.validator)
         {
-            if(!collectionSettings.validator(connection, oldDocument.data, null, ActionDelete))
+            if(!collectionSettings.validator(connection, oldDocument.data, null, CollectionActionDelete))
             {
                 return errorResponse(message, `Document deletion validation failed for the collection ${message.collection}`);
             }
@@ -375,14 +373,14 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             return errorResponse(message, `Document change number mismatch in collection ${message.collection}. Concurrent update?`);
         }
 
-        if (!this.checkAccessRight(connection, collectionSettings, ActionUpdate, JSON.parse(oldDocument.data)))
+        if (!this.checkAccessRight(connection, collectionSettings, CollectionActionUpdate, JSON.parse(oldDocument.data)))
         {
             return errorResponse(message, `You don't have update access to the collection ${message.collection}`);
         }
 
         if (collectionSettings.validator)
         {
-            if(!collectionSettings.validator(connection, oldDocument.data, message.content, ActionUpdate))
+            if(!collectionSettings.validator(connection, oldDocument.data, message.content, CollectionActionUpdate))
             {
                 return errorResponse(message, `Document update validation failed for the collection ${message.collection}`);
             }

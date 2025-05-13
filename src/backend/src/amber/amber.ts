@@ -1,5 +1,5 @@
 
-import { Config, ConfigOptionals, defaultConfig} from './config.js';
+import { Config, ConfigOptionals, defaultConfig, defaultUiConfig} from './config.js';
 import { WebsocketHandler } from './websocket/websocket.js';
 import * as http from 'http'
 import {simpleWebsockets} from './websocket/websocket.js'
@@ -94,8 +94,20 @@ export class AmberInit{
     /**
      * Enable the standard UI for common managment and user profile tasks.
      */
-    withUi(config:AmberUiConfig): AmberInit{
-        this.config.ui = config; // we will have more configuration options later
+    withUi(config? : ((c:AmberUiConfig)=>void) | AmberUiConfig| undefined): AmberInit{
+        var c = structuredClone(defaultUiConfig);
+        if (config)
+        {
+            if (typeof config === "function")
+            {
+                config(c);
+            }
+            else
+            {
+                c = {...c, ...config};
+            }
+        }
+        this.config.ui = c; 
         return this;    
     }
     /**
@@ -125,7 +137,7 @@ export class AmberInit{
 
         if (this.config.ui)
         {
-            enableUi(amberApp, this.config, amberAuth);
+            enableUi(amberApp, this.config, repo, amberAuth);
         }
 
         if (!otherApp)

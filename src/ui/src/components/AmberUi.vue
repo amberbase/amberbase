@@ -28,6 +28,11 @@ const amberUserInTenant = ref<AmberUserInTenantDetails | null>(null);
 const amberUser = ref<AmberUserDetails | null>(null);
 const amberClient= ref<AmberClient | null>(null);
 const theme = ref(state.uiConfig.theme);
+const title = ref(state.uiConfig.title);
+const tenant = ref(state.uiContext.tenant);
+const tenantName = ref(state.uiContext.tenantName);
+const invitation = ref(state.uiContext.invitation);
+
 var onUserInTenant = (details:{client: AmberClient,userId:string, userName:string, userEmail:string, tenant:string,roles:string[]} | null)=>
 {
   if(details!=null)
@@ -75,9 +80,19 @@ var onUserLoggedInForApp = (details:{client: AmberClient,userId:string, userName
 
 <template>
   <v-app :theme="theme">
+    <v-app-bar >
+      <v-app-bar-title>{{ title }} {{ tenantName? (" - " + tenantName) : "" }}</v-app-bar-title>
+    </v-app-bar>
+    <v-main class="d-flex" style="min-height: 300px;">
     <v-container v-if ="state.uiContext.view=='login'">
       <v-row>
         <AmberLogin @user-in-tenant="onUserLoggedInForApp"></AmberLogin>
+      </v-row>
+    </v-container>
+
+    <v-container v-if ="state.uiContext.view=='invited'">
+      <v-row>
+        <AmberLogin @user-in-tenant="onUserLoggedInForApp" :tenant="tenant" :invitation="invitation"></AmberLogin>
       </v-row>
     </v-container>
 
@@ -91,11 +106,11 @@ var onUserLoggedInForApp = (details:{client: AmberClient,userId:string, userName
     </v-container>
 
     <v-container v-if = "state.uiContext.view=='tenant-admin'">
-      <v-row v-if="!amberUserInTenant || amberUserInTenant.tenant == globalTenant || !amberUserInTenant.tenant || !amberUserInTenant.roles.includes(adminRole) || !amberClient">
-        <AmberLogin @user-in-tenant="onUserInTenant"></AmberLogin>
+      <v-row v-if="!amberUserInTenant || !amberUserInTenant.tenant || !amberUserInTenant.roles.includes(adminRole) || !amberClient">
+        <AmberLogin @user-in-tenant="onUserInTenant" :tenant="tenant" :allowGlobalTenantSelection="true"></AmberLogin>
       </v-row>
       <v-row v-else>
-        <AmberTenantAdmin :amber-client="amberClient" :tenant="amberUserInTenant.tenant" :roles="[adminRole, ...state.uiConfig.availableRoles]"></AmberTenantAdmin>
+        <AmberTenantAdmin :amber-client="amberClient" :tenant="tenant!" :tenant-name="tenantName!" :roles="[adminRole, ...state.uiConfig.availableRoles]"></AmberTenantAdmin>
       </v-row>
     </v-container>
 
@@ -125,6 +140,14 @@ var onUserLoggedInForApp = (details:{client: AmberClient,userId:string, userName
         Hey {{ amberUser.userName }}, coming soon: user profile 
       </v-row>
     </v-container>
+   </v-main>
+   <v-footer app>
+    <v-col class="text-center">
+      <img src="@/assets/logo.svg" alt="Amber Logo" width="50" height="50" /> 
+      <br>
+      Powered by Amberbase. Visit our <v-btn variant="text" href="https://github.com/amberbase" target="_blank" prepend-icon="mdi-github">github</v-btn>
+      </v-col>
+   </v-footer>
   </v-app>
 </template>
 

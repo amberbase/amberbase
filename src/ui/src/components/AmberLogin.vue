@@ -25,7 +25,7 @@ var userPassword = ref("");
 var showPassword = ref(false);
 var showUserDetails = ref(false);
 var userDetails = ref<UserDetails| null>(null);
-var stayLoggedIn = ref(false);
+var stayLoggedIn = ref(true);
 var roles = ref<string[]>([]);
 var login : (record:{email:string, pw:string, stayLoggedIn:boolean})=>void = ()=>{};
 var tenant = ref("");
@@ -56,14 +56,16 @@ var amberInit = new AmberClientInit()
   .withTenantSelector(async (tenants)=>
   {
     if (tenant.value != '') return tenant.value;
-    if (!userDetails.value?.tenants["*"])
-    {
-      if (tenants.length == 1) return tenants[0].id;
-    }
 
+    if (!props.allowGlobalTenantSelection)
+    {
+      tenants = tenants.filter(t=>t.id != "*");    
+    }
+    if (tenants.length == 1) return tenants[0].id;
+    
     return await new Promise<string>((resolve, reject)=>{
       tenantSelectorCallback = resolve;
-      tenantsToChooseFrom.value = tenants.filter(t=>t.id != "*" || props.allowGlobalTenantSelection);
+      tenantsToChooseFrom.value = tenants;
       showTenantSelector.value = true;
     });
   }
@@ -314,6 +316,7 @@ var amberInit = new AmberClientInit()
             name="amber-pw"
             @click:append="showPassword = !showPassword"
             @keydown.enter.prevent="doLogin"
+            label="Password"
           ></v-text-field>
       <v-checkbox v-model="stayLoggedIn" label="Stay logged in"></v-checkbox>
     </v-card-text>

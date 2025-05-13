@@ -5,6 +5,7 @@ export interface AmberUiConfig{
     theme: "dark" | "light";
     loginTargetUrl?:string;
     availableRoles: string[];
+    title:string;
 }
 
 export interface AmberUiContext{

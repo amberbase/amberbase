@@ -4,6 +4,11 @@ import { AmberCollectionsClient, AmberCollections } from "./collections.js";
 import { AmberConnectionsClient } from "./connection.js";
 import { UserDetails } from "./shared/dtos.js";
 import { AmberLoginManager } from "./login.js";
+import { AmberUiApi } from "./ui.js";
+
+export function amberClient() : AmberClientInit{
+    return new AmberClientInit();
+}
 
 export class AmberClientInit{
     apiPrefix:string = "/amber";
@@ -12,7 +17,7 @@ export class AmberClientInit{
     tenantSelector: ((availableTenants:{id:string, name:string, roles:string[]}[]) => Promise<string>) | undefined;
     cleanUser:boolean = false;
     userChanged: ((user: UserDetails | null) => void) | undefined;
-    rolesChanged: ((tenant:string | null, roles: string[]) => void) | undefined;
+    rolesChanged: ((tenant:string | null, roles: string[], user: UserDetails | null) => void) | undefined;
 
     constructor(){
 
@@ -46,6 +51,49 @@ export class AmberClientInit{
         return this;
     }
 
+    withAmberUiLogin(returnUrl?:string) : AmberClientInit{
+        this.credentialsProvider = async (failed:boolean) => {
+            var loginPage = this.apiPrefix + "/ui/login";
+            
+            if (this.tenant){
+                loginPage += "?tenant=" + this.tenant;
+            }
+
+            if (returnUrl){
+                loginPage += "#return=" + encodeURIComponent(returnUrl);
+            } 
+
+            console.log("Redirect to login page: " + loginPage);
+            window.location.href = loginPage;
+            
+            return {email:"", pw:"", stayLoggedIn:false}; // never reached
+        }
+
+        
+        this.tenantSelector = async (availableTenants) => {
+            if (this.tenant)
+            {
+                return this.tenant;
+            }
+            if (availableTenants.length == 1){
+                return availableTenants[0].id;
+            }
+            var loginPage = this.apiPrefix + "/ui/login";
+            
+            if (returnUrl){
+                loginPage += "#return=" + encodeURIComponent(returnUrl);
+            } 
+
+            console.log("Redirect to login page for tenant selection: " + loginPage);
+            window.location.href = loginPage;
+            
+            return ""; // never reached
+
+        };
+
+        return this;
+    }
+
     withTenantSelector(selector:(availableTenants:{id:string, name:string, roles:string[]}[]) => Promise<string>) : AmberClientInit{
         this.tenantSelector = selector;
         return this;
@@ -61,7 +109,7 @@ export class AmberClientInit{
         return this;
     }
 
-    onRolesChanged(callback:(tenant : string | null, roles: string[]) => void) : AmberClientInit{
+    onRolesChanged(callback:(tenant : string | null, roles: string[], user: UserDetails | null) => void) : AmberClientInit{
         this.rolesChanged = callback;
         return this;
     }
@@ -134,7 +182,7 @@ export class AmberClient{
     }
 
     getUserApi(){
-        return new AmberUserApi(this.apiPrefix);
+        return new AmberUserApi(this.apiPrefix, this.loginManager);
     }
 
     connectionsClient : AmberConnectionsClient | null = null;
@@ -181,5 +229,13 @@ export class AmberClient{
             this.channelsClient = new AmberChannelssClient( this.connectionsClient);
         }
         return this.channelsClient;
+    }
+
+    /**
+     * Get the api to navigate to the included amber ui
+     * @returns 
+     */
+    getAmberUiApi() : AmberUiApi{
+        return new AmberUiApi(this.apiPrefix, this.loginManager);
     }
 }

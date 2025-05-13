@@ -19,6 +19,7 @@ export function enableAdminApi(app:Express, config:Config, repo:AmberRepo, authS
         var tenant = req.params.tenant;
         if(tenant === allTenantsId) {
             res.status(404).send(error("Unable to delete the global tenant"));
+            return;
         }
         await repo.deleteTenant(req.params.tenant);
         res.send(nu<ActionResult>({success:true}));

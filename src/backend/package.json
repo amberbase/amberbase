@@ -2,11 +2,10 @@
   "name": "amberbase",
   "type": "module",
   "version": "1.0.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/backend/src/index.js",
+  "types": "dist/backend/src/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node dist/app.js",
     "build": "npx tsc"
   },
   "author": "Christian Messinger, Andreas Müller",

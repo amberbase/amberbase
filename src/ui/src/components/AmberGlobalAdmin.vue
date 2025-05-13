@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import {ref, onMounted} from "vue"
 import { AmberClient, type Tenant} from "amber-client"
+import { globalTenant } from "../../../shared/src"
 var props = defineProps<{amberClient: AmberClient}>();
 
 var allTenants = ref<Tenant[]>([]);
 var newTenantName = ref("");
 var newTenantId = ref("");
-var show = ref(false);
 var adminApi = props.amberClient.getGlobalAdminApi()!;
 var deleteTenant = async (tenantId :string)=>{
  
@@ -35,20 +35,17 @@ onMounted(async ()=>{
 <template>
   <v-container>
   <v-row>
-      <h2>You are admin for all tenants
-        <v-btn v-if="!show" icon="mdi-menu-down" @click="show = true"></v-btn>
-        <v-btn v-if="show" icon="mdi-menu-up" @click="show = false"></v-btn>
+      <h2>Manage tenants
       </h2>
     </v-row>
-    <v-row v-if="show">
+    <v-row >
     <v-card width="100%">
-      <v-card-title>Manage tenants</v-card-title>
       <v-card-text>
         <v-list>
           <v-list-item v-for="tenant in allTenants" :key="tenant.id">
             <v-list-item-title>{{tenant.name}} [{{ tenant.id }}]</v-list-item-title>
             <v-list-item-action>
-              <v-btn @click="deleteTenant(tenant.id)">Delete</v-btn>
+              <v-btn icon="mdi-delete-outline" @click="deleteTenant(tenant.id)" title="delete" v-if="tenant.id != globalTenant"></v-btn>
             </v-list-item-action>
           </v-list-item>
         </v-list>

@@ -36,6 +36,12 @@ export var defaultConfig = {
     inviteOnly: true
 };
 
+export var defaultUiConfig: AmberUiConfig = {
+    availableRoles: [],
+    theme: "dark",
+    title: "Amberbase App",
+}
+
 export function loadConfig(path?:string): Config {
     var config = structuredClone(defaultConfig);
     if (path && fs.existsSync(path)){
