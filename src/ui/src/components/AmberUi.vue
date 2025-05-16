@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import {ref} from "vue"
+import {getCurrentInstance, ref, watch} from "vue"
 import {  AmberClient, AmberClientInit} from "amber-client"
 import AmberGlobalAdmin from "./AmberGlobalAdmin.vue";
 import AmberLogin from "./AmberLogin.vue";
-import { state } from "@/state";
+import { state, uiHelper } from "@/state";
 import AmberTenantAdmin from "./AmberTenantAdmin.vue";
 import AmberTenantStats from "./AmberTenantStats.vue";
 import { adminRole, globalTenant } from "../../../shared/src";
@@ -32,6 +32,42 @@ const title = ref(state.uiConfig.title);
 const tenant = ref(state.uiContext.tenant);
 const tenantName = ref(state.uiContext.tenantName);
 const invitation = ref(state.uiContext.invitation);
+const confirmDialogOpen = ref(false);
+const confirmDialogText = ref("");
+var confirmDialogCallback: ((result:boolean)=>void) | null  = null;
+
+uiHelper.confirmDialog = (text:string):Promise<boolean> =>
+{
+  confirmDialogOpen.value = true;
+  confirmDialogText.value = text;
+  return new Promise((resolve, reject) => {
+    confirmDialogCallback = (result:boolean)=>
+    {
+      confirmDialogOpen.value = false;
+      resolve(result);
+    };
+  });
+};
+
+var confirmDialogClose =(result:boolean)=>
+{
+  var callback = confirmDialogCallback;
+  confirmDialogCallback = null;
+  confirmDialogOpen.value = false;
+  if (callback) {
+    callback(result);
+  }
+};
+
+watch(confirmDialogOpen, (newValue) => {
+  if (!newValue) {
+    if(confirmDialogCallback)
+    {
+      confirmDialogCallback(false);
+      confirmDialogCallback = null;
+    }
+  }
+});
 
 var onUserInTenant = (details:{client: AmberClient,userId:string, userName:string, userEmail:string, tenant:string,roles:string[]} | null)=>
 {
@@ -140,6 +176,18 @@ var onUserLoggedInForApp = (details:{client: AmberClient,userId:string, userName
         Hey {{ amberUser.userName }}, coming soon: user profile 
       </v-row>
     </v-container>
+    <v-dialog v-model="confirmDialogOpen" max-width="600">
+      <v-card>
+        <v-card-title class="headline">Confirm</v-card-title>
+        <v-card-text>{{ confirmDialogText }}</v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn @click="confirmDialogClose(false)" color="red">Cancel</v-btn>
+          <v-btn @click="confirmDialogClose(true)" color="green">OK</v-btn>
+        </v-card-actions>
+      </v-card>
+
+    </v-dialog>
    </v-main>
    <v-footer app>
     <v-col class="text-center">

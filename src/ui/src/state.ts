@@ -18,3 +18,13 @@ export var state:{
         view: "login"
     }
 };
+
+// this is a stub for the confirm dialog implemented by AmberUi.vue
+export var uiHelper =
+{ confirmDialog :
+    (text: string) :Promise<boolean> => {
+        return new Promise((resolve, reject) => {
+            reject();
+        });
+    }
+};
