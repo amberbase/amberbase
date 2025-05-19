@@ -1,5 +1,5 @@
 import { AmberLoginManager } from './login.js';
-import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, CreateTenantRequest, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails, UserInfo, AmberMetricsBucket} from './shared/dtos.js'
+import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, CreateTenantRequest, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails, UserInfo, AmberMetricsBucket, ChangeUserPasswordRequest, ChangeUserDetailsRequest} from './shared/dtos.js'
 
 /**
  * Internal class to wrap REST like api calls to the amber server for convenience
@@ -291,6 +291,36 @@ export class AmberUserApi{
      */
     async getInvitationDetails(invitation : string) : Promise<InvitationDetails> {
         return await this.apiClient.fetch<InvitationDetails>("GET", '/invitation/' + invitation);
+    }
+
+    /**
+     * Change the password of the current user. It needs the current password to do so.
+     * @param userId The user id of the current user.
+     * @param currentPassword Current password of the user
+     * @param newPassword New password of the user
+     * @returns Success result or error message
+     */
+    async changePassword(userId:string, currentPassword:string, newPassword:string) : Promise<ActionResult> {
+        try{
+            return (await this.apiClient.fetch<ActionResult>("POST", '/user/password', nu<ChangeUserPasswordRequest>({userId, currentPassword, newPassword})));
+        }
+        catch(e) {
+            return nu<ActionResult>({success:false, error: "Unable to update user password"});
+        }
+    }
+
+    /**
+     * Update the currently logged in user details. Right now we only expose the user name.
+     * @param userName New user name
+     * @returns Success result or error message
+     */
+    async updateUserDetails(userName:string) : Promise<ActionResult> {
+        try{
+        return await this.apiClient.fetch<ActionResult>("POST", '/user', nu<ChangeUserDetailsRequest>({userName: userName}));
+        }
+        catch(e) {
+            return nu<ActionResult>({success:false, error: "Unable to update user details"});
+        }
     }
 }
 

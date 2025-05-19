@@ -112,6 +112,33 @@ export interface UserDetails{
 }
 
 /**
+ * Request change a users password. The user must provide the current password and the new one.
+ */
+export interface ChangeUserPasswordRequest{
+
+    /**
+     * User id. This is the user id (not the email) of the user that made the change.
+     */
+    userId:string;
+    /**
+     * Current password
+     */
+    currentPassword:string;
+    /**
+     * New password
+     */
+    newPassword:string;
+}
+
+/**
+ * Request change a users password. The user must provide the current password and the new one.
+ */
+export interface ChangeUserDetailsRequest{
+
+    userName:string;
+}
+
+/**
  * Details about a tenant from the perspective of a user. Therefore it includes the roles the user has in the tenant.
  */
 export interface TenantWithRoles{

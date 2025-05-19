@@ -7,6 +7,7 @@ import { state, uiHelper } from "@/state";
 import AmberTenantAdmin from "./AmberTenantAdmin.vue";
 import AmberTenantStats from "./AmberTenantStats.vue";
 import { adminRole, globalTenant } from "../../../shared/src";
+import AmberUserProfile from "./AmberUserProfile.vue";
 
 interface AmberUserInTenantDetails
 {
@@ -35,6 +36,18 @@ const invitation = ref(state.uiContext.invitation);
 const confirmDialogOpen = ref(false);
 const confirmDialogText = ref("");
 var confirmDialogCallback: ((result:boolean)=>void) | null  = null;
+const showMessage = ref(false);
+const messageText = ref("");
+const messageBackgroundColor = ref("amber-darken-4");
+const messageForegroundColor = ref("white");
+
+var showMessageInternal = (text:string, backgroundColor:string, foregroundColor:string)=>
+{
+  showMessage.value = true;
+  messageText.value = text;
+  messageBackgroundColor.value = backgroundColor;
+  messageForegroundColor.value = foregroundColor;
+};
 
 uiHelper.confirmDialog = (text:string):Promise<boolean> =>
 {
@@ -47,6 +60,21 @@ uiHelper.confirmDialog = (text:string):Promise<boolean> =>
       resolve(result);
     };
   });
+};
+
+uiHelper.showMessage = (text:string)=>
+{
+  showMessageInternal(text, "amber-lighten-4", "black");
+};
+
+uiHelper.showError = (text:string)=>
+{
+  showMessageInternal(text, "amber-darken-4", "white");
+};
+
+uiHelper.showSuccess = (text:string)=>
+{
+  showMessageInternal(text, "amber", "white");
 };
 
 var confirmDialogClose =(result:boolean)=>
@@ -132,7 +160,7 @@ var onUserLoggedInForApp = (details:{client: AmberClient,userId:string, userName
       </v-row>
     </v-container>
 
-    <v-container v-if = "state.uiContext.view=='global-admin'">
+     <v-container v-if = "state.uiContext.view=='global-admin'">
       <v-row v-if="!amberUserInTenant || amberUserInTenant.tenant != globalTenant || !amberUserInTenant.roles.includes(adminRole) || !amberClient">
         <AmberLogin @user-in-tenant="onUserInTenant" :tenant="globalTenant"></AmberLogin>
       </v-row>
@@ -169,11 +197,11 @@ var onUserLoggedInForApp = (details:{client: AmberClient,userId:string, userName
     </v-container>
     
     <v-container v-if = "state.uiContext.view=='user-profile'">
-      <v-row v-if="!amberUser || !amberClient">
-        <AmberLogin @user-ready="onUserReady"></AmberLogin>
+      <v-row >
+        <AmberLogin @user-ready="onUserReady" skipTenantSelection></AmberLogin>
       </v-row>
-      <v-row v-else>
-        Hey {{ amberUser.userName }}, coming soon: user profile 
+      <v-row v-if="amberClient">
+        <AmberUserProfile :amber-client="amberClient"></AmberUserProfile>
       </v-row>
     </v-container>
     <v-dialog v-model="confirmDialogOpen" max-width="600">
@@ -186,8 +214,27 @@ var onUserLoggedInForApp = (details:{client: AmberClient,userId:string, userName
           <v-btn @click="confirmDialogClose(true)" color="green">OK</v-btn>
         </v-card-actions>
       </v-card>
-
     </v-dialog>
+    <v-snackbar
+      v-model="showMessage"
+      :color="messageBackgroundColor"
+      :style="{ color: messageForegroundColor }"
+      :timeout="3000"
+      multi-line
+    >
+      {{ messageText }}
+
+      <template v-slot:actions>
+        <v-btn
+          :color="messageForegroundColor"
+          :style="{ color: messageForegroundColor }"
+          variant="text"
+          @click="showMessage = false"
+        >
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
    </v-main>
    <v-footer app>
     <v-col class="text-center">

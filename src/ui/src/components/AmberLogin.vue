@@ -188,7 +188,7 @@ var amberInit = new AmberClientInit()
   };
 
   var validatePassword = (pw:string)=>{
-    if( pw.length <= 8)
+    if( pw.length < 8)
     {
       return "Password must be at least 8 characters long";
     }
@@ -250,12 +250,7 @@ var amberInit = new AmberClientInit()
 
 <template>
   <v-card style="margin:20px" v-if="userDetails != null && !showTenantSelector" :title="'Welcome ' + userDetails.name" :min-width="400">
-    <template v-slot:append>
-        <v-btn v-if="!showUserDetails" icon="mdi-menu-down" @click="showUserDetails = true"></v-btn>
-        <v-btn v-if="showUserDetails" icon="mdi-menu-up" @click="showUserDetails = false"></v-btn>
-    </template>
-    <v-card-text v-if ="showUserDetails">
-      
+    <v-card-text>
       <table>
         <tr>
         <th>
@@ -273,7 +268,7 @@ var amberInit = new AmberClientInit()
           {{userDetails?.email}}
         </td>
       </tr>
-      <tr>
+      <tr v-if="!props.skipTenantSelection">
         <th>
           Tenant
         </th>
@@ -281,7 +276,7 @@ var amberInit = new AmberClientInit()
           {{tenant}}
         </td>
       </tr>
-      <tr>
+      <tr v-if="!props.skipTenantSelection">
         <th>
           Roles
         </th>
@@ -291,9 +286,6 @@ var amberInit = new AmberClientInit()
       </tr>
       </table>    
     </v-card-text>
-    <v-card-actions v-if="showUserDetails">
-      <v-btn @click="amber?.loginManager?.logout()">Log Out</v-btn>
-    </v-card-actions>
   </v-card>
 
   <v-card style="margin:20px" v-if="showLogin" :min-width="400">

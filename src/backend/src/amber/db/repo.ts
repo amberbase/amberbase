@@ -152,10 +152,10 @@ export class AmberRepo {
         }
     }
 
-    async getUserById(userId:string): Promise< User | undefined> {
+    async getUserById(userId:string): Promise< UserWithCredential | undefined> {
         var conn = await this.pool.getConnection();
         try{
-            var result = await conn.query<{id:string, email:string, name:string}[]>("SELECT id, email, name FROM users WHERE id = ?", [userId]);
+            var result = await conn.query<{id:string, email:string, name:string}[]>("SELECT id, email, name, credential_hash FROM users WHERE id = ?", [userId]);
             if (result.length === 0){
                 return undefined;
             }
@@ -269,6 +269,29 @@ export class AmberRepo {
             conn.end();
         }
         return false;
+    }
+
+    /**
+     * Update a user entity
+     * @param user updates the user, uses the id to identify the record to update. The passwordhash needs to be correctly formed. Use the AmberAuth class to do it.
+     * @returns 
+     */
+    async updateUser(user: UserWithCredential): Promise<boolean> {
+        console.log("Updating user %j", user);
+        user.email = user.email.toLowerCase();
+        var conn = await this.pool.getConnection();
+        try{
+            await conn.query("UPDATE users SET email = ?, name = ?, credential_hash = ? WHERE id = ?", [user.email, user.name, user.credential_hash, user.id]);
+            return true;
+        }
+        catch(e){
+            console.log("Failed updating user %j", e);
+            return false;
+        }
+        finally{
+            conn.end();
+        }
+        
     }
 
     async storeUserRoles(userId:string, tenant:string, roles:string[]): Promise<void> {

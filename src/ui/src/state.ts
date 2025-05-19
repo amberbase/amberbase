@@ -26,5 +26,9 @@ export var uiHelper =
         return new Promise((resolve, reject) => {
             reject();
         });
-    }
+    },
+    showMessage: (text: string) => {},
+    showError: (text: string) => {},
+    showSuccess: (text: string) => {},
+
 };

@@ -176,6 +176,10 @@ export class AmberLoginManager {
         this.setUser(null);
     }
 
+    refreshUser(){
+        this.setUser(null);
+    }
+
     async sessionToken() : Promise<string> {
         var user = await this.user;
         if (this.sessionTokenValidity > Date.now() + 1000 * 60 * 5) {
