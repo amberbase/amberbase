@@ -179,6 +179,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         }));
     });
 
+    // get the current users details
     app.get('/user', async (req, res) => {
         var userId:string | null = null;
         var token = req.cookies?.auth;
@@ -214,6 +215,9 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         res.send(nu<UserDetails>(user));
     });
 
+    /**
+     * Change the password of a user from the user him/herself
+     */
     app.post('/user/password', async (req, res) => {
         var request: ChangeUserPasswordRequest = req.body;
         if (!request.currentPassword || !request.newPassword){
@@ -236,6 +240,9 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         }
     });
 
+    /**
+     * Update user details from the user him/herself
+     */
     app.post('/user', async (req, res) => {
         var request: ChangeUserDetailsRequest = req.body;
         var userId:string | null = null;
@@ -343,6 +350,27 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         var request:CreateInvitationRequest = req.body;
         var invitation = await repo.storeInvitation(req.params.tenant, request.roles, new Date(Date.now() + 24 * 60 * 60_000 * request.expiresInDays));
         res.send(nu<string>(invitation));
+    });
+
+    app.post('/tenant/:tenant/admin/user/:userid/password', async (req, res) => {
+        if (!checkAdmin(req, res)) return;
+        var newPassword = req.body;
+        var userId = req.params.userid;
+        var user = await repo.getUserDetails(userId);
+        if (!user){
+            res.status(401).send(error("User not found"));
+            return;
+        }
+        if(user.tenants[req.params.tenant] && Object.keys(user.tenants).length === 1)
+        {
+            // this is the only tenant, so we can change the password
+            await authService.changeUserPasswordWithoutOldpassword(userId, newPassword);
+            res.send(nu<ActionResult>({success:true}));
+            return;
+        }
+
+        res.status(401).send(error("User is not only member of this tenant"));
+        return;
     });
 
     return authService;

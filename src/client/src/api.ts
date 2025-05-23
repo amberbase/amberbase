@@ -155,6 +155,10 @@ export class AmberAdminApi{
     async getMetricsByHour() : Promise<AmberMetricsBucket[]> {
         return await this.apiClient.fetch<AmberMetricsBucket[]>("GET", '/tenant/:tenant/metrics/hour');
     }
+
+    async changePasswordOfSingleTenantUser(userId:string, newPassword:string) : Promise<ActionResult> {
+        return await this.apiClient.fetch<ActionResult>("POST", '/tenant/:tenant/admin/user/' + userId + '/password',  newPassword);
+    }
 }
 
 /**
