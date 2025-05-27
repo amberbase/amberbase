@@ -275,7 +275,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
 
 
 
-    // This is the endpoint to discover the tenants of a user
+    // This is the endpoint to discover the tenants of a user, authenticated as a user with a valid user token
     app.get('/user/tenants', async (req, res) => {
         var userId:string | null = null;
         var token = req.cookies?.auth;
@@ -424,6 +424,18 @@ export class AmberAuth{
         return false;
     }
 
+
+    getSessionToken(req: Request): SessionToken | undefined {
+        var sessionToken = req.header(sessionHeader);
+        if (!sessionToken)
+            return undefined;
+        var session = this.validateSessionToken(sessionToken);
+        if (!session)
+            return undefined;
+        if (session.expires && new Date(session.expires) < new Date())
+            return undefined;
+        return session;
+    }
 
     // our session tokens are only used for internal communication, so we don't need to worry about JWT standards
     createSessionToken(userId: string, tenant : string, roles:string[], validityMinutes:number): string{

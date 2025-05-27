@@ -182,8 +182,9 @@ export class AmberRepo {
 
             var globalRoles = tenantRoles["*"];
             if (globalRoles){
-                for (const tenant in tenantRoles){
-                    tenantRoles[tenant] = [...(new Set([...tenantRoles[tenant], ...globalRoles]))];
+                var allTenants = await conn.query<{id:string}[]>("SELECT id FROM tenants WHERE id != '*'");
+                for (const tenant in allTenants){
+                    tenantRoles[tenant] = [...(new Set([...(tenantRoles[tenant] || []), ...globalRoles]))];
                 }
             }
 
@@ -228,7 +229,7 @@ export class AmberRepo {
         var conn = await this.pool.getConnection();
         try{
             var result = await conn.query<{name:string, tenant:string, roles:string}[]>("SELECT `name`, `id` AS `tenant`, GROUP_CONCAT( `roles` SEPARATOR ',') AS roles FROM tenants RIGHT OUTER JOIN (SELECT `user`, `roles`, `tenant` FROM roles WHERE `user` = ?) AS r ON tenants.id = r.tenant OR r.tenant = '*' GROUP BY `name`,`id`", [userId]);
-            var tenantRoles =  result.map((row)=> {return {name: row.name, id :row.tenant, roles: row.roles ? row.roles.split(",") : []};});
+            var tenantRoles =  result.map((row)=> {return {name: row.name, id :row.tenant, roles: row.roles ? [...(new Set(row.roles.split(",")))] : []};});
             return tenantRoles.filter((tenant)=> tenant.roles && tenant.roles.length > 0);
         }
         finally{
@@ -391,6 +392,19 @@ export class AmberRepo {
             conn.end();
         }
     }
+
+    async deleteUser(id:string)
+    {
+        var conn = await this.pool.getConnection();
+        try{
+            await conn.query("DELETE FROM users WHERE id = ?", [id]);
+            await conn.query("DELETE FROM roles WHERE user = ?", [id]);
+        }
+        finally{
+            conn.end();
+        }
+    }
+
 
     async storeInvitation(tenant:string, roles:string[], validUntil:Date): Promise<string> {
         var id = crypto.randomUUID();
