@@ -1,5 +1,5 @@
-import {Express} from 'express'
-import { Config, ConfigOptionals, defaultConfig} from './config.js';
+
+import { Config, ConfigOptionals, defaultConfig, defaultUiConfig} from './config.js';
 import { WebsocketHandler } from './websocket/websocket.js';
 import * as http from 'http'
 import {simpleWebsockets} from './websocket/websocket.js'
@@ -10,7 +10,10 @@ import { AmberCollections, CollectionSettings, CollectionsService } from './coll
 import { AmberConnectionManager } from './connection.js';
 import { AmberChannels, ChannelService, ChannelSettings } from './channels.js';
 import { amberStats, enableStatsApis } from './stats.js';
-
+import express from 'express'
+import cookieParser from 'cookie-parser';
+import { enableUi } from './ui.js';
+import {AmberUiConfig} from '../../../shared/src/ui/model.js';
 
 
 /**
@@ -18,8 +21,9 @@ import { amberStats, enableStatsApis } from './stats.js';
  * @param app the express app to wrap
  * @returns the fluent interface to configure the amber application
  */
-export function amber(app:Express) : AmberInit{
-    return new AmberInit(app);
+export function amber() : AmberInit{
+
+    return new AmberInit();
 }
 
 /**
@@ -28,12 +32,10 @@ export function amber(app:Express) : AmberInit{
  */
 export class AmberInit{
     wsHandler : WebsocketHandler[]=[];
-    app: Express;
     config: Config = defaultConfig;
     collections: Map<string,CollectionSettings<any>> = new Map();
     channels: Map<string,ChannelSettings<any>> = new Map();
-    constructor(app:Express){
-        this.app = app;
+    constructor(){
     }
     
     /**
@@ -90,28 +92,69 @@ export class AmberInit{
     }
 
     /**
-     * Starts the amber (and express) application on the given port. It initializes the database, sets up the authentication and starts the server.
+     * Enable the standard UI for common managment and user profile tasks.
      */
-    async start(host:string, port:number) : Promise<Amber>{
-
+    withUi(config? : ((c:AmberUiConfig)=>void) | AmberUiConfig| undefined): AmberInit{
+        var c = structuredClone(defaultUiConfig);
+        if (config)
+        {
+            if (typeof config === "function")
+            {
+                config(c);
+            }
+            else
+            {
+                c = {...c, ...config};
+            }
+        }
+        this.config.ui = c; 
+        return this;    
+    }
+    /**
+     * Initiates and adds the amber application to a given or existing express app. It initializes the database, sets up the authentication and hooks on the websocket handling of the server.
+     * If a custom server is provided, it will be used, otherwise it will hook into the `listen` call of the express app. You can access the express app from the amber instance, or just launch it with Amber.listen()
+     */
+    async create(otherApp? : express.Express | undefined, server? : http.Server<typeof http.IncomingMessage, typeof http.ServerResponse> ) : Promise<Amber> {
+        
         var repo = new AmberRepo(this.config);
         await repo.initDb();
-        var amberAuth = await auth(this.app, this.config, repo);
+
+        var amberApp = express();
+        amberApp.use(express.json());
+        amberApp.use(cookieParser());
+        
+        var amberAuth = await auth(amberApp, this.config, repo);
         
         if (this.config.enableAdminApi)
         {
-            enableAdminApi(this.app, this.config, repo, amberAuth);
+            enableAdminApi(amberApp, this.config, repo, amberAuth);
         }
 
         if (this.config.enableStatsApi)
         {
-            enableStatsApis(this.app, this.config, amberAuth);
+            enableStatsApis(amberApp, this.config, amberAuth);
         }
-        
-        var server = this.app.listen(port,host, () => {
-            console.log(`This amber app is listening on port ${port}`)
-          });
-        
+
+        if (this.config.ui)
+        {
+            enableUi(amberApp, this.config, repo, amberAuth);
+        }
+
+        if (!otherApp)
+        {
+            otherApp = express();
+        }
+
+        otherApp.use(this.config.path,amberApp);
+
+        if(!server){
+            server = http.createServer(otherApp);
+            otherApp.listen = (...args:any) => {
+                server.listen.apply(server, args);
+                return server;
+            };
+        }
+
 
         var connectionManager = new AmberConnectionManager();
         this.wsHandler.push(connectionManager.websocketBinding());
@@ -126,8 +169,8 @@ export class AmberInit{
         amberStats.addStatsProvider(channelService);
 
         simpleWebsockets(server, this.wsHandler, this.config.path, amberAuth);
-
-        return new Amber(this.app, this.config, server, repo, amberAuth, collectionsService, channelService);
+        
+        return new Amber(otherApp, this.config, repo, amberAuth, collectionsService, channelService);
     }
 }
 
@@ -135,22 +178,30 @@ export class AmberInit{
  * The amber application as it is running. It provides apis for the backend app
  */
 export class Amber{
-    app: Express;
+    express: express.Express;
     config: Config;
-    server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>;
     repo: AmberRepo;
     auth: AmberAuth;
     collections: AmberCollections;
     channels: AmberChannels;
 
-    constructor(app:Express, config: Config, server: http.Server<typeof http.IncomingMessage,typeof  http.ServerResponse>, repo: AmberRepo, auth : AmberAuth, collections: AmberCollections, channels: AmberChannels)
+    constructor(app:express.Express, config: Config, repo: AmberRepo, auth : AmberAuth, collections: AmberCollections, channels: AmberChannels)
     {
-        this.app = app;
+        this.express = app;
         this.config = config;
-        this.server = server;
         this.repo = repo;
         this.auth = auth;
         this.collections = collections;
         this.channels = channels;
+    }
+
+    /**
+     * Starts the amber application. It is a wrapper around the express app's listen method.
+     * @param port The port to listen on. Default is 3000.
+     * @param host The host to listen on. Default is "localhost".
+     * @returns The server instance.
+     */
+    listen(port?: number, host?: string) : http.Server<typeof http.IncomingMessage, typeof http.ServerResponse> {
+        return this.express.listen(port,host);
     }
 }

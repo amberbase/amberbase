@@ -7,9 +7,13 @@
       "sourceMap": true,
       "outDir": "dist",
       "target": "ES2022",
+      "declaration": true
       
     },
-    "include": ["src/**/*.ts"],
-    "exclude": [],
+    "include": [
+      "src/**/*.ts",
+      "./../shared/**/*.ts"
+    ],
+    "exclude": []
     
 }

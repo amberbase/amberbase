@@ -3,20 +3,23 @@ import {ref, onMounted, onUnmounted} from "vue"
 import { AmberClient, type UserWithRoles, type Tenant, type UserDetails, type MetricValue, type AmberMetricsBucket, type AmberMetricName} from "amber-client"
 import { Line } from 'vue-chartjs'
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement, type Color } from 'chart.js'
+import { globalTenant } from "../../../shared/src"
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement)
 
 var props = defineProps<{
   amberClient: AmberClient, 
-  tenant : string,
-  roles : string[]
+  tenant : string
 }>();
-var show = ref(false);
 
 var metrics = ref<AmberMetricName[]>([]);
 
 var buckets = ref<AmberMetricsBucket[]>([]);
-var adminApi = props.amberClient.getAdminApi()!;
+var adminApi:{ 
+  getMetricsByMinutes() : Promise<AmberMetricsBucket[]>,
+  getMetricsByHour() : Promise<AmberMetricsBucket[]>
+
+} = props.tenant == globalTenant ?props.amberClient.getGlobalAdminApi()! :  props.amberClient.getAdminApi()!;
 
 var byHour = ref(false);
 var zoomedIn = ref(false);
@@ -102,12 +105,9 @@ onUnmounted(() => {
 <template>
   <v-container>
   <v-row>
-      <h2>Statistics for {{ props.tenant }}
-        <v-btn v-if="!show" icon="mdi-menu-down" @click="show = true"></v-btn>
-          <v-btn v-if="show" icon="mdi-menu-up" @click="show = false"></v-btn>
-      </h2>
+      <h2>Live Statistics</h2>
   </v-row>
-  <v-row v-if="show">
+  <v-row>
     <v-col cols = "2">
       <v-btn @click="setByHour(!byHour)">{{ byHour ? "By Hour" : "By Minute" }}</v-btn>
       <v-btn @click="zoomedIn = !zoomedIn"><v-icon :icon="zoomedIn?'mdi-magnify-minus-outline' : 'mdi-magnify-plus-outline'"></v-icon></v-btn>

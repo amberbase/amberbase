@@ -1,49 +1,28 @@
 import { Express, Request, Response } from 'express';
 import {Config} from './config.js';
-import {AmberRepo, Invitation, User, UserWithRoles} from './db/repo.js';
-import {ActionResult, LoginRequest, nu, error, SessionToken as SessionTokenDto, RegisterRequest, AcceptInvitationRequest, UserDetails, CreateInvitationRequest, UserWithRoles as UserWithRolesDto, TenantWithRoles, InvitationDetails, UserInfo} from 'amber-client';
+import {AmberRepo, Invitation, User} from './db/repo.js';
+import {ActionResult, LoginRequest, nu, error, SessionToken as SessionTokenDto, RegisterRequest, AcceptInvitationRequest, UserDetails, CreateInvitationRequest, UserWithRoles as UserWithRolesDto, TenantWithRoles, InvitationDetails, UserInfo, ChangeUserPasswordRequest, ChangeUserDetailsRequest} from './../../../client/src/shared/dtos.js';
 import * as crypto from 'node:crypto';
-import { sleep } from 'amber-client/dist/src/helper.js';
+import { sleep } from './../../../client/src/shared/helper.js';
+import { BruteProtection } from './helper.js';
 
 export const tenantAdminRole = 'admin';
 export const allTenantsId = '*';
 export const sessionHeader = 'AmberSession';
-var loginHeat = 0;
-var lastLogin = Date.now();
-var parallelLogins = 0;
+var loginBruteProtection = new BruteProtection();
+var changePasswordBruteProtection = new BruteProtection();
 export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise<AmberAuth>{
     var authService = new AmberAuth(config, repo);
     await authService.init();
     
     // This is the endpoint for a login with credentials that will set a cookie with a user token
-    app.post(config.path + '/login', async (req, res) => {
+    app.post('/login', async (req, res) => {
         
         // this is where we need to protect against brute force attacks
-        if (parallelLogins > 10){
+        if (!await loginBruteProtection.check()){
             res.status(429).send(error("Too many parallel logins"));
             return;
         }
-
-        parallelLogins++;
-        var msSinceLastLogin = Date.now() - lastLogin;
-        if (msSinceLastLogin > 60_000){
-            loginHeat = 0;
-        } else
-        if (msSinceLastLogin < 1000 && loginHeat < 12){
-            loginHeat++;
-        }
-        else
-        {
-            if (loginHeat > 0)
-            {
-                loginHeat--;
-            }
-        }
-
-        lastLogin = Date.now();
-        await sleep(crypto.randomInt(1, 10) + (2^loginHeat)*10); // add a little delay to make timing and brute force attacks harder
-
-        parallelLogins--;
 
         var request: LoginRequest = req.body;
         var email = request.email;
@@ -61,8 +40,8 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
     });
 
     // This is the endpoint for a login with credentials that will set a cookie with a user token
-    app.post(config.path + '/loginWithToken', async (req, res) => {
-        var stayLoggedIn = req.params.stayLoggedIn;
+    app.post( '/loginWithToken', async (req, res) => {
+        var stayLoggedIn = req.query.stayLoggedIn;
         var oldToken = req.cookies?.auth;
         var userToken = authService.validateUserToken(oldToken);
         if (!userToken){
@@ -86,7 +65,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
     });
 
     // This is the endpoint for a logout that will clear the cookie
-    app.post(config.path + '/logout', async (req, res) => {
+    app.post('/logout', async (req, res) => {
         
         var token = "";
         res.cookie('auth', token, {httpOnly: true, sameSite: 'strict'});
@@ -95,7 +74,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
 
     // This is the endpoint for a session token that can be used during this session. 
     // It uses the `auth` cookie from a earlier login. It is not stored in a cookie but meant to be used by the frontend library in later calls via the header value "AmberSession"
-    app.get(config.path + '/token/:tenant', async (req, res) => {
+    app.get('/token/:tenant', async (req, res) => {
         
         var token = req.cookies.auth;
         var userToken = authService.validateUserToken(token);
@@ -130,7 +109,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         res.send(result);
     });
 
-    app.post(config.path + '/register', async (req, res) => {
+    app.post('/register', async (req, res) => {
         var request: RegisterRequest = req.body;
         var validInvitation: Invitation | null = null;
         if (request.invitation){
@@ -163,7 +142,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         }
     });
 
-    app.post(config.path + '/accept-invitation', async (req, res) => {
+    app.post('/accept-invitation', async (req, res) => {
         var request: AcceptInvitationRequest = req.body;
         var token = req.cookies.auth;
         var userToken = authService.validateUserToken(token);
@@ -186,7 +165,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         
     });
 
-    app.get(config.path + '/invitation/:invitation', async (req, res) => {
+    app.get('/invitation/:invitation', async (req, res) => {
         var invitation = await repo.getInvitation(req.params.invitation);
         if (!invitation){
             res.status(404).send(error("Invitation not found"));
@@ -200,7 +179,8 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         }));
     });
 
-    app.get(config.path + '/user', async (req, res) => {
+    // get the current users details
+    app.get('/user', async (req, res) => {
         var userId:string | null = null;
         var token = req.cookies?.auth;
         if (token){
@@ -235,8 +215,68 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         res.send(nu<UserDetails>(user));
     });
 
-    // This is the endpoint to discover the tenants of a user
-    app.get(config.path + '/user/tenants', async (req, res) => {
+    /**
+     * Change the password of a user from the user him/herself
+     */
+    app.post('/user/password', async (req, res) => {
+        var request: ChangeUserPasswordRequest = req.body;
+        if (!request.currentPassword || !request.newPassword){
+            res.status(400).send(error("Missing old or new password"));
+            return;
+        }
+
+        if (!await changePasswordBruteProtection.check())
+        {
+            res.status(429).send(error("Too many parallel password changes"));
+            return;
+        }
+
+        if (await authService.changeUserPassword(request.userId, request.currentPassword, request.newPassword)){
+            res.send(nu<ActionResult>({success:true}));
+        }
+        else{
+            res.status(400).send(error("Missmatch old password or user not found"));
+            return;
+        }
+    });
+
+    /**
+     * Update user details from the user him/herself
+     */
+    app.post('/user', async (req, res) => {
+        var request: ChangeUserDetailsRequest = req.body;
+        var userId:string | null = null;
+        var token = req.cookies?.auth;
+        if (token){
+            var userToken = authService.validateUserToken(token);
+            if (userToken){
+                userId = userToken.userId;
+            }
+        }
+        
+        if (!userId){
+            res.status(401).send(
+                error("Invalid user token")
+            );
+            return;
+        }
+
+        if (!request.userName ){
+            res.status(400).send(error("Missing new username"));
+            return;
+        }
+        if (await authService.changeUser(userId, request.userName)){
+            res.send(nu<ActionResult>({success:true}));
+        }
+        else{
+            res.send(nu<ActionResult>({success:false, error: "Unable to change user"}));
+        }
+    });
+
+
+
+    // This is the endpoint to discover the tenants of a user, authenticated as a user with a valid user token
+    app.get('/user/tenants', async (req, res) => {
         var userId:string | null = null;
         var token = req.cookies?.auth;
         if (token){
@@ -272,7 +312,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
     }
 
     //get all users for a tenant (allowed for users of the tenant). Will contain global users as well
-    app.get(config.path + '/tenant/:tenant/users', async (req, res) => {
+    app.get('/tenant/:tenant/users', async (req, res) => {
         var sessionToken = req.header(sessionHeader);
         var session = authService.validateSessionToken(sessionToken);
         if (!session || session.tenant !== req.params.tenant) {
@@ -285,31 +325,52 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
     });
 
     // admin functionality for tenant admin user management
-    app.get(config.path + '/tenant/:tenant/admin/users', async (req, res) => {
+    app.get('/tenant/:tenant/admin/users', async (req, res) => {
         if (!checkAdmin(req, res)) return;
         var users = await repo.getUsersWithRoles(req.params.tenant);
         res.send(nu<UserWithRolesDto[]>(users));
     });
 
 
-    app.delete(config.path + '/tenant/:tenant/admin/user/:userid', async (req, res) => {
+    app.delete('/tenant/:tenant/admin/user/:userid', async (req, res) => {
         if (!checkAdmin(req, res)) return;
         repo.storeUserRoles(req.params.userid, req.params.tenant, []);
         res.send(nu<ActionResult>({success:true}));
     });
 
-    app.post(config.path + '/tenant/:tenant/admin/user/:userid/roles', async (req, res) => {
+    app.post('/tenant/:tenant/admin/user/:userid/roles', async (req, res) => {
         if (!checkAdmin(req, res)) return;
         var roles = req.body;
         repo.storeUserRoles(req.params.userid, req.params.tenant, roles);
         res.send(nu<ActionResult>({success:true}));
     });
 
-    app.post(config.path + '/tenant/:tenant/admin/invitation', async (req, res) => {
+    app.post('/tenant/:tenant/admin/invitation', async (req, res) => {
         if (!checkAdmin(req, res)) return;
         var request:CreateInvitationRequest = req.body;
         var invitation = await repo.storeInvitation(req.params.tenant, request.roles, new Date(Date.now() + 24 * 60 * 60_000 * request.expiresInDays));
         res.send(nu<string>(invitation));
+    });
+
+    app.post('/tenant/:tenant/admin/user/:userid/password', async (req, res) => {
+        if (!checkAdmin(req, res)) return;
+        var newPassword = req.body;
+        var userId = req.params.userid;
+        var user = await repo.getUserDetails(userId);
+        if (!user){
+            res.status(401).send(error("User not found"));
+            return;
+        }
+        if(user.tenants[req.params.tenant] && Object.keys(user.tenants).length === 1)
+        {
+            // this is the only tenant, so we can change the password
+            await authService.changeUserPasswordWithoutOldpassword(userId, newPassword);
+            res.send(nu<ActionResult>({success:true}));
+            return;
+        }
+
+        res.status(401).send(error("User is not only member of this tenant"));
+        return;
     });
 
     return authService;
@@ -363,6 +424,18 @@ export class AmberAuth{
         return false;
     }
 
+
+    getSessionToken(req: Request): SessionToken | undefined {
+        var sessionToken = req.header(sessionHeader);
+        if (!sessionToken)
+            return undefined;
+        var session = this.validateSessionToken(sessionToken);
+        if (!session)
+            return undefined;
+        if (session.expires && new Date(session.expires) < new Date())
+            return undefined;
+        return session;
+    }
 
     // our session tokens are only used for internal communication, so we don't need to worry about JWT standards
     createSessionToken(userId: string, tenant : string, roles:string[], validityMinutes:number): string{
@@ -457,10 +530,77 @@ export class AmberAuth{
         var hashAlgo = crypto.createHash('sha256');
         hashAlgo.update(salt + password);
         var calculatedHash = hashAlgo.digest('hex');
-        if (calculatedHash === hash)
+        if (crypto.timingSafeEqual(Buffer.from(calculatedHash), Buffer.from(hash)))
             return user;
         return undefined;
     }
+
+    async changeUserPassword(id:string, oldpassword :string, newPassword:string): Promise<boolean>{
+        var user = await this.repo.getUserById(id);
+        if (!user)
+            return false;
+
+        var [salt, hash] = user.credential_hash.split('.');
+
+        var hashAlgo = crypto.createHash('sha256');
+        hashAlgo.update(salt + oldpassword);
+        var calculatedHash = hashAlgo.digest('hex');
+        if (!crypto.timingSafeEqual(Buffer.from(calculatedHash), Buffer.from(hash)))
+            return false;
+
+        var passwordHash = this.createPasswordHash(newPassword);
+
+        return await this.repo.updateUser({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            credential_hash: passwordHash
+        });
+    }
+
+    // this is a special case where we don't need the old password. Only an admin should be able to do this
+    async changeUserPasswordWithoutOldpassword(id:string, newPassword:string): Promise<boolean>{
+        var user = await this.repo.getUserById(id);
+        if (!user)
+            return false;
+        var passwordHash = this.createPasswordHash(newPassword);
+
+        await this.repo.updateUser({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            credential_hash: passwordHash
+        });
+    }
+
+    // this is a special case where we don't need the old password. Only an admin should be able to do this
+    async changeUser(id:string, newName:string | undefined, newEmail?:string| undefined): Promise<boolean>{
+        console.log("Change user", id, newName, newEmail);
+        var user = await this.repo.getUserById(id);
+        if (!user)
+        {
+            console.log("User not found");
+            return false;
+        }
+
+        return await this.repo.updateUser({
+            id: user.id,
+            email: newEmail || user.email,
+            name: newName || user.name,
+            credential_hash: user.credential_hash
+        });
+    }
+
+    async removeUserFromTenant(id:string, tenant:string): Promise<void>{
+        var user = await this.repo.getUserById(id);
+        if (!user)
+            return;
+        var roles = await this.repo.getUserRoles(id, tenant);
+        if (roles && roles.length > 0){
+            await this.repo.storeUserRoles(id, tenant, []);
+        }
+    }
+
 
     createPasswordHash(password:string): string{
         var salt = crypto.randomBytes(16).toString('hex');
@@ -483,6 +623,8 @@ export class AmberAuth{
         }
         return undefined;
     }
+
+   
 
     async addRolesToUser(userId:string, tenant:string, roles:string[]){
         var existingRoles = await this.repo.getUserRoles(userId, tenant);

@@ -1,8 +1,8 @@
-import { AmberClientMessage, AmberServerResponseMessage, ChannelClientWsMessage, joinChannelName, SendToChannelMessage, ServerChannelMessage, splitChannelName, SubscribeChannelMessage, UnsubscribeChannelMessage } from "amber-client";
+import { AmberClientMessage, AmberServerResponseMessage, ChannelClientWsMessage, joinChannelName, SendToChannelMessage, ServerChannelMessage, splitChannelName, SubscribeChannelMessage, UnsubscribeChannelMessage } from './../../../client/src/shared/dtos.js';
 import { ActiveConnection, AmberConnectionManager, AmberConnectionMessageHandler, errorResponse, sendToClient, successResponse, UserContext } from "./connection.js";
 import { amberStats, Stats, StatsProvider } from "./stats.js";
 
-export type AccessAction =  "subscribe" | "publish";
+export type ChannelAccessAction =  "subscribe" | "publish";
 
 export interface ChannelSettings<T>{
     /**
@@ -15,7 +15,7 @@ export interface ChannelSettings<T>{
     /**
      * Model the access to the channel. Either as code or just a simple type and role based mapping. Default is allow all access to all roles (still requires a valid user in the tenant)
      */
-    accessRights?: {[role:string]:AccessAction[]} | ((user: UserContext, channel: string, subchannel : string | null, action:AccessAction)=>boolean);
+    accessRights?: {[role:string]:ChannelAccessAction[]} | ((user: UserContext, channel: string, subchannel : string | null, action:ChannelAccessAction)=>boolean);
 
     /**
      * Validate a message before it is send to the channel. This is NOT checked for server send messages.
@@ -98,7 +98,7 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
                 }
             } else {
                 var settings = channelSettings;
-                var rights = channelSettings.accessRights as {[role:string]:AccessAction[]};
+                var rights = channelSettings.accessRights as {[role:string]:ChannelAccessAction[]};
                 if (!connection.roles.some(role => rights[role]?.includes('subscribe')
                     
                 )) {

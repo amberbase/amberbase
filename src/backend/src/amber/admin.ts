@@ -1,31 +1,31 @@
 import { Express, Request, Response } from 'express';
 import {Config} from './config.js';
-import {AmberRepo, User} from './db/repo.js';
-import {ActionResult, LoginRequest, nu, error, SessionToken as SessionTokenDto, RegisterRequest, AcceptInvitationRequest, UserDetails, CreateInvitationRequest, Tenant, TenantDetails, CreateTenantRequest} from 'amber-client';
-import * as crypto from 'node:crypto';
-import {AmberAuth, tenantAdminRole, allTenantsId} from './auth.js';
+import {AmberRepo} from './db/repo.js';
+import {ActionResult, nu, error, Tenant, TenantDetails, CreateTenantRequest, UserInfo, UserDetails, ChangeUserDetailsRequest} from './../../../client/src/shared/dtos.js';
+import {AmberAuth, allTenantsId} from './auth.js';
 
 export function enableAdminApi(app:Express, config:Config, repo:AmberRepo, authService: AmberAuth)  {
     
 
     // admin functionality for tenant admin management
-    app.get(config.path + '/tenants', async (req, res) => {
+    app.get('/tenants', async (req, res) => {
         if (!authService.checkAdmin(req, res)) return;
         var tenants = await repo.getTenants();
         res.send(nu<Tenant[]>(tenants));
     });
 
-    app.delete(config.path + '/tenant/:tenant', async (req, res) => {
+    app.delete('/tenant/:tenant', async (req, res) => {
         if (!authService.checkAdmin(req, res, true)) return;
         var tenant = req.params.tenant;
         if(tenant === allTenantsId) {
             res.status(404).send(error("Unable to delete the global tenant"));
+            return;
         }
         await repo.deleteTenant(req.params.tenant);
         res.send(nu<ActionResult>({success:true}));
     });
 
-    app.post(config.path + '/tenants', async (req, res) => {
+    app.post('/tenants', async (req, res) => {
         if (!authService.checkAdmin(req, res)) return;
         var request : CreateTenantRequest = req.body;
         try{
@@ -40,7 +40,7 @@ export function enableAdminApi(app:Express, config:Config, repo:AmberRepo, authS
 
     });
 
-    app.post(config.path + '/tenant/:tenant', async (req, res) => {
+    app.post('/tenant/:tenant', async (req, res) => {
         if (!authService.checkAdmin(req, res)) return;
         var request : TenantDetails = req.body;
         try{
@@ -51,6 +51,77 @@ export function enableAdminApi(app:Express, config:Config, repo:AmberRepo, authS
             return;
         }
 
+        res.send(nu<ActionResult>({success:true}));
+    });
+
+    // admin functionality for user management
+
+    // Get all users
+    app.get('/users', async (req, res) => {
+        if (!authService.checkAdmin(req, res)) return;
+        var users = await repo.getAllUsers();
+        res.send(nu<UserInfo[]>(users));
+        }
+    );
+
+    // Get user details by id
+    app.get('/users/:id', async (req, res) => {
+        if (!authService.checkAdmin(req, res)) return;
+        var user = await repo.getUserDetails(req.params.id);
+        if (!user) {
+            res.status(404).send(error("User not found"));
+            return;
+        }
+        res.send(nu<UserDetails>(user));
+    });
+
+
+    // Update user details (only username for now)
+    app.post('/users/:id', async (req, res) => {
+        if (!authService.checkAdmin(req, res)) return;
+        var userId = req.params.id;
+        var userDetails: ChangeUserDetailsRequest = req.body;
+
+        try {
+            await authService.changeUser(userId, userDetails.userName);
+            res.send(nu<ActionResult>({success:true}));
+        } catch (e) {
+            res.status(400).send(error(e.message));
+        }
+    });
+
+    // Update user password
+    app.post('/users/:id/password', async (req, res) => {
+        if (!authService.checkAdmin(req, res)) return;
+        var userId = req.params.id;
+        var newPassword: string = req.body;
+        var user = await repo.getUserDetails(userId);
+        if (!user){
+            res.status(401).send(error("User not found"));
+            return;
+        }
+
+        try {
+            await authService.changeUserPasswordWithoutOldpassword(userId, newPassword);
+            res.send(nu<ActionResult>({success:true}));
+        } catch (e) {
+            res.status(400).send(error(e.message));
+        }
+    });
+
+    app.delete('/users/:id', async (req, res) => {
+        if (!authService.checkAdmin(req, res, true)) return;
+        var userId = req.params.id;
+        if (userId === authService.getSessionToken(req)?.userId) {
+            res.status(400).send(error("You cannot delete yourself"));
+            return;
+        }
+        var user = await repo.getUserDetails(userId);
+        if (!user){
+            res.status(404).send(error("User not found"));
+            return;
+        }
+        await repo.deleteUser(userId);
         res.send(nu<ActionResult>({success:true}));
     });
 

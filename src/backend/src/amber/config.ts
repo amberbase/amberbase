@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-
+import {AmberUiConfig} from '../../../shared/src/ui/model.js';
 export interface Config {
     db_name: string,
     db_type: string,
@@ -10,7 +10,8 @@ export interface Config {
     path: string,
     enableAdminApi?: boolean,
     enableStatsApi?: boolean,
-    inviteOnly?: boolean
+    inviteOnly?: boolean,
+    ui?: AmberUiConfig
 };
 
 export interface ConfigOptionals {
@@ -34,6 +35,12 @@ export var defaultConfig = {
     enableStatsApi: true,
     inviteOnly: true
 };
+
+export var defaultUiConfig: AmberUiConfig = {
+    availableRoles: [],
+    theme: "dark",
+    title: "Amberbase App",
+}
 
 export function loadConfig(path?:string): Config {
     var config = structuredClone(defaultConfig);

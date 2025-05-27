@@ -1,7 +1,7 @@
 import * as http from 'http'
 import * as WebSocket from 'ws'
 import { AmberAuth, SessionToken } from '../auth.js';
-import { AmberSessionProtocolPrefix } from 'amber-client';
+import { AmberSessionProtocolPrefix } from './../../../../client/src/shared/dtos.js'
 
 export interface SimpleWebsocket{
     onClose(callback: ()=>void): void;
@@ -9,7 +9,22 @@ export interface SimpleWebsocket{
     close():void;
     sendJson(message: any): void;
 }
+
+/**
+ * Websocket handler to determine if a websocket request should be processed or not. It is called with the path and protocol of the request as well as a verified session token if it is provided. 
+ * The protocol is the first protocol that does not start with AmberSessionProtocolPrefix shared with the amber client library. The session token is the session token encoded in the protocol header that is carrying the AmberSessionProtocolPrefix.
+ * Return a function to process the websocket request or undefined if the request should be ignored. Returning an error object interrupts the further search for an alternative handler. Do that if you feel responsible, but the peer contained some wrong data. 
+ * The function will be called with a SimpleWebsocket instance that is used to send messages to the client and receive messages from the client.
+ */
 export type WebsocketHandler = ((path:string, protocol: string, sessionToken : SessionToken | null)=> (((socket: SimpleWebsocket)=>void) | undefined | {status:number, err:string}));
+
+/**
+ * Installs a wrapped websocket handler on an http server. It takes care of detecting aliveness and gives a simplified API to it.
+ * @param server The server to install the websocket handler on
+ * @param websocketHandlers Handlers to process the websocket requests. The first one that returns a function will be used. The function will that will be subsequentially be started with the socket context.
+ * @param pathPrefix 
+ * @param authService 
+ */
 export function simpleWebsockets(server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>, websocketHandlers: WebsocketHandler[], pathPrefix:string, authService:AmberAuth){
     var wss = new WebSocket.WebSocketServer({ noServer: true });
     server.on('upgrade', (request, socket, head) => {

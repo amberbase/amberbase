@@ -1,4 +1,5 @@
-import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, CreateTenantRequest, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails, UserInfo, AmberMetricsBucket} from './dtos.js'
+import { AmberLoginManager } from './login.js';
+import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, CreateTenantRequest, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails, UserInfo, AmberMetricsBucket, ChangeUserPasswordRequest, ChangeUserDetailsRequest} from './shared/dtos.js'
 
 /**
  * Internal class to wrap REST like api calls to the amber server for convenience
@@ -154,6 +155,10 @@ export class AmberAdminApi{
     async getMetricsByHour() : Promise<AmberMetricsBucket[]> {
         return await this.apiClient.fetch<AmberMetricsBucket[]>("GET", '/tenant/:tenant/metrics/hour');
     }
+
+    async changePasswordOfSingleTenantUser(userId:string, newPassword:string) : Promise<ActionResult> {
+        return await this.apiClient.fetch<ActionResult>("POST", '/tenant/:tenant/admin/user/' + userId + '/password',  newPassword);
+    }
 }
 
 /**
@@ -235,8 +240,10 @@ export class AmberApi{
  */
 export class AmberUserApi{
     apiClient: ApiClient;
-    constructor(prefix: string){
+    loginManager: AmberLoginManager | null;
+    constructor(prefix: string, loginManager: AmberLoginManager | null){
         this.apiClient = new ApiClient(prefix);
+        this.loginManager = loginManager;
     }
 
     /**
@@ -256,6 +263,13 @@ export class AmberUserApi{
     }
 
     /**
+     * Logout the current user
+     * @returns 
+     */
+    logout() : Promise<void> {
+        return this.loginManager ? this.loginManager.logout() : Promise.resolve();
+    }
+    /**
      * Register a new user and login the user in one go
      * @param userName New user name
      * @param userEmail Email address. Will be stored lower case (yes, this is not according to standard but according to reality). Needs to be unique
@@ -263,7 +277,7 @@ export class AmberUserApi{
      * @param invitation A potential invitation link to add the user to a tenant with some roles
      * @returns the user id
      */
-    async registerUser(userName : string, userEmail : string, password : string, invitation : string) : Promise<string> {
+    async registerUser(userName : string, userEmail : string, password : string, invitation? : string) : Promise<string> {
         return await this.apiClient.fetchText("POST", '/register', nu<RegisterRequest>({username: userName, email:userEmail, password, invitation}));
     }
 
@@ -281,6 +295,36 @@ export class AmberUserApi{
      */
     async getInvitationDetails(invitation : string) : Promise<InvitationDetails> {
         return await this.apiClient.fetch<InvitationDetails>("GET", '/invitation/' + invitation);
+    }
+
+    /**
+     * Change the password of the current user. It needs the current password to do so.
+     * @param userId The user id of the current user.
+     * @param currentPassword Current password of the user
+     * @param newPassword New password of the user
+     * @returns Success result or error message
+     */
+    async changePassword(userId:string, currentPassword:string, newPassword:string) : Promise<ActionResult> {
+        try{
+            return (await this.apiClient.fetch<ActionResult>("POST", '/user/password', nu<ChangeUserPasswordRequest>({userId, currentPassword, newPassword})));
+        }
+        catch(e) {
+            return nu<ActionResult>({success:false, error: "Unable to update user password"});
+        }
+    }
+
+    /**
+     * Update the currently logged in user details. Right now we only expose the user name.
+     * @param userName New user name
+     * @returns Success result or error message
+     */
+    async updateUserDetails(userName:string) : Promise<ActionResult> {
+        try{
+        return await this.apiClient.fetch<ActionResult>("POST", '/user', nu<ChangeUserDetailsRequest>({userName: userName}));
+        }
+        catch(e) {
+            return nu<ActionResult>({success:false, error: "Unable to update user details"});
+        }
     }
 }
 

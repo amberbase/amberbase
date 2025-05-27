@@ -9,9 +9,17 @@ import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
 
-import App from './App.vue'
+import AmberUi from './components/AmberUi.vue'
 import { state } from './state'
 import { amber } from 'vuetify/util/colors'
+import type { AmberUiConfig, AmberUiContext } from '../../shared/src'
+
+declare global {
+  interface Window{
+    amberUiConfig?: AmberUiConfig,
+    amberUiContext?: AmberUiContext
+  }
+}
 
 const vuetify = createVuetify({
     components,
@@ -25,16 +33,13 @@ const vuetify = createVuetify({
     }
   });
   
-  var hash = window.location.hash;
-  if (hash.startsWith("#/amber/")) {
-    var params = new URLSearchParams(hash.substring(8));
-    
-    state.amberTenant = params.get("tenant") || "*";
-    state.amberInvitation = params.get("invitation") || "";  
-  }
   
-  
-  if(state.amberTenant !== "*"){
-    state.defaultView = "amber";
+  if (window.amberUiConfig) {
+    state.uiConfig = window.amberUiConfig;
   }
-  createApp(App).use(vuetify).mount('#app')
+
+  if (window.amberUiContext) {
+    state.uiContext = window.amberUiContext;
+  }
+
+  createApp(AmberUi).use(vuetify).mount('#app')

@@ -4,9 +4,9 @@ import { AmberClient, type UserWithRoles, type Tenant, type UserDetails} from "a
 var props = defineProps<{
   amberClient: AmberClient, 
   tenant : string,
+  tenantName : string,
   roles : string[]
 }>();
-var show = ref(false);
 var users = ref<UserWithRoles[]>([]);
 var loadingUsers = ref(false);
 var loadingInvitation = ref(false);
@@ -47,12 +47,15 @@ var removeUser = async (userId:string)=>{
 
 var createInvitation= async (roles: string[])=>{
   try{
+    
     createdInvitationLink.value = "";
     loadingInvitation.value = true;
     try{
     var invitationToken = await adminApi.createInvitation({expiresInDays:14, roles:roles});
 
-    createdInvitationLink.value =  window.location.protocol +"//"+ window.location.host + "#/amber/tenant="+props.tenant+"&invitation="+invitationToken;
+    var loc = window.location.pathname;
+    var dir = loc.substring(0, loc.lastIndexOf('/'));
+    createdInvitationLink.value =  window.location.protocol +"//"+ window.location.host + dir + "/invitation" +"?tenant="+props.tenant+"&invitation="+invitationToken;
     }
     catch(e){
       console.error("Error creating invitation", e);
@@ -84,18 +87,26 @@ var onAddRole = async (user:UserWithRoles, role:string)=>{
   }
 };
 
+const copy =async (text:string) => {
+  try{
+    await navigator.clipboard.writeText(text);
+    console.log("Copied to clipboard");
+  }
+  catch(e){
+    console.error("Error copying to clipboard", e);
+  }
+};
+
 </script>
 <template>
   <v-container>
   <v-row>
-      <h2>You are admin for {{ props.tenant }}
-        <v-btn v-if="!show" icon="mdi-menu-down" @click="show = true"></v-btn>
-          <v-btn v-if="show" icon="mdi-menu-up" @click="show = false"></v-btn>
+      <h2>Manage {{props.tenantName}} ({{props.tenant}})        
       </h2>
   </v-row>
-  <v-row v-if="show">
-    <v-card width="100%">
-      <v-card-title>Invitation</v-card-title>
+  <v-row>
+    <v-card width="100%" class="mt-3">
+      <v-card-title>New Invitation</v-card-title>
       <v-card-actions>
         <v-container>
           <v-row>
@@ -107,18 +118,19 @@ var onAddRole = async (user:UserWithRoles, role:string)=>{
           multiple
           persistent-hint
         ></v-select>
-        <v-btn @click="createInvitation(newUserRoles)" :disabled="newUserRoles.length < 1" :loading="loadingInvitation">Create Invitation</v-btn>
+        <v-btn @click="createInvitation(newUserRoles)" :disabled="newUserRoles.length < 1" :loading="loadingInvitation" prepend-icon="mdi-card-account-mail">Create Invitation</v-btn>
       </v-row>
       <v-row v-if="!!createdInvitationLink">
-        <pre style="font-size: 10pt;">{{createdInvitationLink}} </pre> (valid for 14 days)
+         <pre style="font-size: 10pt;">{{createdInvitationLink}} </pre> <v-btn density="compact" icon="mdi-content-copy" title="copy" @click="copy(createdInvitationLink)"></v-btn>
+         (valid for 14 days)
       </v-row>
       </v-container>
-      </v-card-actions>
+     </v-card-actions>
       
     </v-card>
   </v-row>
-  <v-row v-if="show">
-    <v-card width="100%">
+  <v-row >
+    <v-card width="100%" class="mt-3">
       <v-card-title>Users</v-card-title>
       <v-card-text>
         <table class="items" >
@@ -127,18 +139,25 @@ var onAddRole = async (user:UserWithRoles, role:string)=>{
             <td>
               <v-chip v-for="role in user.roles" :key="role">{{role}}
               <template #close>
-                <v-icon tile="Remove Role" v-if="user.roles.length>1" icon="mdi-close-circle" @click.stop="onRemoveRole(user, role);" />
+                <v-icon title="Remove Role" v-if="user.roles.length>1" icon="mdi-close-circle" @click.stop="onRemoveRole(user, role);" />
               </template>  
               </v-chip>
             </td>
             <td style="text-align:right;width:100px;">
-              <template v-for="role in props.roles" :key="role" prepend-icon="$vuetify">
-                <v-chip v-if="!user.roles.find(r=>r == role)" prepend-icon="mdi-plus-circle"  @click="onAddRole(user, role)"> {{role}}</v-chip>
+            <v-menu>
+              <template v-slot:activator="{ props }">
+                <v-btn icon="mdi-plus-circle" v-bind="props" title = "Add Role"></v-btn>
               </template>
-              <br>
 
-              <v-btn @click="removeUser(user.id)">Remove</v-btn>
-              
+              <v-list>
+                <template v-for="role in props.roles" :key="role">
+                  <v-list-item  @click="onAddRole(user, role)"  v-if="!user.roles.find(r=>r == role)">
+                    <v-list-item-title>{{role}}</v-list-item-title>
+                  </v-list-item>
+                </template>
+              </v-list>
+            </v-menu>
+            <v-btn icon="mdi-delete-outline" @click="removeUser(user.id)" title = "Remove"></v-btn>
             </td>
           </tr>
         </table>
