@@ -32,3 +32,23 @@ export var uiHelper =
     showSuccess: (text: string) => {},
 
 };
+
+export async function copy(text:string): Promise<void> {
+  try{
+    await navigator.clipboard.writeText(text);
+    uiHelper.showSuccess("Copied to clipboard");
+  }
+  catch(e){
+    uiHelper.showError("Error copying to clipboard: " + e);
+  }
+};
+
+export function generatePassword (): string {
+    var length = 8,
+        charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+        retVal = "";
+    for (var i = 0, n = charset.length; i < length; ++i) {
+        retVal += charset.charAt(Math.floor(Math.random() * n));
+    }
+    return retVal;
+};

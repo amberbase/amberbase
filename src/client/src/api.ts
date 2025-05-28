@@ -1,5 +1,5 @@
 import { AmberLoginManager } from './login.js';
-import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, CreateTenantRequest, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails, UserInfo, AmberMetricsBucket, ChangeUserPasswordRequest, ChangeUserDetailsRequest} from './shared/dtos.js'
+import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails, UserInfo, AmberMetricsBucket, ChangeUserPasswordRequest, CreateTenantRequest, ChangeUserProfileRequest, ChangeUserRequest} from './shared/dtos.js'
 
 /**
  * Internal class to wrap REST like api calls to the amber server for convenience
@@ -214,6 +214,43 @@ export class AmberGlobalAdminApi{
     async getMetricsByHour() : Promise<AmberMetricsBucket[]> {
         return await this.apiClient.fetch<AmberMetricsBucket[]>("GET", '/metrics/hour');
     }
+
+    /**
+     * Get all users of the system. 
+     * @returns A list of users with their basic properties. 
+     */
+    async getUsers() : Promise<UserInfo[]> {
+        return await this.apiClient.fetch<UserInfo[]>("GET", '/users');
+    }
+
+    /**
+     * Get user details by id
+     * @param userId The user id to get the details for
+     * @returns User details with roles and tenant information
+     */
+    async getUserDetails(userId:string) : Promise<UserDetails> {
+        return await this.apiClient.fetch<UserDetails>("GET", '/users/' + userId);
+    }
+
+    /**
+     * Update user details. The admin can change the user name, email and password.
+     * @param userId The user id to update
+     * @param request Request object with the new user details
+     * @returns Action result with success or error message
+     */
+    async updateUserDetails(userId:string, request:ChangeUserRequest) : Promise<ActionResult> {
+        return await this.apiClient.fetch<ActionResult>("POST", '/users/' + userId, request);
+    }   
+
+    /**
+     * Delete a user. The user will be removed from all tenants and the global user list.
+     * An admin can not remove himself.
+     * @param userId The user id to delete
+     * @returns Action result with success or error message
+     */
+    async deleteUser(userId:string) : Promise<ActionResult> {
+        return await this.apiClient.fetch<ActionResult>("DELETE", '/users/' + userId);
+    }
 }
 
 /**
@@ -320,7 +357,7 @@ export class AmberUserApi{
      */
     async updateUserDetails(userName:string) : Promise<ActionResult> {
         try{
-        return await this.apiClient.fetch<ActionResult>("POST", '/user', nu<ChangeUserDetailsRequest>({userName: userName}));
+        return await this.apiClient.fetch<ActionResult>("POST", '/user', nu<ChangeUserProfileRequest>({userName: userName}));
         }
         catch(e) {
             return nu<ActionResult>({success:false, error: "Unable to update user details"});

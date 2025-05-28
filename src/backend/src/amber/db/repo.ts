@@ -183,8 +183,8 @@ export class AmberRepo {
             var globalRoles = tenantRoles["*"];
             if (globalRoles){
                 var allTenants = await conn.query<{id:string}[]>("SELECT id FROM tenants WHERE id != '*'");
-                for (const tenant in allTenants){
-                    tenantRoles[tenant] = [...(new Set([...(tenantRoles[tenant] || []), ...globalRoles]))];
+                for (const tenant of allTenants){
+                    tenantRoles[tenant.id] = [...(new Set([...(tenantRoles[tenant.id] || []), ...globalRoles]))];
                 }
             }
 
@@ -237,6 +237,17 @@ export class AmberRepo {
         }
     }
 
+    async getUserIdsOnlyInOneTenant(tenant:string): Promise<string[]> {
+        var conn = await this.pool.getConnection();
+        try{
+            var result = await conn.query<{user:string}[]>("SELECT `user` FROM  (SELECT a.`user` AS `user`, COUNT(*) AS `tenantcount`  FROM roles as a LEFT JOIN roles as b ON a.`user` = b.`user` WHERE a.`tenant` = ? GROUP BY a.`user`) AS i WHERE i.`tenantcount` = 1;", [tenant]);
+            return result.map((row)=> row.user);
+        }
+        finally{
+            conn.end();
+        }
+    }
+
     async getUsersWithRoles(tenant:string): Promise<UserWithRoles[]> {
         var conn = await this.pool.getConnection();
         try{
@@ -278,7 +289,6 @@ export class AmberRepo {
      * @returns 
      */
     async updateUser(user: UserWithCredential): Promise<boolean> {
-        console.log("Updating user %j", user);
         user.email = user.email.toLowerCase();
         var conn = await this.pool.getConnection();
         try{
@@ -286,7 +296,6 @@ export class AmberRepo {
             return true;
         }
         catch(e){
-            console.log("Failed updating user %j", e);
             return false;
         }
         finally{

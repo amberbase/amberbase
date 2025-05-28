@@ -120,7 +120,7 @@ export class AmberInit{
         await repo.initDb();
 
         var amberApp = express();
-        amberApp.use(express.json());
+        amberApp.use(express.json({strict: false})); // allow non "strict" json parsing ( strict has a bug to not follow RFC7159 in case it is a "string")
         amberApp.use(cookieParser());
         
         var amberAuth = await auth(amberApp, this.config, repo);

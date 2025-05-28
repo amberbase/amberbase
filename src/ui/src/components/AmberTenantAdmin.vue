@@ -1,18 +1,25 @@
 <script setup lang="ts">
 import {ref, onMounted} from "vue"
 import { AmberClient, type UserWithRoles, type Tenant, type UserDetails} from "amber-client"
+import { copy, generatePassword, uiHelper} from "@/common"
+
 var props = defineProps<{
   amberClient: AmberClient, 
   tenant : string,
   tenantName : string,
   roles : string[]
 }>();
-var users = ref<UserWithRoles[]>([]);
-var loadingUsers = ref(false);
-var loadingInvitation = ref(false);
-var createdInvitationLink = ref("");
-var newUserRoles = ref<string[]>([]);
+const users = ref<UserWithRoles[]>([]);
+const loadingUsers = ref(false);
+const loadingInvitation = ref(false);
+const createdInvitationLink = ref("");
+const newUserRoles = ref<string[]>([]);
+const pwDialogOpen = ref(false);
+const newPassword = ref("");
+const showPassword = ref(false);
+const focussedUser = ref<UserWithRoles | null>(null);
 var adminApi = props.amberClient.getAdminApi()!;
+
 onMounted(async ()=>{
   await refreshUsers();
 });
@@ -35,19 +42,25 @@ var refreshUsers = async ()=>{
   loadingUsers.value = false;
 };
 
-var removeUser = async (userId:string)=>{
+var removeUser = async (user:UserWithRoles)=>{
   try{
-    await adminApi.deleteUser(userId);
+    if (!(await uiHelper.confirmDialog("Are you sure you want to remove the user " + user.name + " (" + user.email + ")?")))
+    {
+      
+      return;
+    }
+    
+    await adminApi.deleteUser(user.id);
     await refreshUsers();
+    uiHelper.showSuccess("User removed successfully");
   }catch(e){
-    console.error("Error removing user", e);
+    uiHelper.showError("Error removing user: " + e);
   }
 };
 
 
 var createInvitation= async (roles: string[])=>{
-  try{
-    
+   
     createdInvitationLink.value = "";
     loadingInvitation.value = true;
     try{
@@ -58,12 +71,10 @@ var createInvitation= async (roles: string[])=>{
     createdInvitationLink.value =  window.location.protocol +"//"+ window.location.host + dir + "/invitation" +"?tenant="+props.tenant+"&invitation="+invitationToken;
     }
     catch(e){
-      console.error("Error creating invitation", e);
+      uiHelper.showError("Error creating invitation: " + e);
     }
     loadingInvitation.value = false;
-  }catch(e){
-    console.error("Error inviting user", e);
-  }
+  
 };
 
 var onRemoveRole = async (user:UserWithRoles, role:string)=>{
@@ -71,8 +82,9 @@ var onRemoveRole = async (user:UserWithRoles, role:string)=>{
   try{
     await adminApi.setRolesOfUser(user.id, roles);
     await refreshUsers();
+    uiHelper.showSuccess("Removed role " + role + " from user " + user.name);
   }catch(e){
-    console.error("Error removing role", e);
+    uiHelper.showError("Error removing role " + role + " from user " + user.name + ": " + e);
   }
 };
 
@@ -82,18 +94,29 @@ var onAddRole = async (user:UserWithRoles, role:string)=>{
   try{
     await adminApi.setRolesOfUser(user.id, roles);
     await refreshUsers();
+    uiHelper.showSuccess("Added role " + role + " to user " + user.name);
   }catch(e){
-    console.error("Error removing role", e);
+    uiHelper.showError("Error adding role " + role + " to user " + user.name + ": " + e);
   }
 };
 
-const copy =async (text:string) => {
+
+const changePassword = async (user:UserWithRoles)=>{
+  
+  newPassword.value = generatePassword();
+  focussedUser.value = user;
+  pwDialogOpen.value = true;
+  showPassword.value = false;
+};
+
+const doChangePassword = async ()=>{
+  pwDialogOpen.value = false;
+  if (!focussedUser.value) return;
   try{
-    await navigator.clipboard.writeText(text);
-    console.log("Copied to clipboard");
-  }
-  catch(e){
-    console.error("Error copying to clipboard", e);
+    await adminApi.changePasswordOfSingleTenantUser(focussedUser.value.id, newPassword.value);
+    uiHelper.showSuccess("Password changed successfully");
+  }catch(e){
+    uiHelper.showError("Error changing password: " + e);
   }
 };
 
@@ -143,7 +166,7 @@ const copy =async (text:string) => {
               </template>  
               </v-chip>
             </td>
-            <td style="text-align:right;width:100px;">
+            <td style="text-align:left;width:150px;">
             <v-menu>
               <template v-slot:activator="{ props }">
                 <v-btn icon="mdi-plus-circle" v-bind="props" title = "Add Role"></v-btn>
@@ -157,15 +180,37 @@ const copy =async (text:string) => {
                 </template>
               </v-list>
             </v-menu>
-            <v-btn icon="mdi-delete-outline" @click="removeUser(user.id)" title = "Remove"></v-btn>
+            <v-btn icon="mdi-delete-outline" @click="removeUser(user)" title = "Remove"></v-btn>
+            <v-btn icon="mdi-key-variant" v-if="user.singleTenant" @click="changePassword(user)" title = "Reset Password"></v-btn>
             </td>
           </tr>
         </table>
       </v-card-text>
-      
     </v-card>
   </v-row>
 </v-container>
+<v-dialog v-model="pwDialogOpen" max-width="600">
+      <v-card>
+        <v-card-title class="headline">Change User Password</v-card-title>
+        <v-card-subtitle class="headline">You can reset the password of {{ focussedUser?.name }} ({{ focussedUser?.email }}) since he/she is only member of {{ props.tenantName }}</v-card-subtitle>
+        <v-card-text>
+          <v-text-field
+            v-model="newPassword"
+            label="New Password"
+            :append-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
+            :type="showPassword ? 'text' : 'password'"
+            name="amber-register-pw"
+            @click:append="showPassword = !showPassword"
+          ></v-text-field>
+          <v-btn density="compact" icon="mdi-content-copy" title="copy" @click="copy(newPassword)"></v-btn>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn @click="doChangePassword()">OK</v-btn>
+          <v-btn @click="pwDialogOpen = false">Cancel</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 </template>
 
 <style scoped>
