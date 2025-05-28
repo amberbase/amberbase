@@ -1,7 +1,7 @@
 import { Express, Request, Response } from 'express';
 import {Config} from './config.js';
 import {AmberRepo, Invitation, User} from './db/repo.js';
-import {ActionResult, LoginRequest, nu, error, SessionToken as SessionTokenDto, RegisterRequest, AcceptInvitationRequest, UserDetails, CreateInvitationRequest, UserWithRoles as UserWithRolesDto, TenantWithRoles, InvitationDetails, UserInfo, ChangeUserPasswordRequest, ChangeUserDetailsRequest} from './../../../client/src/shared/dtos.js';
+import {ActionResult, LoginRequest, nu, error, SessionToken as SessionTokenDto, RegisterRequest, AcceptInvitationRequest, UserDetails, CreateInvitationRequest, UserWithRoles as UserWithRolesDto, TenantWithRoles, InvitationDetails, UserInfo, ChangeUserPasswordRequest, ChangeUserProfileRequest} from './../../../client/src/shared/dtos.js';
 import * as crypto from 'node:crypto';
 import { sleep } from './../../../client/src/shared/helper.js';
 import { BruteProtection } from './helper.js';
@@ -244,7 +244,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
      * Update user details from the user him/herself
      */
     app.post('/user', async (req, res) => {
-        var request: ChangeUserDetailsRequest = req.body;
+        var request: ChangeUserProfileRequest = req.body;
         var userId:string | null = null;
         var token = req.cookies?.auth;
         if (token){
@@ -328,7 +328,24 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
     app.get('/tenant/:tenant/admin/users', async (req, res) => {
         if (!checkAdmin(req, res)) return;
         var users = await repo.getUsersWithRoles(req.params.tenant);
-        res.send(nu<UserWithRolesDto[]>(users));
+        var results : UserWithRolesDto[] = users.map(u => ({
+            id: u.id,
+            email: u.email,
+            name: u.name,
+            roles: u.roles,
+            singleTenant: false
+        }));
+        var userIdsOnlyInThisTenant = new Set(await repo.getUserIdsOnlyInOneTenant(req.params.tenant));
+
+
+        for (const u of results) {
+            if (userIdsOnlyInThisTenant.has(u.id)) {
+                // this user is only in this tenant, so we can remove the tenant from the roles
+                u.singleTenant = true;
+            }
+        }
+
+        res.send(nu<UserWithRolesDto[]>(results));
     });
 
 
@@ -364,7 +381,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         if(user.tenants[req.params.tenant] && Object.keys(user.tenants).length === 1)
         {
             // this is the only tenant, so we can change the password
-            await authService.changeUserPasswordWithoutOldpassword(userId, newPassword);
+            await authService.changeUser(userId,undefined, undefined, newPassword);
             res.send(nu<ActionResult>({success:true}));
             return;
         }
@@ -557,37 +574,20 @@ export class AmberAuth{
             credential_hash: passwordHash
         });
     }
-
-    // this is a special case where we don't need the old password. Only an admin should be able to do this
-    async changeUserPasswordWithoutOldpassword(id:string, newPassword:string): Promise<boolean>{
-        var user = await this.repo.getUserById(id);
-        if (!user)
-            return false;
-        var passwordHash = this.createPasswordHash(newPassword);
-
-        await this.repo.updateUser({
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            credential_hash: passwordHash
-        });
-    }
-
-    // this is a special case where we don't need the old password. Only an admin should be able to do this
-    async changeUser(id:string, newName:string | undefined, newEmail?:string| undefined): Promise<boolean>{
-        console.log("Change user", id, newName, newEmail);
+   
+    // change the user, potentially including the password, therefore take caution.
+    async changeUser(id:string, newName:string | undefined, newEmail?:string| undefined, newPassword?:string | undefined): Promise<boolean>{
         var user = await this.repo.getUserById(id);
         if (!user)
         {
-            console.log("User not found");
             return false;
         }
-
+        var passwordHash = newPassword ? this.createPasswordHash(newPassword) : user.credential_hash;
         return await this.repo.updateUser({
             id: user.id,
             email: newEmail || user.email,
             name: newName || user.name,
-            credential_hash: user.credential_hash
+            credential_hash: passwordHash
         });
     }
 

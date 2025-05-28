@@ -6,7 +6,7 @@ import type { VForm } from "vuetify/components";
 
 const emit = defineEmits<{
   (e: 'userInTenant', details: {client: AmberClient,userId:string, userName:string, userEmail:string, tenant:string,roles:string[]} | null): void,
-  (e: 'userReady', details: {client: AmberClient,userId:string, userName:string, userEmail:string} | null): void,
+  (e: 'userReady', details: {client: AmberClient,userId:string, userName:string, userEmail:string, globalAdmin:boolean} | null): void,
 }>();
 
 var props = defineProps<{
@@ -108,7 +108,8 @@ var amberInit = new AmberClientInit()
         client: amber.value!,
         userId: user.id,
         userName: user.name,
-        userEmail: user.email
+        userEmail: user.email,
+        globalAdmin: user.tenants["*"]?.includes("admin") || false
       });
     }
   });

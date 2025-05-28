@@ -10,7 +10,7 @@ import * as directives from 'vuetify/directives'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
 
 import AmberUi from './components/AmberUi.vue'
-import { state } from './state'
+import { state } from './common'
 import { amber } from 'vuetify/util/colors'
 import type { AmberUiConfig, AmberUiContext } from '../../shared/src'
 

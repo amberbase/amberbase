@@ -131,11 +131,20 @@ export interface ChangeUserPasswordRequest{
 }
 
 /**
- * Request change a users password. The user must provide the current password and the new one.
+ * Request change a users profile details.
  */
-export interface ChangeUserDetailsRequest{
+export interface ChangeUserProfileRequest{
 
     userName:string;
+}
+
+/**
+ * Request change a user (as an admin).
+ */
+export interface ChangeUserRequest{
+    userName?:string;
+    email?:string;
+    newPassword?:string;
 }
 
 /**
@@ -176,6 +185,10 @@ export interface UserWithRoles{
      * Roles the user has in the tenant
      */
     roles:string[];
+    /**
+     *  true if the user has access to only one tenant, false if the user has access to multiple tenants
+     */
+    singleTenant: boolean;
 }
 
 /**

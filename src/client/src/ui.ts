@@ -44,10 +44,7 @@ export class AmberUiApi{
 
     goToGlobalAdmin(){
         var page = this.apiPrefix + "/ui/globaladmin";
-        var tenant = this.loginManager.tenant;
-        if (tenant){
-            page += "?tenant=" + tenant;
-        }
+        
         window.location.href = page;
     }
 

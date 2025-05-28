@@ -2,8 +2,8 @@
 import {ref, onMounted} from "vue"
 import { AmberClient, type TenantWithRoles, type Tenant, type UserDetails, amberClient} from "amber-client"
 import { globalTenant } from "../../../shared/src"
-import { uiHelper} from "@/state"
-import { state } from "@/state";
+import { uiHelper} from "@/common"
+import { state } from "@/common";
 var props = defineProps<{amberClient: AmberClient}>();
 var tenantsWithRoles = ref<TenantWithRoles[]>([]);
 var mode = ref<"changepw" | "changename" |"">("");

@@ -1,7 +1,7 @@
 import { Express, Request, Response } from 'express';
 import {Config} from './config.js';
 import {AmberRepo} from './db/repo.js';
-import {ActionResult, nu, error, Tenant, TenantDetails, CreateTenantRequest, UserInfo, UserDetails, ChangeUserDetailsRequest} from './../../../client/src/shared/dtos.js';
+import {ActionResult, nu, error, Tenant, TenantDetails, CreateTenantRequest, UserInfo, UserDetails, ChangeUserRequest} from './../../../client/src/shared/dtos.js';
 import {AmberAuth, allTenantsId} from './auth.js';
 
 export function enableAdminApi(app:Express, config:Config, repo:AmberRepo, authService: AmberAuth)  {
@@ -76,33 +76,14 @@ export function enableAdminApi(app:Express, config:Config, repo:AmberRepo, authS
     });
 
 
-    // Update user details (only username for now)
+    // Update user details. The admin can change the user name, email and password.
     app.post('/users/:id', async (req, res) => {
         if (!authService.checkAdmin(req, res)) return;
         var userId = req.params.id;
-        var userDetails: ChangeUserDetailsRequest = req.body;
+        var userDetails: ChangeUserRequest = req.body;
 
         try {
-            await authService.changeUser(userId, userDetails.userName);
-            res.send(nu<ActionResult>({success:true}));
-        } catch (e) {
-            res.status(400).send(error(e.message));
-        }
-    });
-
-    // Update user password
-    app.post('/users/:id/password', async (req, res) => {
-        if (!authService.checkAdmin(req, res)) return;
-        var userId = req.params.id;
-        var newPassword: string = req.body;
-        var user = await repo.getUserDetails(userId);
-        if (!user){
-            res.status(401).send(error("User not found"));
-            return;
-        }
-
-        try {
-            await authService.changeUserPasswordWithoutOldpassword(userId, newPassword);
+            await authService.changeUser(userId, userDetails.userName, userDetails.email, userDetails.newPassword);
             res.send(nu<ActionResult>({success:true}));
         } catch (e) {
             res.status(400).send(error(e.message));
