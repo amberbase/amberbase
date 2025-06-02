@@ -2,7 +2,7 @@
   "name": "amber-client",
   "type": "module",
   "module": "dist/index.js",
-  "version": "1.0.0",
+  "version": "0.1.0-alpha.0",
   "description": "The client library for an Amberbase app",
   "types": "dist/index.d.ts",
     "scripts": {
