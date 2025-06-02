@@ -1,7 +1,7 @@
 {
   "name": "amberbase",
   "type": "module",
-  "version": "1.0.0",
+  "version": "0.1.0-alpha.0",
   "main": "dist/backend/src/index.js",
   "types": "dist/backend/src/index.d.ts",
   "scripts": {
@@ -10,7 +10,7 @@
   },
   "author": "Christian Messinger, Andreas Müller",
   "license": "MIT",
-  "description": "",
+  "description": "Amberbase backend library",
   "dependencies": {
     "cookie-parser": "^1.4.7",
     "express": "^4.21.1",
