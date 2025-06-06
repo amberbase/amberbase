@@ -320,14 +320,15 @@ export class AmberRepo {
     }
 
 
-    async getTenant(id:string): Promise<{id:string, name:string, data:string} | undefined> {
+    async getTenant(id:string): Promise<{id:string, name:string, data:any} | undefined> {
         var conn = await this.pool.getConnection();
         try{
             var result = await conn.query<{id:string, name:string, data:string}[]>("SELECT id, name, data FROM tenants WHERE id = ?", [id]);
             if (result.length === 0){
                 return undefined;
             }
-            return result[0];
+            var row = result[0];
+            return {id: row.id, name: row.name, data: row.data ? JSON.parse(row.data) : {}};
         }
         finally{
             conn.end();
@@ -356,8 +357,12 @@ export class AmberRepo {
         }
     }
 
-    async createTenant(id:string, name: string, data:string)
+    async createTenant(id:string, name: string, data:any) : Promise<boolean>
     {
+        if (data === undefined){
+            data = {};
+        }
+        var dataString = JSON.stringify(data);
         var validTenantId = /^[a-zA-Z0-9\-]{1,50}$/;
         if (!validTenantId.test(id)){
             throw new Error("Invalid tenant id");
@@ -365,24 +370,31 @@ export class AmberRepo {
 
         var conn = await this.pool.getConnection();
         try{
-            await conn.query("INSERT INTO tenants (id, name, data) VALUES (?, ?, ?)", [id, name, data]);
+            await conn.query("INSERT INTO tenants (id, name, data) VALUES (?, ?, ?)", [id, name, dataString]);
         }
         catch(e){
             if (e.code === "ER_DUP_ENTRY"){
-                throw new Error("Tenant already exists");
+                return false; // tenant already exists
             }
             throw e;
         }
         finally{
             conn.end();
         }
+        return true;
     }
 
-    async updateTenant(id:string, name: string, data:string)
+    async updateTenant(id:string, name: string, data:any) : Promise<boolean>
     {
         var conn = await this.pool.getConnection();
+         if (data === undefined){
+            data = {};
+        }
+        var dataString = JSON.stringify(data);
         try{
-            await conn.query("UPDATE tenants SET name = ?, data = ? WHERE id = ?", [name, data, id]);
+            var result = await conn.query("UPDATE tenants SET name = ?, data = ? WHERE id = ?", [name, dataString, id]);
+
+            return result.affectedRows > 0; // if affected rows is 0, the tenant does not exist
         }
         finally{
             conn.end();

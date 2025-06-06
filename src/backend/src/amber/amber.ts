@@ -80,14 +80,20 @@ export class AmberInit{
      * @param settings The settings for the collection. See CollectionSettings for more details.
      * @returns The AmberInit instance for all that fluidity.
      */
-    withCollection<T>(name:string, settings:CollectionSettings<T> ): AmberInit{
+    withCollection<T>(name:string, settings?:CollectionSettings<T> ): AmberInit{
 
-        this.collections.set(name,settings);
+        this.collections.set(name, settings || {accessRights: (user, doc, action) => true}); // default access rights are "true" for all actions
         return this;
     }
 
-    withChannel<T>(name:string, settings:ChannelSettings<T>): AmberInit{
-        this.channels.set(name,settings);
+    /**
+     * Adds a channel to the amber application. This is a fluent interface, so it returns the AmberInit instance.
+     * @param name The name of the channel to add.
+     * @param settings The settings for the channel. See ChannelSettings for more details.
+     * @returns The AmberInit instance for all that fluidity.
+     */
+    withChannel<T>(name:string, settings?:ChannelSettings<T>): AmberInit{
+        this.channels.set(name,settings || {accessRights: (user, channel, subchannel, action) => true}); // default access rights are "true" for all actions
         return this;
     }
 
@@ -193,6 +199,32 @@ export class Amber{
         this.auth = auth;
         this.collections = collections;
         this.channels = channels;
+    }
+
+
+    /**
+     * Bootstraps a tenant in the amber application. It will create the tenant if it does not exist, or update it if it does.
+     * @param tenantId tenantId (short name) of the tenant, e.g. "mytenant"
+     * @param tenantName descrtive name of the tenant, e.g. "My Tenant"
+     * @param tenantData some data to store with the tenant, e.g. {description: "This is my tenant", background: "blue"}. Application specific
+     */
+    async addOrUpdateTenant(tenantId:string, tenantName:string, tenantData:any) : Promise<void> {
+        if (!(await this.repo.createTenant(tenantId, tenantName, tenantData)))
+        {
+            await this.repo.updateTenant(tenantId, tenantName, tenantData);
+        }
+    }
+
+    /**
+     * Bootstraps a user in the amber application as the initial admin. It will create the user if it does not exist, or update its roles if it does. It will be added to the global
+     * tenant "*"
+     * @param email Email to be used to login
+     * @param name User name as a descriptive name for the user, e.g. "John Doe"
+     * @param pw An initial password for the user, please take it from a secure place
+     * @param roles Roles to be added additional to "admin" which is the build in role for the admin user.
+     */
+    async addAdminIfNotExists(email:string, name:string, pw:string, roles:string[]) : Promise<void> {
+        await this.auth.addUserIfNotExists(email, name, pw, "*", [...new Set(["admin", ...roles])]);   
     }
 
     /**

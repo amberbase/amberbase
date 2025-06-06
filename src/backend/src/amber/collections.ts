@@ -48,13 +48,19 @@ export interface CollectionSettings<T>{
      */
     validator?: (user: UserContext, oldDocument: T | null, newDocument: T | null, action: CollectionAccessAction) => boolean;
 
-    // todo: onDocumentChange (tenant:string, oldDocument: T | null, newDocument: T | null, action: AccessAction)=>Promise<void>;
+    onDocumentChange?: (tenant:string, userId: string | null, docId:string, oldDocument: T | null, newDocument: T | null, action: CollectionAccessAction, collections : AmberCollections)=>Promise<void>;
 }
 
-export interface AmberCollections{ // the API to be used by the server side app
-    createDocument(tenant: string, collection:string, userId:string, data: any, accessTags:string[]): Promise<string | undefined>;
-    deleteDocument(tenant: string, collection:string, documentId:string): Promise<boolean>;
-    updateDocument(tenant: string, collection:string, documentId:string, userId : string | undefined, data: any, expectedChangeNumber:number|undefined): Promise<boolean>;
+export interface AmberCollection<T>{ // the API to be used by the server side app
+    createDocument(tenant: string, userId:string | undefined, data: T): Promise<string | undefined>;
+    deleteDocument(tenant: string, userId:string | undefined, documentId:string): Promise<boolean>;
+    updateDocument(tenant: string, documentId:string, userId : string | undefined, data: T, expectedChangeNumber:number|undefined): Promise<boolean>;
+    updateDocumentWithCallback(tenant: string,  documentId:string, userId : string | undefined, change : (oldDoc:T)=>T | null): Promise<boolean>;
+    allDocuments(tenant: string, callback?:(id:string, data:T)=>Promise<void>): Promise<void>;
+}
+
+export interface AmberCollections{
+    getCollection<T>(collection: string): AmberCollection<T> | undefined;
 }
 
 export class CollectionsService implements AmberConnectionMessageHandler, AmberCollections, StatsProvider{
@@ -68,6 +74,54 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         this.repo = repo;
         this.collectionSettings = collections;
         this.connectionManager = connectionManager;
+    }
+
+    getCollection<T>(collection: string): AmberCollection<T> | undefined {
+        let collectionSettings = this.collectionSettings.get(collection);
+        if (!collectionSettings) {
+            return undefined; // collection not found
+        }
+        return {
+            createDocument: (tenant: string, userId:string | undefined, data: T) => this.createDocument(tenant, collection, userId, data),
+            deleteDocument: (tenant: string, userId : string | undefined , documentId:string) => this.deleteDocument(tenant, collection, userId, documentId),
+            updateDocument: (tenant: string, documentId:string, userId : string | undefined, data: T, expectedChangeNumber:number|undefined) => this.updateDocument(tenant, collection, documentId, userId, data, expectedChangeNumber),
+            updateDocumentWithCallback: (tenant: string, documentId:string, userId : string | undefined, change : (oldDoc:T)=>T | null) => this.updateDocumentWithCallback(tenant, collection, documentId, userId, change),
+            allDocuments: (tenant: string, callback?:(id:string, data:T)=>Promise<void>) => this.allDocuments(tenant, collection, callback)
+        };
+    }
+
+    async updateDocumentWithCallback(tenant: string, collection: string, documentId: string, userId: string | undefined, change: (oldDoc: any) => any | null): Promise<boolean> {
+        let collectionSettings = this.collectionSettings.get(collection);
+        if (!collectionSettings)
+        {
+            return false; // collection not found
+        }
+
+        let oldDocument = await this.repo.getDocument(tenant, collection, documentId);
+        if (!oldDocument) {
+            return false; // document not found
+        }
+
+        let newData = change(JSON.parse(oldDocument.data));
+        if (newData === null) {
+            return true; // no change
+        }
+        
+        return await this.updateDocumentWithOld(tenant, collection, documentId, userId, newData, oldDocument);
+    }
+
+    allDocuments(tenant: string, collection: string, callback?: (id: string, data: any) => Promise<void>): Promise<void> {
+        let collectionSettings = this.collectionSettings.get(collection);
+        if (!collectionSettings)
+        {
+            return Promise.reject(new Error(`Collection ${collection} not found`));
+        }
+
+        return this.repo.streamAllDocuments(tenant, collection, 0, undefined, async (document) => {
+            if (callback) {
+                await callback(document.id, JSON.parse(document.data));
+            }
+        });
     }
 
     async stats(): Promise<Stats>
@@ -297,6 +351,15 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
                     });
                 }
             }
+            if (collectionSettings.onDocumentChange)
+            {
+                try{
+                await collectionSettings.onDocumentChange(tenant, userId, document.id, null, data, CollectionActionCreate, this);
+                }
+                catch (e) {
+                    console.error(`Error in onDocumentChange for collection ${collection}:`, e);
+                }
+            }
             return document.id;
         }
         else
@@ -326,7 +389,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             }
         }
 
-        var success = await this.deleteDocument(connection.tenant, message.collection, message.documentId);
+        var success = await this.deleteDocument(connection.tenant, message.collection, connection.userId, message.documentId);
 
         if (success) {
 
@@ -336,8 +399,17 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         }
     }
 
-    async deleteDocument( tenant: string, collection:string, documentId:string): Promise<boolean> {
+    async deleteDocument( tenant: string, collection:string, userId:string, documentId:string): Promise<boolean> {
         
+        let collectionSettings = this.collectionSettings.get(collection);
+        if (!collectionSettings)
+        {
+            return false; // collection not found
+        }
+
+        // if there is a on change handler, we need to get the document first
+        let oldDocument = await this.repo.getDocument(tenant, collection, documentId);
+
         let changeNumber = await this.repo.deleteDocument(tenant, collection, documentId);
 
         amberStats.trackMetric("col-del", 1, tenant);
@@ -358,6 +430,17 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
                 }
             }
         }
+
+        if (collectionSettings.onDocumentChange && oldDocument)
+        {
+            try{
+                await collectionSettings.onDocumentChange(tenant, userId, documentId , JSON.parse(oldDocument.data), null, CollectionActionDelete, this);
+            }
+            catch (e) {
+                console.error(`Error in onDocumentChange for collection ${collection}:`, e);
+            }
+        }
+
         return changeNumber > 0;
     }
 
@@ -478,12 +561,22 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
                         document: {
                             id: documentId,
                             change_number: changeNumber,
-                            change_user: connection.userId,
+                            change_user: userId,
                             change_time: new Date(),
                             data: data
                         }
                     });
                 }
+            }
+        }
+
+        if (collectionSettings.onDocumentChange)
+        {
+            try{
+                await collectionSettings.onDocumentChange(tenant, userId, documentId, JSON.parse(oldDoc.data), data, CollectionActionUpdate, this);
+            }
+            catch (e) {
+                console.error(`Error in onDocumentChange for collection ${collection}:`, e);
             }
         }
         return changeNumber > 0;
