@@ -77,6 +77,10 @@ export class AmberLoginManager {
     }
 
     public getUser() : Promise<UserDetails|null> {
+        if (this.user) {
+            return Promise.resolve(this.user);
+        }
+        
         return this.userPromise.promise;
     }
 

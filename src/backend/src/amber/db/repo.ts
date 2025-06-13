@@ -6,7 +6,9 @@ export interface UserWithCredential{id:string, email:string, name:string, creden
 export interface UserWithTenantsAndRoles{id:string, email:string, name:string, tenants:{[tenant:string]:string[]}};
 export interface UserWithRoles{id:string, email:string, name:string, roles:string[]};
 export interface Invitation{tenant:string, roles:string[], valid_until:Date, accepted?:Date, id:string};
-export interface Document{tenant:string, collection:string, id:string, change_number:number, change_user:string, change_time:Date, data:string | null, access_tags:string[]};
+export interface Document{tenant:string, collection:string, id:string, change_number:number, change_user:string, change_time:Date, data:string | null};
+export interface DocumentWithAccessTags extends Document{access_tags:string[] | null};
+
 export interface SyncAction{tenant:string, collection:string, id:string, change_number:number, change_time:Date, access_tags:string[] | null, new_access_tags:string[] | null, deleted:boolean};
 
 type MigrationScript = {lvl:number, sql?:string, migrate?:(conn:mariadb.PoolConnection)=>Promise<void>};
@@ -18,6 +20,7 @@ const migrationScripts:MigrationScript[] = [
     {lvl: 5, sql: "CREATE TABLE `documents` (`tenant` VARCHAR(255) NOT NULL,`collection` VARCHAR(50) NOT NULL,`id` VARCHAR(36) NOT NULL,`change_number` INT UNSIGNED NOT NULL DEFAULT '0',`change_user` VARCHAR(36) NULL,`change_time` DATETIME NOT NULL,`data` LONGTEXT NULL,`access_tags` VARCHAR(4096) NULL DEFAULT NULL,PRIMARY KEY (`id`),INDEX `tenant_collection` (`tenant`, `collection`),FULLTEXT INDEX `access_tags` (`access_tags`))"},
     {lvl: 6, sql: "CREATE TABLE `syncactions` (`tenant` VARCHAR(255) NOT NULL,`collection` VARCHAR(50) NOT NULL,`id` VARCHAR(36) NOT NULL,`change_number` INT(10) UNSIGNED NOT NULL DEFAULT '0',`change_time` DATETIME NOT NULL,`access_tags` VARCHAR(4096) NULL DEFAULT NULL,`new_access_tags` VARCHAR(4096) NULL DEFAULT NULL,`deleted` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,INDEX `tenant_collection` (`tenant`, `collection`,  `change_number`) USING BTREE,FULLTEXT INDEX `access_tags` (`access_tags`))"},
     {lvl: 7, sql: "INSERT IGNORE INTO `tenants` (`id`, `name`, `data`) VALUES ('*', 'Global', '')"}, // this is the global tenant as it is used to assign roles to users that are not tenant specific but global and inherited into the local tenants	
+    {lvl: 8, sql: "ALTER TABLE `documents`	ADD COLUMN `data_tags` VARCHAR(4096) NULL DEFAULT NULL AFTER `data`,ADD FULLTEXT INDEX `data_tags` (`data_tags`)"} // add data tags with a fulltext index
 ];
 
 /**
@@ -512,7 +515,7 @@ export class AmberRepo {
         return lastNumber;
     }
 
-    async getDocument(tenant:string, collection:string, id:string): Promise<Document | undefined> {
+    async getDocument(tenant:string, collection:string, id:string): Promise<DocumentWithAccessTags | undefined> {
         var conn = await this.pool.getConnection();
         try{
             var result = await conn.query<{tenant:string, collection:string, id:string, change_number:number, change_user:string, change_time:Date, data:string, access_tags:string}[]>("SELECT tenant, collection, id, change_number, change_user, change_time, data, access_tags FROM documents WHERE tenant = ? AND collection = ? AND id = ?", [tenant, collection, id]);
@@ -544,15 +547,15 @@ export class AmberRepo {
      * @param accessTags new access tags
      * @returns the new document id or undefined if the document could not be created
      */
-    async createDocument(tenant:string, collection:string, changeUser:string | undefined, data:string, accessTags:string[]): Promise<Document | undefined> {
+    async createDocument(tenant:string, collection:string, changeUser:string | undefined, data:string, accessTags:string[], dataTags:string[]): Promise<Document | undefined> {
         var conn = await this.pool.getConnection();
         var id = crypto.randomUUID();
         var changeTime = new Date();
         var changeNumber = await this.incrementLastChangeNumberFromCache(tenant, collection);
         try{
             await conn.query(
-                "INSERT INTO documents (tenant, collection, id, change_number, change_user, change_time, data, access_tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
-                [tenant, collection, id, changeNumber, changeUser || null, changeTime, data, arraySetToString(accessTags)]);
+                "INSERT INTO documents (tenant, collection, id, change_number, change_user, change_time, data, access_tags, data_tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+                [tenant, collection, id, changeNumber, changeUser || null, changeTime, data, arraySetToString(accessTags), arraySetToString(dataTags)]);
             return {
                 tenant: tenant,
                 collection: collection,
@@ -560,8 +563,7 @@ export class AmberRepo {
                 change_number: changeNumber,
                 change_user: changeUser,
                 change_time: changeTime,
-                data: data,
-                access_tags: accessTags
+                data: data
             };
         }
         finally{
@@ -580,7 +582,7 @@ export class AmberRepo {
      * @param oldDocument we need the old document anyway in the flow. So we use it for optimistic concurrency and to see if we need to add a sync action or not.
      * @returns The new changeNumber or 0 if no change was performed.
      */
-    async updateDocument(tenant:string, collection:string, id:string, changeUser:string | undefined, data:string, accessTags:string[], oldDoc : Document): Promise<number> {
+    async updateDocument(tenant:string, collection:string, id:string, changeUser:string | undefined, data:string, accessTags:string[], dataTags:string[], oldDoc : DocumentWithAccessTags): Promise<number> {
         if (data === undefined ){
             return 0; // nothing to do, and we just did that
         }
@@ -592,10 +594,11 @@ export class AmberRepo {
         
         try{
             var result = await conn.query(
-                `UPDATE documents SET data = ?, access_tags = ?, change_number = ?, change_user = ?, change_time = ? WHERE tenant = ? AND collection = ? AND id = ? AND change_number = ?;`, 
+                `UPDATE documents SET data = ?, access_tags = ?, data_tags = ?, change_number = ?, change_user = ?, change_time = ? WHERE tenant = ? AND collection = ? AND id = ? AND change_number = ?;`, 
                 [
                     data,
                     arraySetToString(accessTags) , 
+                    arraySetToString(dataTags),
                     changeNumber, changeUser ||null, changeTime, tenant, collection, id, 
                     oldDoc.change_number, 
                 ]
@@ -668,30 +671,6 @@ export class AmberRepo {
         }
     }
 
-    async getAllDocuments(tenant:string, collection:string, newerThanChangeNumber:number | undefined, withOneOfTheseAccessTags:string[] | undefined): Promise<Document[]> {
-        var conn = await this.pool.getConnection();
-        var accessTagFilter:string | undefined = undefined;
-        if (withOneOfTheseAccessTags !== undefined){
-            if (withOneOfTheseAccessTags.length === 0){
-                return []; // we cannot match anything with an empty access tag list
-            }
-            accessTagFilter = "AND (" + withOneOfTheseAccessTags.map((tag)=> `MATCH(access_tags) AGAINST(? IN BOOLEAN MODE)`).join(" OR ") + ")";
-        }
-        withOneOfTheseAccessTags !== undefined ? withOneOfTheseAccessTags.map((tag)=> `+${tag}`).join(" ") : undefined;
-        try{
-            var result = await conn.query<{tenant:string, collection:string, id:string, change_number:number, change_user:string, change_time:Date, data:string, access_tags:string}[]>
-                (`SELECT tenant, collection, id, change_number, change_user, change_time, data, access_tags FROM documents WHERE tenant = ? AND collection = ?${newerThanChangeNumber !== undefined ? " AND change_number > ?" : ""}${accessTagFilter !== undefined ? accessTagFilter : ""}`, 
-                [tenant, collection, 
-                    ...(newerThanChangeNumber !== undefined ? [newerThanChangeNumber] : []), 
-                    ...(withOneOfTheseAccessTags !== undefined ? withOneOfTheseAccessTags : [])
-                ]);
-            return result.map((doc)=> {return {tenant: doc.tenant, collection: doc.collection, id: doc.id, change_number: doc.change_number, change_user: doc.change_user, change_time: doc.change_time, data: doc.data, access_tags: doc.access_tags ? doc.access_tags.split(" ") : []};});
-        }
-        finally{
-            conn.end();
-        }
-    }
-
     /**
      * Stream the documents of a collection to the client. The documents are streamed in rows, so the client can process them as they arrive.
      * @param tenant tenant id
@@ -701,10 +680,11 @@ export class AmberRepo {
      * @param rowCallback callback for streaming the data. The callback is called for each row in the result set.
      * @returns A promise that is only resolved when the stream is finished. The promise will be rejected if an error occurs during streaming.
      */
-    async streamAllDocuments(tenant:string, collection:string, newerThanChangeNumber:number | undefined, withOneOfTheseAccessTags:string[] | undefined, rowCallback:(doc:Document)=>void): Promise<void> {
+    async streamAllDocuments(tenant:string, collection:string, newerThanChangeNumber:number | undefined, withOneOfTheseAccessTags:string[] | undefined,withAllOfTheseDataTags:string[] | undefined, rowCallback:(doc:Document)=>void): Promise<void> {
         
         var conn = await this.pool.getConnection();
         var accessTagFilter:string | undefined = undefined;
+        var dataTagFilter:string | undefined = undefined;
         if (withOneOfTheseAccessTags !== undefined){
             if (withOneOfTheseAccessTags.length === 0){
                 return; // we cannot match anything with an empty access tag list
@@ -712,19 +692,28 @@ export class AmberRepo {
             withOneOfTheseAccessTags = withOneOfTheseAccessTags.map((tag)=> `"${tag}"`);
             accessTagFilter = " AND (" + withOneOfTheseAccessTags.map((tag)=> `MATCH(access_tags) AGAINST(? IN BOOLEAN MODE)`).join(" OR ") + ")";
         }
+
+        if (withAllOfTheseDataTags !== undefined){
+            if (withAllOfTheseDataTags.length === 0){
+                return; // we cannot match anything with an empty data tag list
+            }
+            withAllOfTheseDataTags = withAllOfTheseDataTags.map((tag)=> `"${tag}"`);
+            dataTagFilter = " AND (" + withAllOfTheseDataTags.map((tag)=> `MATCH(data_tags) AGAINST(? IN BOOLEAN MODE)`).join(" AND ") + ")";
+        }
         
             var p = new Promise<void>((resolve, reject)=>{
                 try{
-                    var query = `SELECT tenant, collection, id, change_number, change_user, change_time, data, access_tags FROM documents WHERE tenant = ? AND collection = ?${newerThanChangeNumber !== undefined ? " AND change_number > ?" : ""}${accessTagFilter !== undefined ? accessTagFilter : ""}`;
+                    var query = `SELECT tenant, collection, id, change_number, change_user, change_time, data, access_tags FROM documents WHERE tenant = ? AND collection = ?${newerThanChangeNumber !== undefined ? " AND change_number > ?" : ""}${accessTagFilter !== undefined ? accessTagFilter : ""}${dataTagFilter !== undefined ? dataTagFilter : ""}`;
                     var params = [tenant, collection, 
                         ...(newerThanChangeNumber !== undefined ? [newerThanChangeNumber] : []), 
-                        ...(withOneOfTheseAccessTags !== undefined ? withOneOfTheseAccessTags : [])
+                        ...(withOneOfTheseAccessTags !== undefined ? withOneOfTheseAccessTags : []),
+                        ...(withAllOfTheseDataTags !== undefined ? withAllOfTheseDataTags : [])
                     ];
                     conn.queryStream(query, params)
                         .on("data", 
-                            (doc:{tenant:string, collection:string, id:string, change_number:number, change_user:string, change_time:Date, data:string | null, access_tags:string})=> 
+                            (doc:{tenant:string, collection:string, id:string, change_number:number, change_user:string, change_time:Date, data:string | null})=> 
                             {
-                                rowCallback({tenant: doc.tenant, collection: doc.collection, id: doc.id, change_number: doc.change_number, change_user: doc.change_user, change_time: doc.change_time, data: doc.data, access_tags: doc.access_tags ? doc.access_tags.split(" ") : []});
+                                rowCallback({tenant: doc.tenant, collection: doc.collection, id: doc.id, change_number: doc.change_number, change_user: doc.change_user, change_time: doc.change_time, data: doc.data});
                             }
                         )
                         .on("end", ()=> {

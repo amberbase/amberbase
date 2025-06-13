@@ -1,7 +1,7 @@
 import { AmberClientMessage, AmberCollectionClientMessage, AmberMetricName, AmberServerResponseMessage, CollectionClientWsMessage,  CreateDocument,  DeleteDocument,  ServerError, ServerSuccess, ServerSuccessWithDocument, ServerSyncDocument, SubscribeCollectionMessage, UnsubscribeCollectionMessage, UpdateDocument} from './../../../client/src/shared/dtos.js';
 import { SessionToken } from "./auth.js";
 import { Config } from "./config.js";
-import { AmberRepo, Document } from "./db/repo.js";
+import { AmberRepo, Document, DocumentWithAccessTags } from "./db/repo.js";
 import { SimpleWebsocket, WebsocketHandler } from "./websocket/websocket.js";
 import { ActiveConnection, AmberConnectionManager, AmberConnectionMessageHandler, errorResponse, sendToClient, successResponse, UserContext } from "./connection.js";
 import { amberStats, Stats, StatsProvider } from "./stats.js";
@@ -16,13 +16,6 @@ export type CollectionAccessAction =  "create" | "read" | "update" | "delete";
 interface DocumentContent{
     data: any;
     accessTags: string[];
-}
-
-function content(doc: Document): DocumentContent {
-    return {
-        data: JSON.parse(doc.data),
-        accessTags: doc.access_tags
-    };
 }
 
 function collectionItem(collection: string): string {
@@ -41,13 +34,40 @@ export interface CollectionSettings<T>{
      * @returns a set of tags. Only documents with one of these tags are accessible for the user.
      */
     accessTagsFromUser?: (user: UserContext)=>string[];
+
+    /**
+     * Calculate the access tags for the document. Only documents that have a common access tag with users are accessible if the this hook is configured.
+     * @param doc 
+     * @returns 
+     */
     accessTagsFromDocument?: (doc: T)=>string[];
+
+
+    /**
+     * Calculate a list of tags that are used to find documents in the collection in a more efficient way. 
+     * @description There can be up to 4096 character of tags in total, one character is used to delimit the tags. So try to keep the tags short. 
+     * A common way to use this is to use referenced document ids with a prefix (of maximum 2 characters). With those we consume 40 characters which means we have around 100 tags available per document.
+     * @param doc 
+     * @returns The list of data tags that can be used to find the documents for server side processing (e.g. for the onDocumentChange hook).
+     */
+    dataTagsFromDocument?: (doc: T)=>string[];
 
     /**
      * Validate the document before creating or updating it. This is executed server to ensure integrity.
      */
     validator?: (user: UserContext, oldDocument: T | null, newDocument: T | null, action: CollectionAccessAction) => boolean;
 
+    /**
+     * A callback that is called when a document is created, updated or deleted. This can be used to trigger additional actions cacading deletes or updating other documents that have a reference to this document.
+     * @param tenant The tenant the document belongs to
+     * @param userId The user that performed the action. Can be null if the action was performed by the system.
+     * @param docId The id of the document that was changed
+     * @param oldDocument Contains the old document data if it was updated or deleted. Null if the document was created.
+     * @param newDocument Contains the new document data if it was created or updated. Null if the document was deleted.
+     * @param action The action that was performed on the document. Can be "create", "update" or "delete".
+     * @param collections An instance of AmberCollections to access the collections to manipulate as the result of this change.
+     * @returns Awaitable, will return when all inner tasks are done.
+     */
     onDocumentChange?: (tenant:string, userId: string | null, docId:string, oldDocument: T | null, newDocument: T | null, action: CollectionAccessAction, collections : AmberCollections)=>Promise<void>;
 }
 
@@ -56,7 +76,8 @@ export interface AmberCollection<T>{ // the API to be used by the server side ap
     deleteDocument(tenant: string, userId:string | undefined, documentId:string): Promise<boolean>;
     updateDocument(tenant: string, documentId:string, userId : string | undefined, data: T, expectedChangeNumber:number|undefined): Promise<boolean>;
     updateDocumentWithCallback(tenant: string,  documentId:string, userId : string | undefined, change : (oldDoc:T)=>T | null): Promise<boolean>;
-    allDocuments(tenant: string, callback?:(id:string, data:T)=>Promise<void>): Promise<void>;
+    // allDocuments(tenant: string, callback?:(id:string, data:T)=>Promise<void>): Promise<void>; // we actually don't want to expose this to the server side app, because it is an expensive operation since it steams all documents into the servers process
+    allDocumentsByDataTags(tenant: string, tags: string[], callback?:(id:string, data:T)=>Promise<void>): Promise<void>; // Stream all documents that contain all the given tags as "data_tags" created by the dataTagsFromDocument setting of the collection.
 }
 
 export interface AmberCollections{
@@ -86,7 +107,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             deleteDocument: (tenant: string, userId : string | undefined , documentId:string) => this.deleteDocument(tenant, collection, userId, documentId),
             updateDocument: (tenant: string, documentId:string, userId : string | undefined, data: T, expectedChangeNumber:number|undefined) => this.updateDocument(tenant, collection, documentId, userId, data, expectedChangeNumber),
             updateDocumentWithCallback: (tenant: string, documentId:string, userId : string | undefined, change : (oldDoc:T)=>T | null) => this.updateDocumentWithCallback(tenant, collection, documentId, userId, change),
-            allDocuments: (tenant: string, callback?:(id:string, data:T)=>Promise<void>) => this.allDocuments(tenant, collection, callback)
+            allDocumentsByDataTags: (tenant: string, tags: string[], callback?:(id:string, data:T)=>Promise<void>) => this.allDocumentsByDataTags(tenant, collection, tags, callback)
         };
     }
 
@@ -110,14 +131,14 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         return await this.updateDocumentWithOld(tenant, collection, documentId, userId, newData, oldDocument);
     }
 
-    allDocuments(tenant: string, collection: string, callback?: (id: string, data: any) => Promise<void>): Promise<void> {
+    allDocumentsByDataTags(tenant: string, collection: string, tags: string[], callback?: (id: string, data: any) => Promise<void>): Promise<void> {
         let collectionSettings = this.collectionSettings.get(collection);
         if (!collectionSettings)
         {
             return Promise.reject(new Error(`Collection ${collection} not found`));
         }
 
-        return this.repo.streamAllDocuments(tenant, collection, 0, undefined, async (document) => {
+        return this.repo.streamAllDocuments(tenant, collection, 0, undefined, tags, async (document) => {
             if (callback) {
                 await callback(document.id, JSON.parse(document.data));
             }
@@ -204,13 +225,12 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         var accessTags = collectionSettings.accessTagsFromUser ? collectionSettings.accessTagsFromUser({userId: connection.userId, roles: connection.roles}) : undefined;
         connection.items.set(collectionItem(message.collection), message.start);
         let documentIdsSend = new Set<string>();
-        await this.repo.streamAllDocuments(connection.tenant, message.collection, message.start, accessTags, async (document) => {
+        await this.repo.streamAllDocuments(connection.tenant, message.collection, message.start, accessTags, undefined, async (document) => {
 
             let changeNumber = document.change_number;
             let changeUser = document.change_user;
             let changeTime = document.change_time;
             let data = document.data;
-            let accessTags = document.access_tags;
             
             if (data != null)
             {            
@@ -313,8 +333,9 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         }
 
         var accessTags = collectionSettings.accessTagsFromDocument ? collectionSettings.accessTagsFromDocument(data) : [];
+        var dataTags = collectionSettings.dataTagsFromDocument ? collectionSettings.dataTagsFromDocument(data) : [];
 
-        let document = await this.repo.createDocument(tenant, collection,userId, JSON.stringify(data), accessTags);
+        let document = await this.repo.createDocument(tenant, collection,userId, JSON.stringify(data), accessTags, dataTags);
         amberStats.trackMetric("col-crt", 1, tenant);
         if (document)
         {
@@ -500,7 +521,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
      * @param expectedChangeNumber 
      * @returns 
      */
-    private async updateDocumentWithOld( tenant: string, collection:string, documentId:string, userId : string | undefined, data: any| undefined, oldDoc :Document): Promise<boolean> {
+    private async updateDocumentWithOld( tenant: string, collection:string, documentId:string, userId : string | undefined, data: any| undefined, oldDoc :DocumentWithAccessTags): Promise<boolean> {
 
         let collectionSettings = this.collectionSettings.get(collection);
         if (!collectionSettings)
@@ -509,8 +530,9 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         }
 
         let accessTags = collectionSettings.accessTagsFromDocument ? collectionSettings.accessTagsFromDocument(data) : [];
+        let dataTags = collectionSettings.dataTagsFromDocument ? collectionSettings.dataTagsFromDocument(data) : [];
         let oldAccessTags = oldDoc.access_tags;
-        let changeNumber = await this.repo.updateDocument(tenant, collection, documentId,userId, data != undefined ? JSON.stringify(data) : undefined, accessTags, oldDoc);
+        let changeNumber = await this.repo.updateDocument(tenant, collection, documentId,userId, data != undefined ? JSON.stringify(data) : undefined, accessTags, dataTags, oldDoc);
         
         amberStats.trackMetric("col-upd", 1, tenant);
 
