@@ -39,7 +39,6 @@ if (props.invitation)
 {
   invitationFailure.value = "Loading invitation details";
 }
-var askedForLogin = false;
 tenant.value = props.tenant || "";
 
 var shouldShowRegisterUser = ()=>!!invitationDetails.value;
@@ -72,7 +71,6 @@ var amberInit = new AmberClientInit()
 )
   .withCredentialsProvider(
     (failed)=>{
-    askedForLogin = true;
     showLogin.value = true;
     loginFailed.value = failed; 
     return new Promise((resolve, reject)=>{
@@ -153,6 +151,7 @@ var amberInit = new AmberClientInit()
       }
       invitationDetails.value = details;
       invitationFailure.value = "";
+      tab.value = "register";
     }).catch((e)=>{
       invitationFailure.value = "Invitation not found";
     });
@@ -366,6 +365,9 @@ var amberInit = new AmberClientInit()
           </v-list-item>
         </v-list>
     </v-card-text>
+    <v-card-actions v-if="userDetails != null && userDetails.tenants['*']?.includes('admin')">
+      <v-btn href="globaladmin">Manage Tenants</v-btn>
+    </v-card-actions>
   </v-card>
 </template>
 

@@ -13,8 +13,7 @@ It should be a workable mix of the two tier architecture inspired by something l
 
 The leading frontend library that we want to guarantee a good interaction with is Vue.js 3 (derived from the SongDrive lead product).
 
-We do not plan (for now) to ship any UI, only libraries and APIs.
-> This might change for common admin tasks and user-self-service tasks.
+We wanto to limit the UI shipped to a set of common tasks. All of those are optional and opt-in since every more ambitious app build with Amberbase will most likely build all this UI targeted and customized to its needs.
 
 We want to use the simplicity and client compatibility of JSON as the storage (and DTO) data format.
 
@@ -30,45 +29,50 @@ The supported database should be MySql/MariaDB due to their support
 ## Glossary and Definitions
 
 * `Client` Client library executed in the browser
-* `Tenant` __(Proposal)__ A top-level labeling of all data to host multiple separate instances of the same application on one database. All operations are relative to a tenant and scope to a tenant. Example: SongDrive being hosted once but used by multiple churches.
+* `Tenant` A top-level labeling of all data to host multiple separate instances of the same application on one database. All operations are relative to a tenant and scope to a tenant. Example: SongDrive being hosted once but used by multiple churches.
+    * Some functionality is outside of the scope of a `tenant` (e.g. to create a `tenant`). This is called the `global` scope
 * `User` An identified user of the web application
-* `Role` A server defined set of permissions that can be given to a user
+* `Role` A server defined set of permissions that can be given to a user within a `tenant`
+    * There is a special role `admin` that gives build in functionality on the `global` scope or on a `tenant`
+    * The `global` scope can also be used to give `roles` to a user that are inherited into each tenant
 * `Invitation` A token that is not associated to a user yet, but can be used by a new or existing user to gain access to a tenant and to be associated with roles.
 * `Collection` equivalent of a table. It is identified by a name and can store multiple JSON `Documents`
 * `Document` A JSON object stored in the database in one collection, one tenant, and is identifiable via a unique id
 * `Subscription` A capability of the client library and proprietary server API to get all updates that fall under a certain `Subscription Scope`
 * `Client Cache` A copy of database objects present in the client. The goal is to synchronize this cache as soon as the client is connected to the server (again).
 * `Access Tag` A tag on a document that can be used to filter documents based on a users access rights or identity.
+* `Tag` a general purpose tag to optimize the search and processing of documents through indexing
+* `Channel` a means to communicate between apps running in browsers with each others (but always constraint to the tenant). The communication is not persisted
 
 ## Use Cases
 
-The use cases are determined by Firebases offering and SongDrives usage and future plans.
+The use cases are determined by Firebases offering and SongDrives usage but will grow beyond that.
 
 ### IAM
 
 A simple user management system where users can
 
 * Register themselves (with email and password)
-* __(Proposal)__ Request access to a `tenant`
 * Forward access to a `tenant` by `invitations` that can be redeemed by a user
-* Be associated to roles by admin users (i.e. via a server library API)
+* Provides `admin` access to `tenants` as well as `admin` access to the `global` plane to manage `users` and `roles`
+* Be associated to `roles` by admin users (i.e. via a server library API)
 * Login
-* Create a `subscription` to a `collection` only if the role allows that
+* Create a `subscription`, create, update or delete on a `collection` only if the role allows that
+* Control access to `channels` to certain users
 * Allow to store the login information to auto-login the next time (of course by using a signed token, not the real credentials)
 * Create a concept to limit documents to certain users (private for owner, sharing with users...)
+* Find more details regarding user and access management in the separate [document about this topic](user-management.md)
 
 ### Database Client Replication
 
 A client should be able to read data from collections that the logged-in user has access to.
 This will always be a full collection (scoped to the `tenant`).
-The client shall store the data in a way that it is available even when the server is down.
-> __(Question)__ We could use the localStorage and some PWA-magic to operate without initial server connection. Is that a requirement?
+The client shall store the data in a way that it is available even when the server is down. 
 
 ### Database Synchronization
 
-A client should add subscriptions to the server and the server should send updates to clients to keep the replica up to date. When a network outage occurred, the client should try to reconnect (e.g. in defined time intervals) and a catch-up mechanism should make sure that missing updates are replayed as soon as a connection is established again.
+A client can request subscriptions from the server and the server should send updates to clients to keep the replica up to date. When a network outage occurred, the client should try to reconnect (e.g. in defined time intervals) and a catch-up mechanism should make sure that missing updates are replayed as soon as a connection is established again, including deletions.
 
-Along with the actual data, the client must always serve meta information about the origin of the data. This enables the user to get to know, if data comes from the server (= truth) or from a local copy (= maybe truth).
 
 ### Standard Server-Side Write Operations
 
@@ -86,8 +90,6 @@ Write operations should be possible to be realized using standard fetch-API inte
 * Make authorization decisions based on the role
 * Invoke write operations to the database
 * Send synchronization messages to subscribed clients
-
-> __(Question)__ We could also implement that as callbacks on the websocket channel server side as an alternative.
 
 # Technical Architecture
 
@@ -108,16 +110,19 @@ flowchart LR;
 ```mermaid
 flowchart LR;
     subgraph Browser
-        inMem[(Replica)] <--> clientLib
-        clientLib[AmberClientLibrary]
-        
+        customFrontendApp[Custom Frontend App] <--> clientLib
+        inMem[(In Memory Replica)] <--> clientLib
+        clientLib[amber-client]
     end
     
     subgraph Node.Js Server
-    clientLib[AmberClientLibrary] <--> ws
-    ws[Websocket] --> AmberServerLibrary
+    customFrontendApp -- Custom API --> customBackendApp
+    clientLib[amber-client] <--> ws
+    ws[Websocket] --> AmberServerLibrary[amberbase]
     rest[HTTP API] --> AmberServerLibrary
     clientLib --> rest
+    AmberServerLibrary <--> customBackendApp[Custom Backend App] 
+    
     
     end
     subgraph Database MariaDB
@@ -132,20 +137,19 @@ flowchart LR;
 flowchart LR;
     subgraph Browser
         inMem[(In Memory Replica)] <--> clientLib
-        app[AppClient.js]-->clientLib[AmberClientLib.js]
+        app[AppClient.js]-->clientLib[amberbase-client]
         app --> inMem
     end
     
     subgraph Node.Js Server
         clientLib --> login[ /amber/login]    
         clientLib --> register[ /amber/register]
-        login --> userLib[AmberServerLib.user.js]
-        register --> userLib[AmberServerLib.user.js]
+        login --> userLib[amberbase auth]
+        register --> userLib
         clientLib<-.->ws[ /amber/websocket]
-        clientLib-->write[ /amber/write]
+        clientLib-- write -->ws
         app --> appApi[ /app/api]
-        appApi --> dataLib
-        write --> dataLib[AmberServerLib.data.js]
+        appApi --> dataLib[amberbase collections]
         ws -->|write, delete, update| dataLib 
         dataLib -->|sync| ws
     end
@@ -197,39 +201,6 @@ With that we can, for example, have the following access tags derived from a use
 * UserId `123` with roles `editor` and `batman` ➡️ derived `access tags`: [`user-123`,`sharedWith-123`, `public`, `onlyBatman`]
 * Document `{isPublic:false, forBatman:false, user:123, shared:[]}` ➡️ derived `access tags`: [`user-123`]  ➡️ overlapping tags, access granted
 * Document `{isPublic:true, forBatman:false, user:234, shared:[42,21]}` ➡️ derived `access tags`: [`shared-42`,`shared-42`, ] ➡️ overlapping tags, access granted
-
-## Database Structure
-
-### User Management
-
-#### Table `Users`
-
-* `name` string, visible name
-* `credential_hash` string, salted password hash "(salt):(SHA256)"
-* `email` string, unique
-* `id` uuid, stable unique id to potential allow e-mail change
-
-#### Table `Roles`
-
-* `user` uuid, foreign key to `Users.id`
-* `tenant` string, forms the primary key together with `user`
-* `roles` string, comma separated list of roles given to the user in this tenant
-
-#### Table `Tenants`
-
-* `id` string
-* `name` string, descriptive label
-* `data` string, JSON object of potential properties
-
-#### Table `Data`
-
-* `tenant` string, tenant id
-* `collection` string, collection name
-* `id` uuid, unique document id
-* `change_number` int, change counter stamp
-* `change_user` uuid, users id of the last modifying user
-* `change_time` datetime, last update time
-* `data` JSON, the payload
 
 ## Configuration
 

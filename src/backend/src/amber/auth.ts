@@ -11,8 +11,8 @@ export const allTenantsId = '*';
 export const sessionHeader = 'AmberSession';
 var loginBruteProtection = new BruteProtection();
 var changePasswordBruteProtection = new BruteProtection();
-export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise<AmberAuth>{
-    var authService = new AmberAuth(config, repo);
+export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise<AmberAuthService>{
+    var authService = new AmberAuthService(config, repo);
     await authService.init();
     
     // This is the endpoint for a login with credentials that will set a cookie with a user token
@@ -298,18 +298,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         res.send(nu<TenantWithRoles[]>(tenants));
     });
 
-     
-    function checkAdmin(req:Request, res: Response) : boolean {
-        var sessionToken = req.header(sessionHeader);
-        if (sessionToken) {
-            var session = authService.validateSessionToken(sessionToken);
-            if (session && session.roles.indexOf(tenantAdminRole) !== -1 && (session.tenant === req.params.tenant || session.tenant === allTenantsId) ) {
-                return true;
-            }
-        }
-        res.status(401).send(error("Not authorized"));
-        return false;
-    }
+   
 
     //get all users for a tenant (allowed for users of the tenant). Will contain global users as well
     app.get('/tenant/:tenant/users', async (req, res) => {
@@ -326,7 +315,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
 
     // admin functionality for tenant admin user management
     app.get('/tenant/:tenant/admin/users', async (req, res) => {
-        if (!checkAdmin(req, res)) return;
+        if (!authService.checkAdmin(req, res)) return;
         var users = await repo.getUsersWithRoles(req.params.tenant);
         var results : UserWithRolesDto[] = users.map(u => ({
             id: u.id,
@@ -350,27 +339,27 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
 
 
     app.delete('/tenant/:tenant/admin/user/:userid', async (req, res) => {
-        if (!checkAdmin(req, res)) return;
+        if (!authService.checkAdmin(req, res)) return;
         repo.storeUserRoles(req.params.userid, req.params.tenant, []);
         res.send(nu<ActionResult>({success:true}));
     });
 
     app.post('/tenant/:tenant/admin/user/:userid/roles', async (req, res) => {
-        if (!checkAdmin(req, res)) return;
+        if (!authService.checkAdmin(req, res)) return;
         var roles = req.body;
         repo.storeUserRoles(req.params.userid, req.params.tenant, roles);
         res.send(nu<ActionResult>({success:true}));
     });
 
     app.post('/tenant/:tenant/admin/invitation', async (req, res) => {
-        if (!checkAdmin(req, res)) return;
+        if (!authService.checkAdmin(req, res)) return;
         var request:CreateInvitationRequest = req.body;
         var invitation = await repo.storeInvitation(req.params.tenant, request.roles, new Date(Date.now() + 24 * 60 * 60_000 * request.expiresInDays));
         res.send(nu<string>(invitation));
     });
 
     app.post('/tenant/:tenant/admin/user/:userid/password', async (req, res) => {
-        if (!checkAdmin(req, res)) return;
+        if (!authService.checkAdmin(req, res)) return;
         var newPassword = req.body;
         var userId = req.params.userid;
         var user = await repo.getUserDetails(userId);
@@ -405,29 +394,111 @@ interface UserToken{
     expires: string;
 }
 
-export class AmberAuth{
+/**
+ * Server side interface for the AmberAuth service.
+ */
+export interface AmberAuth {
+    /**
+     * Utility function to get the session token from the request header.
+     * If the session token is not valid or expired, it will return undefined.
+     * @param req Request to handle
+     * @returns SessionToken or undefined if not valid
+     */
+    getSessionToken(req: Request): SessionToken | undefined;
+    
+    /**
+     * Utility function to check wether a user is logged in with a session and has the admin role for the given tenant retrieved from a path-parameter called "/:tenant" (or the global tenant).
+     * If the path does not contain a tenant, it will check for the global tenants admin role.
+     * The session token is expected to be in the header "AmberSession".
+     * @param req Request to handle
+     * @param res Response to potentially send the 401 to
+     * @returns Boolean if the use is an admin
+     */
+    checkAdmin(req: Request, res: Response, onlyAllowGlobal?: boolean): boolean;
+
+    /**
+     * Change the password of a user from the user him/herself
+     * @param id the id of the user to change the password for
+     * @param oldpassword the old password to validate
+     * @param newPassword the new password to set
+     * @returns true if the password was changed, false if the old password was incorrect or the user was not found
+     */
+    changeUserPassword(id:string, oldpassword :string, newPassword:string): Promise<boolean>;
+
+    /**
+     * change the user, potentially including the password, therefore take caution.
+     * @param id the id of the user to change
+     * @param newName the new name of the user, if undefined, the old name will be kept
+     * @param newEmail the new email of the user, if undefined, the old email will be kept
+     * @param newPassword the new password of the user, if undefined, the old password will be kept
+     * @returns true if the user was changed, false if the user was not found
+     *  */ 
+    changeUser(id:string, newName:string | undefined, newEmail?:string| undefined, newPassword?:string | undefined): Promise<boolean>;
+
+    /**
+     *  Create a new user with the given name, email and password.
+     * @param name User name (does not have to be unique)
+     * @param email Unique email of the user, used for login. We will use the lowercase version of the email for uniqueness.
+     * @param password Password for the user
+     * @returns The id of the created user or undefined if the user could not be created (e.g. email already exists)
+     */
+    createUser(name:string, email:string, password:string) : Promise<string | undefined>;
+
+    /**
+     * Add roles to a user in a tenant. If the user does not have the roles yet, they will be added.
+     * @param userId The id of the user to add the roles to
+     * @param tenant The tenant to add the roles to
+     * @param roles The roles to add to the user
+     * @return The id of the user
+     */
+    addRolesToUser(userId:string, tenant:string, roles:string[]): Promise<void>;
+
+    /**
+     * Add a user to a tenant with the given roles. If the user does not exist, it will be created.
+     * @param email The email of the user to add
+     * @param name The name of the user to add
+     * @param pw The password of the user to add
+     * @param tenant The tenant to add the user to
+     * @param roles The roles to add to the user in the tenant
+     */
+    addUserToTenant(email:string, name:string, pw:string, tenant:string, roles:string[]) : Promise<string>;
+}
+
+export class AmberAuthService implements AmberAuth {
+    /**
+     * @ignore
+     */
     config: Config;
+    /**
+     * @ignore
+     */
     repo: AmberRepo;
+    /**
+     * @ignore
+     */
     primarySecret: Buffer;
+    /**
+     * @ignore
+     */
     secondarySecret: Buffer;
 
+    /**
+     * @ignore
+     */
     constructor(config:Config, repo:AmberRepo){
         this.config = config;
         this.repo = repo;
     }
 
+    /**
+     * @ignore
+     */
     async init(){
         this.primarySecret = Buffer.from(await this.repo.getOrCreateSystemSetting("primary_secret", ()=> crypto.randomBytes(32).toString('hex')), 'hex');
         this.secondarySecret = Buffer.from(await this.repo.getOrCreateSystemSetting("secondary_secret", ()=> crypto.randomBytes(32).toString('hex')), 'hex');
     }
 
-    /**
-     * Utility function to check wether a user is logged in with a session and has the admin role for the given tenant (or the global tenant).
-     * If the path does not contain a tenant, it will check for the global tenants admin role.
-     * @param req Request to handle
-     * @param res Response to potentially send the 401 to
-     * @returns Boolean if the use is an admin
-     */
+    
     checkAdmin(req:Request, res: Response, onlyAllowGlobal?: boolean | undefined) : boolean {
         var tenantToCheck = onlyAllowGlobal? allTenantsId : (req.params.tenant || allTenantsId);
         var sessionToken = req.header('AmberSession');
@@ -441,19 +512,17 @@ export class AmberAuth{
         return false;
     }
 
-
     getSessionToken(req: Request): SessionToken | undefined {
         var sessionToken = req.header(sessionHeader);
         if (!sessionToken)
             return undefined;
-        var session = this.validateSessionToken(sessionToken);
-        if (!session)
-            return undefined;
-        if (session.expires && new Date(session.expires) < new Date())
-            return undefined;
-        return session;
+        return this.validateSessionToken(sessionToken);
     }
 
+    /**
+     * 
+     * @ignore
+     */
     // our session tokens are only used for internal communication, so we don't need to worry about JWT standards
     createSessionToken(userId: string, tenant : string, roles:string[], validityMinutes:number): string{
         var token = {
@@ -470,6 +539,11 @@ export class AmberAuth{
         return tokenPayload + "." + signature;
     }
 
+    /**
+     * Utility function to validate and retrive session token.
+     * @param token the session token to validate as a string
+     * @returns Validated SessionToken or undefined if the token is invalid or expired
+     */
     validateSessionToken(token: string | undefined): SessionToken | undefined{
         if (!token)
         {
@@ -498,6 +572,9 @@ export class AmberAuth{
         return t;
     }
 
+    /**
+     * @ignore
+     */
     createUserToken(userId: string, validityMinutes:number): string{
         var token = {
             userId: userId,
@@ -511,6 +588,11 @@ export class AmberAuth{
         return tokenPayload + "." + signature;
     }
 
+    /**
+     * Utility function to validate a user token.
+     * @param token the user token to validate as a string
+     * @returns The validated UserToken or undefined if the token is invalid or expired
+     */
     validateUserToken(token: string | undefined | null): UserToken | undefined{
         if (!token)
             return undefined;
@@ -537,6 +619,12 @@ export class AmberAuth{
         return t;
     }
 
+    /**
+     * Utility function to validate a user password.
+     * @param email the email of the user to validate
+     * @param password the password to validate
+     * @returns The User if the password is valid, otherwise undefined
+     */
     async validateUserPassword(email:string, password:string): Promise<User | undefined>{
         var user = await this.repo.getUserByEmail(email);
 
@@ -575,7 +663,14 @@ export class AmberAuth{
         });
     }
    
-    // change the user, potentially including the password, therefore take caution.
+    /**
+     * change the user, potentially including the password, therefore take caution.
+     * @param id the id of the user to change
+     * @param newName the new name of the user, if undefined, the old name will be kept
+     * @param newEmail the new email of the user, if undefined, the old email will be kept
+     * @param newPassword the new password of the user, if undefined, the old password will be kept
+     * @returns true if the user was changed, false if the user was not found
+     *  */ 
     async changeUser(id:string, newName:string | undefined, newEmail?:string| undefined, newPassword?:string | undefined): Promise<boolean>{
         var user = await this.repo.getUserById(id);
         if (!user)
@@ -591,6 +686,11 @@ export class AmberAuth{
         });
     }
 
+    /**
+     * Remove a user from a tenant, this will remove all roles for the user in the tenant
+     * @param id the id of the user to remove
+     * @param tenant the tenant to remove the user from
+     */
     async removeUserFromTenant(id:string, tenant:string): Promise<void>{
         var user = await this.repo.getUserById(id);
         if (!user)
@@ -601,7 +701,9 @@ export class AmberAuth{
         }
     }
 
-
+    /**
+     * @ignore
+     */
     createPasswordHash(password:string): string{
         var salt = crypto.randomBytes(16).toString('hex');
         var hashAlgo = crypto.createHash('sha256');
@@ -610,6 +712,7 @@ export class AmberAuth{
         return salt + "." + hash;
     }
 
+    
     async createUser(name:string, email:string, password:string) : Promise<string | undefined>{
         var id = crypto.randomUUID()
         if(await this.repo.storeUser({
@@ -625,7 +728,7 @@ export class AmberAuth{
     }
 
    
-
+    
     async addRolesToUser(userId:string, tenant:string, roles:string[]){
         var existingRoles = await this.repo.getUserRoles(userId, tenant);
         for (const role of roles) {
@@ -636,7 +739,8 @@ export class AmberAuth{
         await this.repo.storeUserRoles(userId, tenant, existingRoles);
     }
 
-    async addUserIfNotExists(email:string, name:string, pw:string, tenant:string, roles:string[]) : Promise<void>{
+    
+    async addUserToTenant(email:string, name:string, pw:string, tenant:string, roles:string[]) : Promise<string>{
         var user = await this.repo.getUserByEmail(email);
         var id : string | undefined;
         if (!user){
@@ -648,6 +752,7 @@ export class AmberAuth{
         if (id){
             await this.addRolesToUser(id, tenant, roles);
         }
+        return id;
     }
 }
 

@@ -34,6 +34,9 @@ export interface AmberChannels{
     publishMessage<T>(tenant:string, channel: string, subchannel: string | null, message: T): void;
 }
 
+/**
+ * @ignore
+ */
 export class ChannelService implements AmberConnectionMessageHandler, AmberChannels, StatsProvider{
 
     channels: Map<string, ChannelSettings<any>> = new Map();

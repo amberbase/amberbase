@@ -1,20 +1,42 @@
 import * as http from 'http'
 import * as WebSocket from 'ws'
-import { AmberAuth, SessionToken } from '../auth.js';
+import { AmberAuth, AmberAuthService, SessionToken } from '../auth.js';
 import { AmberSessionProtocolPrefix } from './../../../../client/src/shared/dtos.js'
 
+/**
+ * A simple websocket interface that allows to send and receive JSON messages. It is used to simplify the websocket handling in the amber server.
+ */
 export interface SimpleWebsocket{
+    /**
+     * Register a callback that is called when the websocket is closed. The callback is called with no arguments.
+     * @param callback Callback that is called when the websocket is closed.
+     */
     onClose(callback: ()=>void): void;
+
+    /**
+     * Register a callback that is called when a message is received. The callback is called with the parsed JSON message.
+     * @param callback Callback that is called when a message is received.
+     */
     onMessage(callback: (message: any)=>void): void;
+
+    /**
+     * Close the websocket connection.
+     */
     close():void;
+
+    /**
+     * Send a JSON message to the client. The message is automatically stringified.
+     * @param message The message to send.
+     */
     sendJson(message: any): void;
 }
 
 /**
  * Websocket handler to determine if a websocket request should be processed or not. It is called with the path and protocol of the request as well as a verified session token if it is provided. 
- * The protocol is the first protocol that does not start with AmberSessionProtocolPrefix shared with the amber client library. The session token is the session token encoded in the protocol header that is carrying the AmberSessionProtocolPrefix.
+ * The protocol is the first protocol that does not start with "ambersession.". The session token is the session token encoded in the protocol header that is carrying the AmberSessionProtocolPrefix.
  * Return a function to process the websocket request or undefined if the request should be ignored. Returning an error object interrupts the further search for an alternative handler. Do that if you feel responsible, but the peer contained some wrong data. 
  * The function will be called with a SimpleWebsocket instance that is used to send messages to the client and receive messages from the client.
+ * 
  */
 export type WebsocketHandler = ((path:string, protocol: string, sessionToken : SessionToken | null)=> (((socket: SimpleWebsocket)=>void) | undefined | {status:number, err:string}));
 
@@ -25,7 +47,7 @@ export type WebsocketHandler = ((path:string, protocol: string, sessionToken : S
  * @param pathPrefix 
  * @param authService 
  */
-export function simpleWebsockets(server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>, websocketHandlers: WebsocketHandler[], pathPrefix:string, authService:AmberAuth){
+export function simpleWebsockets(server: http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>, websocketHandlers: WebsocketHandler[], pathPrefix:string, authService:AmberAuthService){
     var wss = new WebSocket.WebSocketServer({ noServer: true });
     server.on('upgrade', (request, socket, head) => {
         console.log('Parsing session from websocket request');

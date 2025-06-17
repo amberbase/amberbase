@@ -14,6 +14,9 @@ export interface Config {
     ui?: AmberUiConfig
 };
 
+/**
+ * Optional configuration options for the Amberbase app.
+ */
 export interface ConfigOptionals {
     /**
      * Database name, defaults to "amber"

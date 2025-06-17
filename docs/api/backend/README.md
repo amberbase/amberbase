@@ -1,3 +1,7 @@
+**amberbase**
+
+***
+
 <p align="center">
   <img src="https://avatars.githubusercontent.com/u/208375923?s=64" alt="Amberbase logo showing an amber gemstone" />
   <h1 align="center">Amberbase</h1>
@@ -7,7 +11,7 @@ An Open Source Node.js backend for realtime applications. This entails a server-
 It is right now a beta version and only suitable for early adopters.
 
 ## Why?
-The purpose of amberbase is to offer a library that covers the needs of an applications that are right now based on something like Firebase without the lock-in effect. It offers a simple user management, realtime communication between application instances, data synchronization and more. Since it requires a backend, it offers the opportunity to implement richer use cases through server side code; for example a powerful multi-tiered access rights management. 
+The purpose of amberbase is to offer a library that covers the needs of a applications that are right now based on something like Firebase without the lock-in effect. It offers a simple user management, realtime communication between application instances, data synchronization and more. Since it requires a backend, it offers the opportunity to implement richer use cases through server side code; for example a powerful multi-tiered access rights management. 
 
 The main design goal is to offer the flexibility and independence from SaaS lock-ins with an even better development experience. That means that the two-tier development model (the client side javascript talks directly to the datastore) is kept as the leading principle. But now you have the power to guide and control your application through *optional* server side code.
 
@@ -109,9 +113,3 @@ amberClient.getCollectionsApi().getCollection<ToDoEntity>("todos")
         completed: false
     });
 ```
-
-# Learn
-To get to know and understand `amberbase` beyond the hello world example, you can go several routes
-* Read about the general [concepts](docs/concept.md) and dive into the available [documentation](docs/overview.md)
-* Try out or checkout the code of the `amberbase-example` that is [available under on Github](https://github.com/amberbase/amberbase-example)
-* Play around with the init API and explore the methods and types offered. Use Typescript to get the best support from your IDE

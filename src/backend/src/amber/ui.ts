@@ -34,7 +34,6 @@ export function enableUi(app: express.Express, config: Config, repo: AmberRepo, 
             uiContext.tenant = tenant;
             uiContext.tenantName = tenantFromRepo.name;
         }
-        
         renderIndex(req, res, uiContext);
     });
 

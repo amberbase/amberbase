@@ -54,6 +54,9 @@ function arraySetToString(a:string[] | undefined): string {
 }
 
 // this class is a singleton! That means that it can keep some state in a cache and reuse it between requests
+/**
+ * @internal
+ */
 export class AmberRepo {
     config: Config;
     pool: mariadb.Pool;
