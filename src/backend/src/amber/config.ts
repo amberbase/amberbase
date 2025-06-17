@@ -14,13 +14,38 @@ export interface Config {
     ui?: AmberUiConfig
 };
 
+/**
+ * Optional configuration options for the Amberbase app.
+ */
 export interface ConfigOptionals {
+    /**
+     * Database name, defaults to "amber"
+     */
     db_name?: string,
+    /**
+     * Database type, defaults to "mariadb"
+     */
     db_type?: string,
+    /**
+     * Database host, defaults to "localhost"
+     */
     db_host?: string,
+    /**
+     * Database port, defaults to 3306
+     */
     db_port?: number,
-    db_username?: string,
-    db_password?: string,
+    /**
+     * Database username
+     */
+    db_username: string,
+    /**
+     * Database password
+     */
+    db_password: string,
+    /**
+     * Invite only registration (no registration without an invite code), defaults to true
+     */
+    inviteOnly?: boolean,
 };
 
 export var defaultConfig = {

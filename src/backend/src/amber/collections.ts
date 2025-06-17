@@ -1,29 +1,17 @@
 import { AmberClientMessage, AmberCollectionClientMessage, AmberMetricName, AmberServerResponseMessage, CollectionClientWsMessage,  CreateDocument,  DeleteDocument,  ServerError, ServerSuccess, ServerSuccessWithDocument, ServerSyncDocument, SubscribeCollectionMessage, UnsubscribeCollectionMessage, UpdateDocument} from './../../../client/src/shared/dtos.js';
 import { SessionToken } from "./auth.js";
 import { Config } from "./config.js";
-import { AmberRepo, Document } from "./db/repo.js";
+import { AmberRepo, Document, DocumentWithAccessTags } from "./db/repo.js";
 import { SimpleWebsocket, WebsocketHandler } from "./websocket/websocket.js";
 import { ActiveConnection, AmberConnectionManager, AmberConnectionMessageHandler, errorResponse, sendToClient, successResponse, UserContext } from "./connection.js";
 import { amberStats, Stats, StatsProvider } from "./stats.js";
 
 export const CollectionActionCreate = "create";
-export const CollectionActionRead = "read";
+export const CollectionActionSubscribe = "subscribe";
 export const CollectionActionUpdate = "update";
 export const CollectionActionDelete = "delete";
-export type CollectionAccessAction =  "create" | "read" | "update" | "delete";
+export type CollectionAccessAction =  "create" | "subscribe" | "update" | "delete";
 
-
-interface DocumentContent{
-    data: any;
-    accessTags: string[];
-}
-
-function content(doc: Document): DocumentContent {
-    return {
-        data: JSON.parse(doc.data),
-        accessTags: doc.access_tags
-    };
-}
 
 function collectionItem(collection: string): string {
     return "collection." + collection;
@@ -34,29 +22,108 @@ export interface CollectionSettings<T>{
     /**
      * Either a map of roles with the actions they are allowed to perform or a function that takes the user context, the document and the action and returns true if the user is allowed to perform the action on the document.
      */
-    accessRights: {[role:string]:CollectionAccessAction[]} | ((user: UserContext, document: T | null, action:CollectionAccessAction)=>boolean);
+    accessRights?: {[role:string]:CollectionAccessAction[]} | ((user: UserContext, document: T | null, action:CollectionAccessAction)=>boolean);
     /**
      * Filter the accessible documents for the user. This is executed server side to limit the documents to the user.
      * @param user the user to filter the collection for
      * @returns a set of tags. Only documents with one of these tags are accessible for the user.
      */
     accessTagsFromUser?: (user: UserContext)=>string[];
-    accessTagsFromDocument?: (doc: T)=>string[];
 
     /**
-     * Validate the document before creating or updating it. This is executed server to ensure integrity.
+     * Calculate the access tags for the document. Only documents that have a common access tag with users are accessible if the this hook is configured.
+     * @param doc The document to calculate the access tags for.
+     * @returns The list of access tags that can be used to find the documents for server side processing (e.g. for the onDocumentChange hook).
+     */
+    accessTagsFromDocument?: (doc: T)=>string[];
+
+
+    /**
+     * Calculate a list of tags that are used to find documents in the collection in a more efficient way. 
+     * There can be up to 4096 character of tags in total, one character is used to delimit the tags. So try to keep the tags short. A common way to use this is to use referenced document ids with a prefix (of maximum 2 characters). With those we consume 40 characters which means we have around 100 tags available per document.
+     * @param doc The document to calculate the tags for.
+     * @returns The list of tags that can be used to find the documents for server side processing (e.g. for the onDocumentChange hook).
+     */
+    tagsFromDocument?: (doc: T)=>string[];
+
+    /**
+     * Validate the document before creating or updating it. This is executed on the server to ensure integrity.
      */
     validator?: (user: UserContext, oldDocument: T | null, newDocument: T | null, action: CollectionAccessAction) => boolean;
 
-    // todo: onDocumentChange (tenant:string, oldDocument: T | null, newDocument: T | null, action: AccessAction)=>Promise<void>;
+    /**
+     * A callback that is called when a document is created, updated or deleted. This can be used to trigger additional actions cacading deletes or updating other documents that have a reference to this document.
+     * @param tenant The tenant the document belongs to
+     * @param userId The user that performed the action. Can be null if the action was performed by the system.
+     * @param docId The id of the document that was changed
+     * @param oldDocument Contains the old document data if it was updated or deleted. Null if the document was created.
+     * @param newDocument Contains the new document data if it was created or updated. Null if the document was deleted.
+     * @param action The action that was performed on the document. Can be "create", "update" or "delete".
+     * @param collections An instance of AmberCollections to access the collections to manipulate as the result of this change.
+     * @returns Awaitable, will return when all inner tasks are done.
+     */
+    onDocumentChange?: (tenant:string, userId: string | null, docId:string, oldDocument: T | null, newDocument: T | null, action: CollectionAccessAction, collections : AmberCollections)=>Promise<void>;
 }
 
-export interface AmberCollections{ // the API to be used by the server side app
-    createDocument(tenant: string, collection:string, userId:string, data: any, accessTags:string[]): Promise<string | undefined>;
-    deleteDocument(tenant: string, collection:string, documentId:string): Promise<boolean>;
-    updateDocument(tenant: string, collection:string, documentId:string, userId : string | undefined, data: any, expectedChangeNumber:number|undefined): Promise<boolean>;
+/**
+ * The API to be used by the server side app to access and manipulate documents in a collection. You might wonder, why we cannot enumerate all documents in a collection, this is due to the expected cost (memory and database IO). Please use the allDocumentsByTags method to stream documents by tags. This is a more efficient way to access documents since it uses an index. 
+ */
+export interface AmberCollection<T>{ // the API to be used by the server side app
+    
+    /**
+     * Get a document by its id.
+     * @param tenant The tenant the document belongs to.
+     * @param documentId The id of the document to get.
+     */
+    getDocument(tenant: string, documentId:string): Promise< T | undefined>;
+    /**
+     * Create a new document in the collection.
+     * @returns The id of the created document or undefined if the creation failed.
+     * @param tenant The tenant the document belongs to.
+     * @param userId the user that is creating the document. Can be undefined if the document is created by the system.
+     * @param data The data of the document to create. This is the JSON object that will be stored in the collection.
+     */
+    createDocument(tenant: string, userId:string | undefined, data: T): Promise<string | undefined>;
+
+    /**
+     * Delete a document from the collection.
+     * @returns true if the document was deleted, false if the document was not found or the deletion failed.
+     * @param tenant The tenant the document belongs to.
+     * @param userId the user that is deleting the document. Can be undefined if the document is deleted by the system.
+     * @param documentId The id of the document to delete.
+     */
+    deleteDocument(tenant: string, userId:string | undefined, documentId:string): Promise<boolean>;
+
+    /**
+     * Update a document in the collection.
+     * @returns true if the document was updated, false if the document was not found or the update failed.
+     * @param tenant The tenant the document belongs to.
+     * @param documentId The id of the document to update.
+     * @param userId the user that is updating the document. Can be undefined if the document is updated by the system.
+     * @param data The new data of the document. This is the JSON object that will be stored in the collection.
+     * @param expectedChangeNumber The expected change number of the document. If this is presented and does not match, the update will fail with a change number mismatch error.
+     */
+    updateDocument(tenant: string, documentId:string, userId : string | undefined, data: T, expectedChangeNumber:number|undefined): Promise<boolean>;
+
+    /**
+     * 
+     * @param tenant 
+     * @param documentId 
+     * @param userId 
+     * @param change 
+     */
+    updateDocumentWithCallback(tenant: string,  documentId:string, userId : string | undefined, change : (oldDoc:T)=>T | null): Promise<boolean>;
+    // allDocuments(tenant: string, callback?:(id:string, data:T)=>Promise<void>): Promise<void>; // we actually don't want to expose this to the server side app, because it is an expensive operation since it steams all documents into the servers process
+    allDocumentsByTags(tenant: string, tags: string[], callback?:(id:string, data:T)=>Promise<void>): Promise<void>; // Stream all documents that contain all the given tags as "data_tags" created by the dataTagsFromDocument setting of the collection.
 }
 
+export interface AmberCollections{
+    getCollection<T>(collection: string): AmberCollection<T> | undefined;
+}
+
+/**
+ * @ignore
+ */
 export class CollectionsService implements AmberConnectionMessageHandler, AmberCollections, StatsProvider{
     config: Config;
     repo: AmberRepo;
@@ -68,6 +135,52 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         this.repo = repo;
         this.collectionSettings = collections;
         this.connectionManager = connectionManager;
+    }
+
+    getCollection<T>(collection: string): AmberCollection<T> | undefined {
+        let collectionSettings = this.collectionSettings.get(collection);
+        if (!collectionSettings) {
+            return undefined; // collection not found
+        }
+        return {
+            createDocument: (tenant: string, userId:string | undefined, data: T) => this.createDocument(tenant, collection, collectionSettings, userId, data),
+            deleteDocument: (tenant: string, userId : string | undefined , documentId:string) => this.deleteDocument(tenant, collection, collectionSettings, userId, documentId),
+            updateDocument: (tenant: string, documentId:string, userId : string | undefined, data: T, expectedChangeNumber:number|undefined) => this.updateDocument(tenant, collection, collectionSettings, documentId, userId, data, expectedChangeNumber),
+            updateDocumentWithCallback: (tenant: string, documentId:string, userId : string | undefined, change : (oldDoc:T)=>T | null) => this.updateDocumentWithCallback(tenant, collection, collectionSettings, documentId, userId, change),
+            allDocumentsByTags: (tenant: string, tags: string[], callback?:(id:string, data:T)=>Promise<void>) => this.allDocumentsByTags(tenant, collection, collectionSettings, tags, callback),
+            getDocument: (tenant: string, documentId:string) => this.getDocument(tenant, collection, collectionSettings, documentId)
+        };
+    }
+
+    async updateDocumentWithCallback(tenant: string, collection: string, collectionSettings : CollectionSettings<any>, documentId: string, userId: string | undefined, change: (oldDoc: any) => any | null): Promise<boolean> {
+        let oldDocument = await this.repo.getDocument(tenant, collection, documentId);
+        if (!oldDocument) {
+            return false; // document not found
+        }
+
+        let newData = change(JSON.parse(oldDocument.data));
+        if (newData === null) {
+            return true; // no change
+        }
+        
+        return await this.updateDocumentWithOld(tenant, collection,collectionSettings, documentId, userId, newData, oldDocument);
+    }
+
+    allDocumentsByTags(tenant: string, collection: string, collectionSettings : CollectionSettings<any>, tags: string[], callback?: (id: string, data: any) => Promise<void>): Promise<void> {
+
+        return this.repo.streamAllDocuments(tenant, collection, 0, undefined, tags, async (document) => {
+            if (callback) {
+                await callback(document.id, JSON.parse(document.data));
+            }
+        });
+    }
+
+    async getDocument(tenant: string, collection: string, collectionSettings : CollectionSettings<any>, documentId: string): Promise<any | undefined> {
+        var doc = await this.repo.getDocument(tenant, collection, documentId);
+        if (doc) {
+            return JSON.parse(doc.data);
+        }
+        return undefined; // document not found
     }
 
     async stats(): Promise<Stats>
@@ -132,7 +245,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         else if (typeof collectionSettings.accessRights === 'function') {
             return collectionSettings.accessRights(user, doc, action);
         }
-        return false;
+        return true; // no access rights defined, so we assume access is granted
     }
 
     private async handleSubscribe(connection:ActiveConnection, message:SubscribeCollectionMessage, collectionSettings:CollectionSettings<any>): Promise<AmberServerResponseMessage> {
@@ -142,7 +255,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             return errorResponse(message, `Already subscribed to the collection ${message.collection}`);
         }
 
-        if(!this.checkAccessRight(connection, collectionSettings, CollectionActionRead, null))
+        if(!this.checkAccessRight(connection, collectionSettings, CollectionActionSubscribe, null))
         {
             return errorResponse(message, `You don't have read access to the collection ${message.collection}`);
         }
@@ -150,13 +263,12 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         var accessTags = collectionSettings.accessTagsFromUser ? collectionSettings.accessTagsFromUser({userId: connection.userId, roles: connection.roles}) : undefined;
         connection.items.set(collectionItem(message.collection), message.start);
         let documentIdsSend = new Set<string>();
-        await this.repo.streamAllDocuments(connection.tenant, message.collection, message.start, accessTags, async (document) => {
+        await this.repo.streamAllDocuments(connection.tenant, message.collection, message.start, accessTags, undefined, async (document) => {
 
             let changeNumber = document.change_number;
             let changeUser = document.change_user;
             let changeTime = document.change_time;
             let data = document.data;
-            let accessTags = document.access_tags;
             
             if (data != null)
             {            
@@ -237,7 +349,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             }
         }
 
-        var documentId = await this.createDocument(connection.tenant, message.collection, connection.userId, message.content);
+        var documentId = await this.createDocument(connection.tenant, message.collection,collectionSettings, connection.userId, message.content);
         
         if (documentId) {
             var successMessage : ServerSuccessWithDocument =  {
@@ -251,16 +363,12 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         }
     }
 
-    async createDocument( tenant: string, collection:string, userId:string, data: any): Promise<string | undefined> {
-        let collectionSettings = this.collectionSettings.get(collection);
-        if (!collectionSettings)
-        {
-            return undefined; // collection not found
-        }
+    async createDocument( tenant: string, collection:string, collectionSettings : CollectionSettings<any>, userId:string, data: any): Promise<string | undefined> {
 
         var accessTags = collectionSettings.accessTagsFromDocument ? collectionSettings.accessTagsFromDocument(data) : [];
+        var dataTags = collectionSettings.tagsFromDocument ? collectionSettings.tagsFromDocument(data) : [];
 
-        let document = await this.repo.createDocument(tenant, collection,userId, JSON.stringify(data), accessTags);
+        let document = await this.repo.createDocument(tenant, collection,userId, JSON.stringify(data), accessTags, dataTags);
         amberStats.trackMetric("col-crt", 1, tenant);
         if (document)
         {
@@ -297,6 +405,15 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
                     });
                 }
             }
+            if (collectionSettings.onDocumentChange)
+            {
+                try{
+                await collectionSettings.onDocumentChange(tenant, userId, document.id, null, data, CollectionActionCreate, this);
+                }
+                catch (e) {
+                    console.error(`Error in onDocumentChange for collection ${collection}:`, e);
+                }
+            }
             return document.id;
         }
         else
@@ -326,7 +443,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             }
         }
 
-        var success = await this.deleteDocument(connection.tenant, message.collection, message.documentId);
+        var success = await this.deleteDocument(connection.tenant, message.collection, collectionSettings, connection.userId, message.documentId);
 
         if (success) {
 
@@ -336,8 +453,11 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         }
     }
 
-    async deleteDocument( tenant: string, collection:string, documentId:string): Promise<boolean> {
+    async deleteDocument( tenant: string, collection:string, collectionSettings : CollectionSettings<any>, userId:string, documentId:string): Promise<boolean> {
         
+        // if there is a on change handler, we need to get the document first
+        let oldDocument = await this.repo.getDocument(tenant, collection, documentId);
+
         let changeNumber = await this.repo.deleteDocument(tenant, collection, documentId);
 
         amberStats.trackMetric("col-del", 1, tenant);
@@ -358,6 +478,17 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
                 }
             }
         }
+
+        if (collectionSettings.onDocumentChange && oldDocument)
+        {
+            try{
+                await collectionSettings.onDocumentChange(tenant, userId, documentId , JSON.parse(oldDocument.data), null, CollectionActionDelete, this);
+            }
+            catch (e) {
+                console.error(`Error in onDocumentChange for collection ${collection}:`, e);
+            }
+        }
+
         return changeNumber > 0;
     }
 
@@ -386,7 +517,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             }
         }
 
-        var success = await this.updateDocumentWithOld(connection.tenant, message.collection, message.documentId, connection.userId, message.content, oldDocument);
+        var success = await this.updateDocumentWithOld(connection.tenant, message.collection, collectionSettings, message.documentId, connection.userId, message.content, oldDocument);
         if (success) {
             return successResponse(message);
         } else {
@@ -395,7 +526,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
     }
 
 
-    public async updateDocument( tenant: string, collection:string, documentId:string, userId : string | undefined, data: any, expectedChangeNumber:number | undefined): Promise<boolean> 
+    public async updateDocument( tenant: string, collection:string, collectionSettings : CollectionSettings<any>, documentId:string, userId : string | undefined, data: any, expectedChangeNumber:number | undefined): Promise<boolean> 
     {
         var oldDocument = await this.repo.getDocument(tenant, collection, documentId);
         if (!oldDocument) {
@@ -404,7 +535,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         if (expectedChangeNumber !== undefined && expectedChangeNumber !== oldDocument.change_number) {
             return false; // change number mismatch
         }
-        return await this.updateDocumentWithOld(tenant, collection, documentId, userId, data, oldDocument);    
+        return await this.updateDocumentWithOld(tenant, collection,collectionSettings, documentId, userId, data, oldDocument);    
     }
     /**
      * We need to know the old one to properly update
@@ -417,17 +548,12 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
      * @param expectedChangeNumber 
      * @returns 
      */
-    private async updateDocumentWithOld( tenant: string, collection:string, documentId:string, userId : string | undefined, data: any| undefined, oldDoc :Document): Promise<boolean> {
-
-        let collectionSettings = this.collectionSettings.get(collection);
-        if (!collectionSettings)
-        {
-            return false; // collection not found
-        }
+    private async updateDocumentWithOld( tenant: string, collection:string, collectionSettings : CollectionSettings<any>, documentId:string, userId : string | undefined, data: any| undefined, oldDoc :DocumentWithAccessTags): Promise<boolean> {
 
         let accessTags = collectionSettings.accessTagsFromDocument ? collectionSettings.accessTagsFromDocument(data) : [];
+        let dataTags = collectionSettings.tagsFromDocument ? collectionSettings.tagsFromDocument(data) : [];
         let oldAccessTags = oldDoc.access_tags;
-        let changeNumber = await this.repo.updateDocument(tenant, collection, documentId,userId, data != undefined ? JSON.stringify(data) : undefined, accessTags, oldDoc);
+        let changeNumber = await this.repo.updateDocument(tenant, collection, documentId,userId, data != undefined ? JSON.stringify(data) : undefined, accessTags, dataTags, oldDoc);
         
         amberStats.trackMetric("col-upd", 1, tenant);
 
@@ -478,12 +604,22 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
                         document: {
                             id: documentId,
                             change_number: changeNumber,
-                            change_user: connection.userId,
+                            change_user: userId,
                             change_time: new Date(),
                             data: data
                         }
                     });
                 }
+            }
+        }
+
+        if (collectionSettings.onDocumentChange)
+        {
+            try{
+                await collectionSettings.onDocumentChange(tenant, userId, documentId, JSON.parse(oldDoc.data), data, CollectionActionUpdate, this);
+            }
+            catch (e) {
+                console.error(`Error in onDocumentChange for collection ${collection}:`, e);
             }
         }
         return changeNumber > 0;

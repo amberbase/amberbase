@@ -18,7 +18,6 @@ import {AmberUiConfig} from '../../../shared/src/ui/model.js';
 
 /**
  * The startingpoint to initialize an amber application. It takes an express app and returns an AmberInit instance.
- * @param app the express app to wrap
  * @returns the fluent interface to configure the amber application
  */
 export function amber() : AmberInit{
@@ -31,10 +30,25 @@ export function amber() : AmberInit{
  * It wraps an Express app and provides methods to configure the amber specific details via a fluent interface and start the application.
  */
 export class AmberInit{
+    /**
+     * @ignore
+     */
     wsHandler : WebsocketHandler[]=[];
+    /**
+     * @ignore
+     */
     config: Config = defaultConfig;
+    /**
+     * @ignore
+     */
     collections: Map<string,CollectionSettings<any>> = new Map();
+    /**
+     * @ignore
+     */
     channels: Map<string,ChannelSettings<any>> = new Map();
+    /**
+     * @ignore
+     */
     constructor(){
     }
     
@@ -76,23 +90,32 @@ export class AmberInit{
 
     /**
      * Adds a collection to the amber application. This is a fluent interface, so it returns the AmberInit instance.
+     * @param T The type of the documents in the collection. Used to provide type safety in the API.
      * @param name The name of the collection to add.
-     * @param settings The settings for the collection. See CollectionSettings for more details.
+     * @param settings The settings for the collection. See @see CollectionSettings for more details. If not provided, the default settings will be used, which allow all actions for all users.
      * @returns The AmberInit instance for all that fluidity.
      */
-    withCollection<T>(name:string, settings:CollectionSettings<T> ): AmberInit{
+    withCollection<T>(name:string, settings?:CollectionSettings<T> ): AmberInit{
 
-        this.collections.set(name,settings);
+        this.collections.set(name, settings || {}); // default access rights are "true" for all actions
         return this;
     }
 
-    withChannel<T>(name:string, settings:ChannelSettings<T>): AmberInit{
-        this.channels.set(name,settings);
+    /**
+     * Adds a channel to the amber application. This is a fluent interface, so it returns the AmberInit instance.
+     * @param T The type of the data in the channel. Used to provide type safety in the API.
+     * @param name The name of the channel to add.
+     * @param settings The settings for the channel. See ChannelSettings for more details.
+     * @returns The AmberInit instance for all that fluidity.
+     */
+    withChannel<T>(name:string, settings?:ChannelSettings<T>): AmberInit{
+        this.channels.set(name,settings || {}); // default access rights are "true" for all actions
         return this;
     }
 
     /**
      * Enable the standard UI for common managment and user profile tasks.
+     * @param config The configuration for the UI. It can be a function that takes the @see AmberUiConfig and modifies it, or an @see AmberUiConfig object directly.
      */
     withUi(config? : ((c:AmberUiConfig)=>void) | AmberUiConfig| undefined): AmberInit{
         var c = structuredClone(defaultUiConfig);
@@ -112,7 +135,10 @@ export class AmberInit{
     }
     /**
      * Initiates and adds the amber application to a given or existing express app. It initializes the database, sets up the authentication and hooks on the websocket handling of the server.
-     * If a custom server is provided, it will be used, otherwise it will hook into the `listen` call of the express app. You can access the express app from the amber instance, or just launch it with Amber.listen()
+     * If a custom server is provided, it will be used, otherwise it will hook into the `listen` call of the express app or just launch it with Amber.listen()
+     * @param otherApp The express app to add the amber application to. If not provided, a new express app will be created. Due to the nature of express, you can use the same app for multiple amber instances BUT you must not install other middleware handlers that might interfere with amberbase BEFORE this call. Amberbase will only install middleware handlers that are limited to its own path prefix.
+     * @param server The http server to use. If not provided, a new http server will be created and the amber application will hook into the `listen` call of the express app.
+     * @returns A promise that resolves to the Amber instance representing the running state of Amberbase.
      */
     async create(otherApp? : express.Express | undefined, server? : http.Server<typeof http.IncomingMessage, typeof http.ServerResponse> ) : Promise<Amber> {
         
@@ -175,15 +201,37 @@ export class AmberInit{
 }
 
 /**
- * The amber application as it is running. It provides apis for the backend app
+ * The amber application as it is running. It provides apis for the backend app to use during runtime. Start it by calling `listen` in the same way as you would with an express app.
  */
 export class Amber{
+    /**
+     * The express app that is used to run the amber application. You can use it to add additional middleware or routes.
+     */
     express: express.Express;
+    /**
+     * @ignore
+     */
     config: Config;
+    /**
+     * @ignore
+     */
     repo: AmberRepo;
+    /**
+     * The authentication service for the amber application. It provides methods to manage users, roles and permissions.
+     */
     auth: AmberAuth;
+    /**
+     * The collections service for the amber application. It provides methods to access the collections and their documents.
+     */
     collections: AmberCollections;
+    /**
+     * The channels service for the amber application. It provides methods to access the channels.
+     */
     channels: AmberChannels;
+
+    /**
+     * @ignore
+     */
 
     constructor(app:express.Express, config: Config, repo: AmberRepo, auth : AmberAuth, collections: AmberCollections, channels: AmberChannels)
     {
@@ -193,6 +241,32 @@ export class Amber{
         this.auth = auth;
         this.collections = collections;
         this.channels = channels;
+    }
+
+
+    /**
+     * Bootstraps a tenant in the amber application. It will create the tenant if it does not exist, or update it if it does.
+     * @param tenantId tenantId (short name) of the tenant, e.g. "mytenant"
+     * @param tenantName descrtive name of the tenant, e.g. "My Tenant"
+     * @param tenantData some data to store with the tenant, e.g. {description: "This is my tenant", background: "blue"}. Application specific
+     */
+    async addOrUpdateTenant(tenantId:string, tenantName:string, tenantData:any) : Promise<void> {
+        if (!(await this.repo.createTenant(tenantId, tenantName, tenantData)))
+        {
+            await this.repo.updateTenant(tenantId, tenantName, tenantData);
+        }
+    }
+
+    /**
+     * Bootstraps a user in the amber application as the initial admin. It will create the user if it does not exist, or update its roles if it does. It will be added to the global
+     * tenant "*"
+     * @param email Email to be used to login
+     * @param name User name as a descriptive name for the user, e.g. "John Doe"
+     * @param pw An initial password for the user, please take it from a secure place
+     * @param roles Roles to be added additional to "admin" which is the build in role for the admin user.
+     */
+    async addAdminIfNotExists(email:string, name:string, pw:string, roles?:string[]) : Promise<string> {
+       return await this.auth.addUserToTenant(email, name, pw, "*", [...new Set(["admin", ...(roles||[])])]);   
     }
 
     /**

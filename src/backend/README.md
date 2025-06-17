@@ -24,7 +24,7 @@ Amberbase uses mariadb as the database layer and is meant to be hosted in nodejs
 
 If you want to use the library as an early adopter, install it using npm: `npm install amberbase` in your nodejs application.
 
-The configuration is done through some fluent builder in your start.js or app.js file that is the entry point to your application.
+The configuration is done through some fluent builder in your start.js, index.js or app.js file that is the entry point to your application.
 
 ```ts
 import {amber, CollectionAccessAction, UserContext}  from 'amberbase';

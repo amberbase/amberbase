@@ -3,11 +3,27 @@ import { AmberClient } from './client.js';
 import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest} from './shared/dtos.js'
 import { CompletablePromise, sleep } from './shared/helper.js';
 
+export interface UserInTenant {
+    /**
+     * The user details of the user
+     */
+    user:UserDetails, 
+    /**
+     * The tenant the user is in
+     */
+    tenant:string, 
+    /**
+     * The roles the user has in the tenant
+     */
+    roles:string[]
+}
+
 export class AmberLoginManager {
 
     onUserChanged: (user: UserDetails| null) => void = (user) => {};
     onRolesChanged: (tenant : string | null, roles: string[], user: UserDetails | null) => void = (tenant, roles) => {};
     userPromise: CompletablePromise<UserDetails|null> = new CompletablePromise<UserDetails|null>();
+    userInTenantPromise: CompletablePromise<UserInTenant|null> = new CompletablePromise<UserInTenant|null>();
     user: UserDetails | null = null;
     roles: string[] = [];
     resolveUser!: (user: UserDetails) => void;
@@ -66,6 +82,13 @@ export class AmberLoginManager {
         if (this.roles.length !== roles.length || this.roles.some((role, index) => roles.indexOf(role) === -1)) {
             this.roles = roles;
             this.onRolesChanged(this.tenant, roles, this.user);
+            if(this.tenant && this.tenant !=="*" && this.user && roles.length > 0) {
+                this.userInTenantPromise.set({
+                    user: this.user!,
+                    tenant: this.tenant!,
+                    roles: roles
+                });
+            }
         }
     }
     
@@ -77,7 +100,23 @@ export class AmberLoginManager {
     }
 
     public getUser() : Promise<UserDetails|null> {
+        if (this.user) {
+            return Promise.resolve(this.user);
+        }
+        
         return this.userPromise.promise;
+    }
+
+    public getUserInTenant() : Promise<UserInTenant|null> {
+        if (this.user && this.tenant && this.roles.length > 0) {
+            return Promise.resolve({
+                user: this.user,
+                tenant: this.tenant,
+                roles: this.roles
+            });
+        }
+        
+        return this.userInTenantPromise.promise;
     }
 
     async register(username: string, email: string, password: string, invitation: string) : Promise<void> {
@@ -110,9 +149,7 @@ export class AmberLoginManager {
         
         while(1)
         {
-            console.log("Checking if user is already logged in");
             while (!this.user) {
-                console.log("No he is not");
                 try {
                     if (!this.user)
                     {
@@ -122,10 +159,8 @@ export class AmberLoginManager {
                         
                         if (userFetched)
                         {
-                            console.log("Logged in now as " + userFetched.email);
                             if(this.tenant == null && this.tenantSelector)
                             {
-                                console.log("Selecting tenant");
                                 var tenants = await this.getAmberUserApi().getUserTenants();
                                 var tenantSelected = await this.tenantSelector(tenants);
                                 var roles = tenants.find(t => t.id === tenantSelected)?.roles ?? [];
@@ -133,32 +168,24 @@ export class AmberLoginManager {
                                 this.setRoles(roles);
                             }
                             await this.sessionToken();
-                            console.log("Got the session token now");
                         }
                         
                     }
                     else
                     {
-                        console.log("Is still logged in");
                     }
                 } catch (e) {
                     var loginSucces = false;
                     var loginCredentialsFailed = false;
                     while (!loginSucces) {
-                        console.log("Requesting login credentials");
                         var creds = await this.provider(loginCredentialsFailed);
-                        console.log("Trying login credentials");
                         loginSucces = await this.dologin(creds, creds.stayLoggedIn);
-                        console.log("Login seems to be " + loginSucces);
                         loginCredentialsFailed = true;
                     }
                 }
             }
-            console.log("Waiting for the user to change or logout");
             await this.userPromise.promise;
-            console.log("Let's see if we are still logged in");
             if (this.stop) {
-                console.log("Stopping login loop");
                 return;
             }
         }
