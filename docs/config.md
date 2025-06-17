@@ -20,7 +20,7 @@ var amberInit = amber()
 ```
 For more options and their meaning, please refer to their [documentation](api/backend/interfaces/ConfigOptionals.md).
 
-After these basics, you can add collections and channels as you need for the application you are building. Please check out their respective documentation for [collections](collections.md) and [channels](docs/channels.md).
+After these basics, you can add collections and channels as you need for the application you are building. Please check out their respective documentation for [collections](collections.md) and [channels](channels.md).
 To use the build-in UI, you can add some configuration to enable it.
 
 ```ts
