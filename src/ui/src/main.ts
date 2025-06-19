@@ -36,10 +36,36 @@ const vuetify = createVuetify({
   
   if (window.amberUiConfig) {
     state.uiConfig = window.amberUiConfig;
+    if (state.uiConfig.title)
+    {
+      document.title = state.uiConfig.title;
+    }
   }
 
   if (window.amberUiContext) {
     state.uiContext = window.amberUiContext;
-  }
 
+    switch (state.uiContext.view){
+      case 'tenant-admin':
+        document.title += " Admin";
+        break;
+      case 'global-admin':
+        document.title += " Global Admin";
+        break;
+      case 'user-profile':
+        document.title = " My Profile";
+        break;
+      case 'login':
+        document.title = " Login";
+        break;
+      case 'global-monitoring':
+      case 'tenant-monitoring':
+        document.title += " Monitoring";
+      case 'invited':
+        document.title += " Register";
+      default:
+        document.title = "";
+    }
+  }
+  
   createApp(AmberUi).use(vuetify).mount('#app')

@@ -63,6 +63,10 @@ var amberInit = new AmberClientInit()
     if (tenants.length == 1) return tenants[0].id;
     
     return await new Promise<string>((resolve, reject)=>{
+      if (props.skipTenantSelection)
+      {
+        return;
+      }
       tenantSelectorCallback = resolve;
       tenantsToChooseFrom.value = tenants;
       showTenantSelector.value = true;
@@ -253,18 +257,18 @@ var amberInit = new AmberClientInit()
     <v-card-text>
       <table>
         <tr>
-        <th>
+        <th style="width: 100px;">
           Name
         </th>
-        <td>
+        <td style="padding:10px">
           {{userDetails?.name}}
         </td>
       </tr>
       <tr>
-        <th>
+        <th style="width: 100px;">
           Email
         </th>
-        <td>
+        <td style="padding:10px">
           {{userDetails?.email}}
         </td>
       </tr>
