@@ -88,6 +88,10 @@ export function enableUi(app: express.Express, config: Config, repo: AmberRepo, 
         renderIndex(req, res, uiContext);
     });
 
+    app.get('/ui', async (req: express.Request, res: express.Response) => {
+        res.redirect('globaladmin');
+    });
+
     app.get('/ui/globalmonitoring', async (req: express.Request, res: express.Response) => {
         const uiContext: AmberUiContext = {
             view: "global-monitoring",
@@ -113,6 +117,8 @@ export function enableUi(app: express.Express, config: Config, repo: AmberRepo, 
         }
         renderIndex(req, res, uiContext);
     });
+
+    
 
     app.use("/ui", express.static(uiFolder, {index: false}));
 }

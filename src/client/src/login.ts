@@ -22,7 +22,7 @@ export class AmberLoginManager {
 
     onUserChanged: (user: UserDetails| null) => void = (user) => {};
     onRolesChanged: (tenant : string | null, roles: string[], user: UserDetails | null) => void = (tenant, roles) => {};
-    userPromise: CompletablePromise<UserDetails|null> = new CompletablePromise<UserDetails|null>();
+    userPromise: CompletablePromise<UserDetails> = new CompletablePromise<UserDetails>();
     userInTenantPromise: CompletablePromise<UserInTenant|null> = new CompletablePromise<UserInTenant|null>();
     user: UserDetails | null = null;
     roles: string[] = [];
@@ -94,12 +94,11 @@ export class AmberLoginManager {
     
     setUser(user: UserDetails| null) {
         this.user = user;
-        this.userPromise.set(user);
         this.onUserChanged(user);
         this.setRoles([]);
     }
 
-    public getUser() : Promise<UserDetails|null> {
+    public getUser() : Promise<UserDetails> {
         if (this.user) {
             return Promise.resolve(this.user);
         }

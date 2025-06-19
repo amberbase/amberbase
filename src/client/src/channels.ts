@@ -32,13 +32,16 @@ export interface AmberChannels{
     offConnectionChanged(callback:(connected:boolean) => void): void;
 
     /**
-     * Get the interface to work with a given collection
-     * @param collection 
+     * Get the interface to work with a given channel
+     * @param channel The name of the channel
+     * @param subchannel An optional subchannel (the serverside needs to enable subchannels for this to work) 
      */
     getChannel<T>(channel:string, subchannel?:string | undefined): AmberChannel<T>;
 }
 
-
+/**
+ * Interface for a channel in the Amber SDK. This is used to send and receive messages on a channel.
+ */
 export interface AmberChannel<T>{
     
     /**
@@ -61,7 +64,7 @@ export interface AmberChannel<T>{
 
 
 
-export class AmberChannelssClient implements ConnectionHandler, AmberChannels{
+export class AmberChannelsClient implements ConnectionHandler, AmberChannels{
     
     subscriptions: Map<string,{
         onMessage:(message:any) => void,

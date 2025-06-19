@@ -17,7 +17,7 @@ export interface Config {
 /**
  * Optional configuration options for the Amberbase app.
  */
-export interface ConfigOptionals {
+export interface ConfigOptions {
     /**
      * Database name, defaults to "amber"
      */
@@ -60,6 +60,25 @@ export var defaultConfig = {
     enableStatsApi: true,
     inviteOnly: true
 };
+
+export interface UiConfigOptions{
+    /**
+     * Available roles for the UI, defaults to an empty array
+     */
+    availableRoles?: string[],
+    /**
+     * Theme for the UI, defaults to "dark"
+     */
+    theme?: "dark" | "light",
+    /**
+     * Title for the UI, defaults to "Amberbase App"
+     */
+    title?: string,
+    /**
+     * URL to redirect to after login, if not set the UI will redirect to the home page. Replaces {tenant} with the selected tenant id.
+     */
+    loginTargetUrl?:string;
+}
 
 export var defaultUiConfig: AmberUiConfig = {
     availableRoles: [],

@@ -50,7 +50,6 @@ export interface AmberCollection<T>{
 
     /**
      * Unsubscribe from a collection. This will stop receiving messages for the collection.
-     * @param collection The collection to unsubscribe from
      */
     unsubscribe(): void;
 

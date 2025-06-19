@@ -19,7 +19,7 @@ On the client side, the counterpart to get the collection data is equally simple
 ```ts
 // client side code
  var client = amberClient().withPath("/amber").withAmberUiLogin().start(); // prepare client and start the login process
- var user = await client.getUserInTenant(); // wait until the user is logged in
+ var user = await client.userInTenant(); // wait until the user is logged in
  var collectionsApi = client.getCollectionsApi();
  var myDataCollection = collectionsApi.getCollection<MyEntity>("my-data");
  var myData: {entity:MyEntity, id:string}[] = [];

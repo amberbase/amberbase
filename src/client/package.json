@@ -2,15 +2,18 @@
   "name": "amber-client",
   "type": "module",
   "module": "dist/index.js",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "description": "The client library for an Amberbase app",
   "types": "dist/index.d.ts",
     "scripts": {
-     "build": "tsc"
+     "build": "tsc",
+     "docs": "npx typedoc index.ts --out ../../docs/api/frontend --plugin typedoc-plugin-markdown --excludeInternal --tsconfig tsconfig.json"
   },
   "author": "Christian Messinger, Andreas Müller",
   "license": "MIT",
   "devDependencies": {
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "typedoc": "^0.28.5",
+    "typedoc-plugin-markdown": "^4.6.4"
   }
 }
