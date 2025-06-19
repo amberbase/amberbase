@@ -3,6 +3,7 @@ import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, Ac
 
 /**
  * Internal class to wrap REST like api calls to the amber server for convenience
+ * @internal
  */
 class ApiClient {
     apiPrefix: string;
@@ -100,6 +101,9 @@ class ApiClient {
  * AmberAdminApi is the main class to access the admin functionality for a specific tenant. It is used to manage users and roles.
  */
 export class AmberAdminApi{
+    /**
+     * @internal
+     */
     apiClient: ApiClient;
 
     /**
@@ -148,14 +152,28 @@ export class AmberAdminApi{
         return await this.apiClient.fetchText("POST", '/tenant/:tenant/admin/invitation', request);
     }
 
+    /**
+     * Get metrics of the current tenant by minutes
+     * @return A list of metrics buckets with the metrics for the last hour. The buckets are grouped by minute.
+     */
     async getMetricsByMinutes() : Promise<AmberMetricsBucket[]> {
         return await this.apiClient.fetch<AmberMetricsBucket[]>("GET", '/tenant/:tenant/metrics/minute');
     }
 
+    /**
+     * Get metrics of the current tenant by hour
+     * @return A list of metrics buckets with the metrics for the last 60 hours. The buckets are grouped by hour.
+     */
     async getMetricsByHour() : Promise<AmberMetricsBucket[]> {
         return await this.apiClient.fetch<AmberMetricsBucket[]>("GET", '/tenant/:tenant/metrics/hour');
     }
 
+    /**
+     * change the password of a single tenant user. It can only be used for users that are ONLY registered in the current tenant. The admin of the tenant is considered the main admin for this user.
+     * @param userId The user id of the user to change the password for.
+     * @param newPassword The new password for the user. It will be hashed and stored in the database. It is not possible to recover the password from the hash.
+     * @returns Success result or error message
+     */
     async changePasswordOfSingleTenantUser(userId:string, newPassword:string) : Promise<ActionResult> {
         return await this.apiClient.fetch<ActionResult>("POST", '/tenant/:tenant/admin/user/' + userId + '/password',  newPassword);
     }
@@ -165,7 +183,13 @@ export class AmberAdminApi{
  * AmberGlobalAdminApi is the main class to access the global admin functionality. It is used to manage tenants and requires a user with a session for tenant `*` and `admin` role
  */
 export class AmberGlobalAdminApi{
+    /**
+     * @internal
+     */
     apiClient: ApiClient;
+    /**
+     * @internal
+     */
     constructor(prefix: string, tokenProvider: () => Promise<string>){
         this.apiClient = new ApiClient(prefix, "*", tokenProvider);
     }
@@ -207,10 +231,18 @@ export class AmberGlobalAdminApi{
         return await this.apiClient.fetch<ActionResult>("POST", '/tenant/' + tenantId, request);
     }
 
+    /**
+     * Get the metrics of the system. It will return the metrics for the last hour grouped by minute.
+     * @returns Buckets of metrics for the last hour. The buckets are grouped by minute.
+     */
     async getMetricsByMinutes() : Promise<AmberMetricsBucket[]> {
         return await this.apiClient.fetch<AmberMetricsBucket[]>("GET", '/metrics/minute');
     }
 
+    /**
+     * Get the metrics of the system. It will return the metrics for the last 60 hours grouped by hour.
+     * @returns Buckets of metrics for the last 60 hours. The buckets are grouped by hour.
+     */
     async getMetricsByHour() : Promise<AmberMetricsBucket[]> {
         return await this.apiClient.fetch<AmberMetricsBucket[]>("GET", '/metrics/hour');
     }
@@ -257,7 +289,13 @@ export class AmberGlobalAdminApi{
  * General purpose AmberApi for tenant specific calls that do not fit anywhere else ✌️
  */
 export class AmberApi{
+    /**
+     * @internal
+     */
     apiClient: ApiClient;
+    /**
+     * @internal
+     */
     constructor(prefix: string, tenant:string, tokenProvider: () => Promise<string>){
         this.apiClient = new ApiClient(prefix, tenant, tokenProvider);
     }
@@ -276,8 +314,17 @@ export class AmberApi{
  * Instead it uses the user cookie to identify the user
  */
 export class AmberUserApi{
+    /**
+     * @internal
+     */
     apiClient: ApiClient;
+    /**
+     * @internal
+     */
     loginManager: AmberLoginManager | null;
+    /**
+     * @internal
+     */
     constructor(prefix: string, loginManager: AmberLoginManager | null){
         this.apiClient = new ApiClient(prefix);
         this.loginManager = loginManager;

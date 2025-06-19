@@ -112,6 +112,6 @@ amberClient.getCollectionsApi().getCollection<ToDoEntity>("todos")
 
 # Learn
 To get to know and understand `amberbase` beyond the hello world example, you can go several routes
-* Read about the general [concepts](docs/concept.md) and dive into the available [documentation](docs/overview.md)
+* Read about the general [concepts](docs/concept.md) and dive into the available [documentation](docs/overview.md).
 * Try out or checkout the code of the `amberbase-example` that is [available under on Github](https://github.com/amberbase/amberbase-example)
 * Play around with the init API and explore the methods and types offered. Use Typescript to get the best support from your IDE
