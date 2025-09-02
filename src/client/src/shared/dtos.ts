@@ -345,6 +345,8 @@ export interface AmberServerResponseMessage extends AmberServerMessage{
     responseTo:number; 
 }
 
+export type ServerErrorCode = "bad-request" | "conflict" | "duplicate-id" | "unauthorized" | "validation-failed" | "not-found" | "internal-error" | "unknown-error";
+
 /**
  * Common error message
  */
@@ -353,7 +355,8 @@ export interface ServerError extends AmberServerResponseMessage{
     /**
      * Error code. This is a short string that identifies the error type. It should be used to identify the error in the client code.
      */
-    error:string;
+    errorCode?: ServerErrorCode;
+    error?: string;
 }
 
 /**
@@ -503,6 +506,11 @@ export interface CreateDocument extends AmberCollectionClientMessage{
      * Document content
      */
     content:any;
+
+    /**
+     * Optional document id. If not set, the server will create a new unique id. If the id is already in use, the server will respond with an error.
+     */
+    id?:string;
 }
 
 /**

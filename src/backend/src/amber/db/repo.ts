@@ -550,9 +550,9 @@ export class AmberRepo {
      * @param accessTags new access tags
      * @returns the new document id or undefined if the document could not be created
      */
-    async createDocument(tenant:string, collection:string, changeUser:string | undefined, data:string, accessTags:string[], tags:string[]): Promise<Document | undefined> {
+    async createDocument(tenant:string, collection:string, changeUser:string | undefined, data:string, accessTags:string[], tags:string[], documentId?:string): Promise<Document | undefined> {
         var conn = await this.pool.getConnection();
-        var id = crypto.randomUUID();
+        var id = documentId || crypto.randomUUID();
         var changeTime = new Date();
         var changeNumber = await this.incrementLastChangeNumberFromCache(tenant, collection);
         try{

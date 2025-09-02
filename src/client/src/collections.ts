@@ -38,6 +38,10 @@ export interface AmberCollections{
     getCollection<T>(collection:string): AmberCollection<T>;
 }
 
+/**
+ * Interface for a collection in the Amber SDK. This is used to create, update, delete and subscribe to documents in a collection.
+ * Methods might throw a @see ServerErrorResponse if the operation fails.
+ */
 export interface AmberCollection<T>{
     
     /**
@@ -169,9 +173,9 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
      * @returns the document id of the created document. If this call succeeds, the document will already be sent to the client as a sync.
      */
 
-    async createDoc<T>(collection:string, content:T) : Promise<string> 
+    async createDoc<T>(collection:string, content:T, documentId?:string) : Promise<string> 
     {
-        var response = await this.connection.sendAndReceive<CreateDocument, ServerSuccessWithDocument>({action:"create-doc", collection:collection, requestId:this.connection.incrementedRequestId(), content:content});
+        var response = await this.connection.sendAndReceive<CreateDocument, ServerSuccessWithDocument>({action:"create-doc", collection:collection, requestId:this.connection.incrementedRequestId(), content:content, id:documentId});
         return response.documentId;
     }
 

@@ -1,5 +1,9 @@
-import { AmberSessionProtocolPrefix, CollectionClientWsMessage, CollectionDocument, AmberServerMessage, SubscribeCollectionMessage, AmberServerResponseMessage, AmberCollectionClientMessage, ServerError, ServerSyncDocument, DeletedCollectionDocument, UnsubscribeCollectionMessage, ServerSuccessWithDocument, CreateDocument, UpdateDocument, ServerSuccess, DeleteDocument, AmberClientWsMessage } from "./shared/dtos.js";
+import { AmberSessionProtocolPrefix, CollectionClientWsMessage, CollectionDocument, AmberServerMessage, SubscribeCollectionMessage, AmberServerResponseMessage, AmberCollectionClientMessage, ServerError, ServerSyncDocument, DeletedCollectionDocument, UnsubscribeCollectionMessage, ServerSuccessWithDocument, CreateDocument, UpdateDocument, ServerSuccess, DeleteDocument, AmberClientWsMessage, ServerErrorCode, nu } from "./shared/dtos.js";
 
+export interface ServerErrorResponse {
+    error?: string;
+    errorCode: ServerErrorCode | "timeout";
+}
 
 export interface ConnectionHandler{
     handleConnectionChanged(connected:boolean): void;
@@ -69,8 +73,6 @@ export class AmberConnectionsClient {
             this.websocketPrefix = 'ws://';
         }
     }
-
-    
        
     send<T extends AmberClientWsMessage>(message:T) : boolean {
         if(this.ws != null && this.connected && this.ws.readyState === WebSocket.OPEN)
@@ -87,7 +89,7 @@ export class AmberConnectionsClient {
         setTimeout(() => {
             if(!received){
                 this.inflightRequests.delete(message.requestId);
-                reject(new Error("Timeout waiting for response"));
+                reject(nu<ServerErrorResponse>({ error:"Timeout waiting for response", errorCode:"timeout"}));
             }
         }, 5 * 1000);
 
@@ -95,7 +97,7 @@ export class AmberConnectionsClient {
             received = true;
             if(response.type === "error"){
                 var errorResponse = response as ServerError;
-                reject(new Error(errorResponse.error));
+                reject(nu<ServerErrorResponse>({ error:errorResponse.error, errorCode:errorResponse.errorCode || "unknown-error"}));
             } else {
                 resolve(response as R);
             };

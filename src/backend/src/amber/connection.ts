@@ -1,4 +1,4 @@
-import { AmberClientMessage, AmberServerMessage, AmberServerResponseMessage, ServerError, ServerSuccess } from './../../../client/src/shared/dtos.js';
+import { AmberClientMessage, AmberServerMessage, AmberServerResponseMessage, ServerError, ServerErrorCode, ServerSuccess } from './../../../client/src/shared/dtos.js';
 import { SessionToken } from "./auth.js";
 import { SimpleWebsocket, WebsocketHandler } from "./websocket/websocket.js";
 
@@ -20,10 +20,11 @@ export interface AmberConnectionMessageHandler{
     handleMessage(connection: ActiveConnection, message: AmberClientMessage): Promise<AmberServerResponseMessage | undefined>;
 }
 
-export function errorResponse(message: AmberClientMessage, error: string): ServerError {
+export function errorResponse(message: AmberClientMessage,code:ServerErrorCode,  error: string): ServerError {
     return {
         type: "error",
         error: error,
+        errorCode: code,
         responseTo: message.requestId
     };
 }
