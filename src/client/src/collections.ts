@@ -208,5 +208,4 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
     public async disconnect(): Promise<void> {
         await this.connection.disconnect();
     }
-
 }
