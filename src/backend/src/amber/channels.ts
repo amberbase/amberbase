@@ -78,26 +78,26 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
         var channelName = splitChannelName(channel);        
 
         if (channelName == null) {
-            return errorResponse(message, 'Channel name is required');
+            return errorResponse(message, 'bad-request', 'Channel name is required');
         }
 
         var channelSettings = this.channels.get(channelName.channel);
 
         if (!channelSettings) {
-            return errorResponse(message, `Channel ${channel} not found`);
+            return errorResponse(message, 'not-found', `Channel ${channel} not found`);
         }
         if (channelSettings.subchannels && !channelName.subchannel) {
-            return errorResponse(message, `Channel ${channel} requires a subchannel`);
+            return errorResponse(message, 'bad-request',`Channel ${channel} requires a subchannel`);
         }
 
         if (!channelSettings.subchannels && channelName.subchannel) {
-            return errorResponse(message, `Channel ${channel} does not support subchannels`);
+            return errorResponse(message, 'bad-request',`Channel ${channel} does not support subchannels`);
         }
 
         if (channelSettings.accessRights) {
             if (typeof channelSettings.accessRights == 'function') {
                 if (!channelSettings.accessRights(connection, channelName.channel, channelName.subchannel, 'subscribe')) {
-                    return errorResponse(message, `Access denied to channel ${channel}`);
+                    return errorResponse(message, 'unauthorized', `Access denied to channel ${channel}`);
                 }
             } else {
                 var settings = channelSettings;
@@ -105,7 +105,7 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
                 if (!connection.roles.some(role => rights[role]?.includes('subscribe')
                     
                 )) {
-                    return errorResponse(message, `Access denied to channel ${channel}`);
+                    return errorResponse(message, 'unauthorized',`Access denied to channel ${channel}`);
                 }
             }
         }
@@ -119,20 +119,20 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
         var channelName = splitChannelName(channel);        
 
         if (channelName == null) {
-            return errorResponse(message, 'Channel name is required');
+            return errorResponse(message, 'bad-request', 'Channel name is required');
         }
 
         var channelSettings = this.channels.get(channelName.channel);
 
         if (!channelSettings) {
-            return errorResponse(message, `Channel ${channel} not found`);
+            return errorResponse(message, 'not-found', `Channel ${channel} not found`);
         }
         if (channelSettings.subchannels && !channelName.subchannel) {
-            return errorResponse(message, `Channel ${channel} requires a subchannel`);
+            return errorResponse(message, 'bad-request', `Channel ${channel} requires a subchannel`);
         }
 
         if (!channelSettings.subchannels && channelName.subchannel) {
-            return errorResponse(message, `Channel ${channel} does not support subchannels`);
+            return errorResponse(message, 'bad-request', `Channel ${channel} does not support subchannels`);
         }
 
         connection.items.delete(`channel.${channel}`); // remove the subscription from the connection
@@ -142,15 +142,15 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
     async handleSendToChannel(connection: ActiveConnection, message: SendToChannelMessage): Promise<AmberServerResponseMessage> {
         var channelName = splitChannelName(message.channel);
         if (channelName == null) {
-            return errorResponse(message, 'Channel name is required');
+            return errorResponse(message, 'bad-request', 'Channel name is required');
         }
         var channelSettings = this.channels.get(channelName.channel);
         if (!channelSettings) {
-            return errorResponse(message, `Channel ${message.channel} not found`);
+            return errorResponse(message, 'bad-request', `Channel ${message.channel} not found`);
         }
         if (channelSettings.validator) {
             if (!channelSettings.validator(connection, channelName.channel, channelName.subchannel, message.message)) {
-                return errorResponse(message, `Invalid message for channel ${message.channel}`);
+                return errorResponse(message, 'validation-failed', `Invalid message for channel ${message.channel}`);
             }
         }
         this.publishMessage(connection.tenant, channelName.channel, channelName.subchannel, message.message);

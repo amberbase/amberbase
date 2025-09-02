@@ -11,7 +11,8 @@ export const CollectionActionSubscribe = "subscribe";
 export const CollectionActionUpdate = "update";
 export const CollectionActionDelete = "delete";
 export type CollectionAccessAction =  "create" | "subscribe" | "update" | "delete";
-
+export const CollectionErrorInvalidDocumentId = "invalid-document-id";
+export const CollectionErrorDuplicateDocumentId = "duplicate-document-id";
 
 function collectionItem(collection: string): string {
     return "collection." + collection;
@@ -78,12 +79,13 @@ export interface AmberCollection<T>{ // the API to be used by the server side ap
     getDocument(tenant: string, documentId:string): Promise< T | undefined>;
     /**
      * Create a new document in the collection.
-     * @returns The id of the created document or undefined if the creation failed.
+     * @returns The id of the created document or an indication of the error that occured.
      * @param tenant The tenant the document belongs to.
      * @param userId the user that is creating the document. Can be undefined if the document is created by the system.
      * @param data The data of the document to create. This is the JSON object that will be stored in the collection.
+     * @param documentId Optional document id containing case sensitive alpha-numerics with "-" and "_" of a max-length of 36 characters. If not provided a new one will be generated.
      */
-    createDocument(tenant: string, userId:string | undefined, data: T): Promise<string | undefined>;
+    createDocument(tenant: string, userId:string | undefined, data: T, documentId?:string): Promise<{id?:string, error?:"invalid-id" | "duplicate-id" | "internal-error"}>;
 
     /**
      * Delete a document from the collection.
@@ -106,13 +108,14 @@ export interface AmberCollection<T>{ // the API to be used by the server side ap
     updateDocument(tenant: string, documentId:string, userId : string | undefined, data: T, expectedChangeNumber:number|undefined): Promise<boolean>;
 
     /**
-     * 
-     * @param tenant 
-     * @param documentId 
-     * @param userId 
-     * @param change 
+     * Update a document in the collection using a callback that receives the old document and returns the new document. This is useful to implement read-modify-write operations.
+     * @param tenant  The tenant the document belongs to.
+     * @param documentId    The id of the document to update.
+     * @param userId the user that is updating the document. Can be undefined if the document is updated by the system.
+     * @param change A callback that receives the old document and returns the new document. If the callback returns null, the update will be cancelled.
      */
     updateDocumentWithCallback(tenant: string,  documentId:string, userId : string | undefined, change : (oldDoc:T)=>T | null): Promise<boolean>;
+    
     // allDocuments(tenant: string, callback?:(id:string, data:T)=>Promise<void>): Promise<void>; // we actually don't want to expose this to the server side app, because it is an expensive operation since it steams all documents into the servers process
     allDocumentsByTags(tenant: string, tags: string[], callback?:(id:string, data:T)=>Promise<void>): Promise<void>; // Stream all documents that contain all the given tags as "data_tags" created by the dataTagsFromDocument setting of the collection.
 }
@@ -129,7 +132,8 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
     repo: AmberRepo;
     collectionSettings: Map<string, CollectionSettings<any>>;
     connectionManager: AmberConnectionManager;
-    
+    validDocumentIdRegex = /^[a-zA-Z0-9_\-]{1,36}$/;
+
     constructor(config: Config, repo: AmberRepo, collections: Map<string, CollectionSettings<any>>, connectionManager: AmberConnectionManager) {
         this.config = config;
         this.repo = repo;
@@ -143,7 +147,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             return undefined; // collection not found
         }
         return {
-            createDocument: (tenant: string, userId:string | undefined, data: T) => this.createDocument(tenant, collection, collectionSettings, userId, data),
+            createDocument: (tenant: string, userId:string | undefined, data: T, documentId?:string) => this.createDocument(tenant, collection, collectionSettings, userId, data, documentId),
             deleteDocument: (tenant: string, userId : string | undefined , documentId:string) => this.deleteDocument(tenant, collection, collectionSettings, userId, documentId),
             updateDocument: (tenant: string, documentId:string, userId : string | undefined, data: T, expectedChangeNumber:number|undefined) => this.updateDocument(tenant, collection, collectionSettings, documentId, userId, data, expectedChangeNumber),
             updateDocumentWithCallback: (tenant: string, documentId:string, userId : string | undefined, change : (oldDoc:T)=>T | null) => this.updateDocumentWithCallback(tenant, collection, collectionSettings, documentId, userId, change),
@@ -203,7 +207,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         let collectionSettings = this.collectionSettings.get(collectionMessage.collection);
         if (!collectionSettings)
         {
-            return errorResponse(message, `Collection ${collectionMessage.collection} not found`);
+            return errorResponse(message, 'not-found', `Collection ${collectionMessage.collection} not found`);
         }
 
         if(message.action === "subscribe-collection")
@@ -252,12 +256,12 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         // check if the user has read access to the collection
         if (connection.items.has(collectionItem(message.collection)))
         {
-            return errorResponse(message, `Already subscribed to the collection ${message.collection}`);
+            return errorResponse(message, 'conflict', `Already subscribed to the collection ${message.collection}`);
         }
 
         if(!this.checkAccessRight(connection, collectionSettings, CollectionActionSubscribe, null))
         {
-            return errorResponse(message, `You don't have read access to the collection ${message.collection}`);
+            return errorResponse(message, 'unauthorized', `You don't have subscribe access to the collection ${message.collection}`);
         }
 
         var accessTags = collectionSettings.accessTagsFromUser ? collectionSettings.accessTagsFromUser({userId: connection.userId, roles: connection.roles}) : undefined;
@@ -329,7 +333,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
     private async handleUnsubscribe(connection:ActiveConnection, message:UnsubscribeCollectionMessage, collectionSettings:CollectionSettings<any>): Promise<AmberServerResponseMessage> {
         if (!connection.items.has(collectionItem(message.collection)))
         {
-            return errorResponse(message, `Not subscribed to the collection ${message.collection}`);
+            return errorResponse(message, 'conflict', `Not subscribed to the collection ${message.collection}`);
         }
         connection.items.delete(collectionItem(message.collection));
         return successResponse(message);
@@ -338,37 +342,54 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
     private async handleCreate(connection:ActiveConnection, message:CreateDocument, collectionSettings:CollectionSettings<any>): Promise<AmberServerResponseMessage> {
         if (!this.checkAccessRight(connection, collectionSettings, CollectionActionCreate, null))
         {
-            return errorResponse(message, `You don't have create access to the collection ${message.collection}`);
+            return errorResponse(message, 'unauthorized',`You don't have create access to the collection ${message.collection}`);
         }
 
         if (collectionSettings.validator)
         {
             if(!collectionSettings.validator(connection, null,  message.content, CollectionActionCreate))
             {
-                return errorResponse(message, `Document creation validation failed for the collection ${message.collection}`);
+                return errorResponse(message, 'validation-failed', `Document creation validation failed for the collection ${message.collection}`);
             }
         }
 
-        var documentId = await this.createDocument(connection.tenant, message.collection,collectionSettings, connection.userId, message.content);
+        var result = await this.createDocument(connection.tenant, message.collection,collectionSettings, connection.userId, message.content, message.id);
         
-        if (documentId) {
+        if (result.id) {
             var successMessage : ServerSuccessWithDocument =  {
                 type : "success-document",
                 responseTo: message.requestId,
-                documentId: documentId
+                documentId: result.id
             };
             return successMessage;
         } else {
-            return errorResponse(message, `Failed to create document in collection ${message.collection}`);
+            if (result.error === "invalid-id") {
+                return errorResponse(message, 'bad-request', `Invalid document id for the collection ${message.collection}`);
+            } else if (result.error === "duplicate-id") {
+                return errorResponse(message, 'duplicate-id', `Duplicate document id for the collection ${message.collection}`);
+            }
+            else
+                return errorResponse(message, 'internal-error', `Failed to create document in collection ${message.collection}`);
         }
     }
 
-    async createDocument( tenant: string, collection:string, collectionSettings : CollectionSettings<any>, userId:string, data: any): Promise<string | undefined> {
+    async createDocument( tenant: string, collection:string, collectionSettings : CollectionSettings<any>, userId:string, data: any, documentId?:string): Promise<{id?:string, error?:"invalid-id" | "duplicate-id" | "internal-error"}> {
 
+        if (documentId) {
+            // validate the document id
+            if (!this.validDocumentIdRegex.test(documentId)) {
+                return {error: "invalid-id"};
+            }
+            // check if the document already exists
+            let existingDoc = await this.repo.getDocument(tenant, collection, documentId);
+            if (existingDoc) {
+                return {error: "duplicate-id"}; // document already exists
+            }
+        }
         var accessTags = collectionSettings.accessTagsFromDocument ? collectionSettings.accessTagsFromDocument(data) : [];
         var dataTags = collectionSettings.tagsFromDocument ? collectionSettings.tagsFromDocument(data) : [];
 
-        let document = await this.repo.createDocument(tenant, collection,userId, JSON.stringify(data), accessTags, dataTags);
+        let document = await this.repo.createDocument(tenant, collection,userId, JSON.stringify(data), accessTags, dataTags, documentId);
         amberStats.trackMetric("col-crt", 1, tenant);
         if (document)
         {
@@ -414,11 +435,11 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
                     console.error(`Error in onDocumentChange for collection ${collection}:`, e);
                 }
             }
-            return document.id;
+            return {id:document.id};
         }
         else
         {
-            return undefined;
+            return {error: "internal-error"};
         }
     }
 
@@ -427,19 +448,19 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         let oldDocument = await this.repo.getDocument(connection.tenant, message.collection, message.documentId);
 
         if (!oldDocument) {
-            return errorResponse(message, `Document not found in collection ${message.collection}`);
+            return errorResponse(message, "not-found",`Document not found in collection ${message.collection}`);
         }
 
         if (!this.checkAccessRight(connection, collectionSettings, CollectionActionDelete, JSON.parse(oldDocument.data)))
         {
-            return errorResponse(message, `You don't have delete access to the collection ${message.collection}`);
+            return errorResponse(message, "unauthorized", `You don't have delete access to the collection ${message.collection}`);
         }
 
         if (collectionSettings.validator)
         {
             if(!collectionSettings.validator(connection, oldDocument.data, null, CollectionActionDelete))
             {
-                return errorResponse(message, `Document deletion validation failed for the collection ${message.collection}`);
+                return errorResponse(message, "validation-failed",`Document deletion validation failed for the collection ${message.collection}`);
             }
         }
 
@@ -449,7 +470,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
 
             return successResponse(message);
         } else {
-            return errorResponse(message, `Failed to delete document in collection ${message.collection}`);
+            return errorResponse(message, "internal-error",`Failed to delete document in collection ${message.collection}`);
         }
     }
 
@@ -496,24 +517,24 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         var oldDocument = await this.repo.getDocument(connection.tenant, message.collection, message.documentId);
 
         if (!oldDocument) {
-            return errorResponse(message, `Document not found in collection ${message.collection}`);
+            return errorResponse(message, 'not-found', `Document not found in collection ${message.collection}`);
         }
 
         // check if the document is already updated by another client
         if (message.expectedChangeNumber !== oldDocument.change_number) {
-            return errorResponse(message, `Document change number mismatch in collection ${message.collection}. Concurrent update?`);
+            return errorResponse(message, "conflict", `Document change number mismatch in collection ${message.collection}. Concurrent update?`);
         }
 
         if (!this.checkAccessRight(connection, collectionSettings, CollectionActionUpdate, JSON.parse(oldDocument.data)))
         {
-            return errorResponse(message, `You don't have update access to the collection ${message.collection}`);
+            return errorResponse(message, "unauthorized",`You don't have update access to the collection ${message.collection}`);
         }
 
         if (collectionSettings.validator)
         {
             if(!collectionSettings.validator(connection, oldDocument.data, message.content, CollectionActionUpdate))
             {
-                return errorResponse(message, `Document update validation failed for the collection ${message.collection}`);
+                return errorResponse(message, "validation-failed", `Document update validation failed for the collection ${message.collection}`);
             }
         }
 
@@ -521,7 +542,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         if (success) {
             return successResponse(message);
         } else {
-            return errorResponse(message, `Failed to update document in collection ${message.collection}`);
+            return errorResponse(message, "internal-error", `Failed to update document in collection ${message.collection}`);
         }
     }
 

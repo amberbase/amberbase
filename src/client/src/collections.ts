@@ -1,5 +1,5 @@
-import { AmberConnectionsClient, ConnectionHandler } from "./connection.js";
-import { AmberSessionProtocolPrefix, CollectionClientWsMessage, CollectionDocument, AmberServerMessage, SubscribeCollectionMessage, AmberServerResponseMessage, AmberCollectionClientMessage, ServerError, ServerSyncDocument, DeletedCollectionDocument, UnsubscribeCollectionMessage, ServerSuccessWithDocument, CreateDocument, UpdateDocument, ServerSuccess, DeleteDocument } from "./shared/dtos.js";
+import { AmberConnectionsClient, ConnectionHandler, ServerErrorResponse } from "./connection.js";
+import { AmberSessionProtocolPrefix, CollectionClientWsMessage, CollectionDocument, AmberServerMessage, SubscribeCollectionMessage, AmberServerResponseMessage, AmberCollectionClientMessage, ServerError, ServerSyncDocument, DeletedCollectionDocument, UnsubscribeCollectionMessage, ServerSuccessWithDocument, CreateDocument, UpdateDocument, ServerSuccess, DeleteDocument, nu } from "./shared/dtos.js";
 
 /**
  * SDK API for the amber collections
@@ -38,6 +38,10 @@ export interface AmberCollections{
     getCollection<T>(collection:string): AmberCollection<T>;
 }
 
+/**
+ * Interface for a collection in the Amber SDK. This is used to create, update, delete and subscribe to documents in a collection.
+ * Methods might throw a @see ServerErrorResponse if the operation fails.
+ */
 export interface AmberCollection<T>{
     
     /**
@@ -54,12 +58,13 @@ export interface AmberCollection<T>{
     unsubscribe(): void;
 
     /**
-     * Create a new document. This will create a new document in the collection and return the document id. 
-     * The document will be sent to the client as a sync message before the promise resolves succesfully, so the application can immediately navigate to it. 
-     * @param content The content of the document
-     * @returns The document id of the created document
+     * Create a new document
+     * @param content content of the document
+     * @param documentId Optional document id containing case sensitive alpha-numerics with "-" and "_" of a max-length of 36 characters. If not provided a new one will be generated. If it is povided and the id already exists, the call will fail with a ServerErrorResponse of errorCode "duplicate-id"
+     * @returns the document id of the created document. If this call succeeds, the document will already be sent to the client as a sync.
      */
-    createDoc(content:T): Promise<string>;
+
+    createDoc(content:T, documentId?:string): Promise<string>;
 
     /**
      * Update a document. This will update the document in the collection and return the document id. 
@@ -79,6 +84,41 @@ export interface AmberCollection<T>{
     deleteDoc(documentId:string): Promise<void>;
 }
 
+/**
+ * Helper to create a document with a hint for the document id. This will try to create a document with an id based on the hint. It will sanitize the hint to be a valid id and truncate it to 36 characters. If the id already exists, it will append a random number to the id and try again. It will try up to 10 times before it will rely on the server to create the ID.
+ * @param collection The collection to create the document in
+ * @param content The content of the document
+ * @param documentIdHint The hint for the document id
+ * @returns The document id of the created document
+ */
+export async function createDocWithDocumentIdHint<T>(collection:AmberCollection<T>, content:T, documentIdHint:string) : Promise<string>
+{
+    var hintAsId = documentIdHint.replace(/[^a-zA-Z0-9_\-]/g, '-').substring(0,36);
+    var creationId = hintAsId;
+    var attempts = 0;
+    var maxAttempts = 10;
+    while(attempts < maxAttempts)
+    {
+        attempts++;
+        try
+        {
+            var createdId = await collection.createDoc(content, creationId);
+            return createdId;
+        }catch(e)
+        {
+            var serverError = e as ServerErrorResponse;
+            if (serverError.errorCode == "duplicate-id")
+            {
+                var randomSuffix = Math.floor(Math.random() * 1000);
+                creationId = hintAsId.substring(0,32) + "-" + randomSuffix;
+                continue;
+            }
+            throw e;
+        }
+    }
+    return await collection.createDoc(content)
+}
+
 export class AmberCollectionsClient implements ConnectionHandler, AmberCollections{
     
     subscriptions: Map<string,{
@@ -96,7 +136,7 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
 
     getCollection<T>(collection: string): AmberCollection<T> {
         return {        
-            createDoc: (content:T) => this.createDoc<T>(collection, content),
+            createDoc: (content:T, documentId?:string) => this.createDoc<T>(collection, content, documentId),
             updateDoc: (documentId:string, changeNumber:number, content:T) => this.updateDoc<T>(collection, documentId, changeNumber, content),
             deleteDoc: (documentId:string) => this.deleteDoc(collection, documentId),
             subscribe: (lastReceivedChange:number, onDocument:(doc:CollectionDocument<T>) => void, onDocumentDelete:(docId:string) => void) => this.subscribe<T>(collection, lastReceivedChange, onDocument, onDocumentDelete),
@@ -162,16 +202,15 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
     }
 
     /**
-     * Create a new document
+     * Create a document.
      * @param collection The collection to create it into
      * @param content content of the document
-     * @param accessTags Access tags if necessary
+     * @param documentId Optional document id. If not provided a new one will be generated. If it is povided and the id already exists, the call will fail with a ServerErrorResponse of errorCode "duplicate-id"
      * @returns the document id of the created document. If this call succeeds, the document will already be sent to the client as a sync.
      */
-
-    async createDoc<T>(collection:string, content:T) : Promise<string> 
+    async createDoc<T>(collection:string, content:T, documentId?:string) : Promise<string> 
     {
-        var response = await this.connection.sendAndReceive<CreateDocument, ServerSuccessWithDocument>({action:"create-doc", collection:collection, requestId:this.connection.incrementedRequestId(), content:content});
+        var response = await this.connection.sendAndReceive<CreateDocument, ServerSuccessWithDocument>({action:"create-doc", collection:collection, requestId:this.connection.incrementedRequestId(), content:content, id:documentId});
         return response.documentId;
     }
 
@@ -204,5 +243,4 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
     public async disconnect(): Promise<void> {
         await this.connection.disconnect();
     }
-
 }
