@@ -79,11 +79,11 @@ export interface AmberCollection<T>{ // the API to be used by the server side ap
     getDocument(tenant: string, documentId:string): Promise< T | undefined>;
     /**
      * Create a new document in the collection.
-     * @returns The id of the created document or undefined if the creation failed.
+     * @returns The id of the created document or an indication of the error that occured.
      * @param tenant The tenant the document belongs to.
      * @param userId the user that is creating the document. Can be undefined if the document is created by the system.
      * @param data The data of the document to create. This is the JSON object that will be stored in the collection.
-     * @param documentId Optional document id, if not provided a new one will be generated.
+     * @param documentId Optional document id containing case sensitive alpha-numerics with "-" and "_" of a max-length of 36 characters. If not provided a new one will be generated.
      */
     createDocument(tenant: string, userId:string | undefined, data: T, documentId?:string): Promise<{id?:string, error?:"invalid-id" | "duplicate-id" | "internal-error"}>;
 
@@ -353,7 +353,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             }
         }
 
-        var result = await this.createDocument(connection.tenant, message.collection,collectionSettings, connection.userId, message.content);
+        var result = await this.createDocument(connection.tenant, message.collection,collectionSettings, connection.userId, message.content, message.id);
         
         if (result.id) {
             var successMessage : ServerSuccessWithDocument =  {
@@ -389,7 +389,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         var accessTags = collectionSettings.accessTagsFromDocument ? collectionSettings.accessTagsFromDocument(data) : [];
         var dataTags = collectionSettings.tagsFromDocument ? collectionSettings.tagsFromDocument(data) : [];
 
-        let document = await this.repo.createDocument(tenant, collection,userId, JSON.stringify(data), accessTags, dataTags);
+        let document = await this.repo.createDocument(tenant, collection,userId, JSON.stringify(data), accessTags, dataTags, documentId);
         amberStats.trackMetric("col-crt", 1, tenant);
         if (document)
         {
