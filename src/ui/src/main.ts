@@ -63,6 +63,9 @@ const vuetify = createVuetify({
         document.title += " Monitoring";
       case 'invited':
         document.title += " Register";
+      case 'reset-password':
+        document.title += " Reset Password";
+        break;
       default:
         document.title = "";
     }

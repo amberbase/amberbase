@@ -3,6 +3,7 @@ import {ref} from "vue"
 import {  AmberClient, AmberClientInit, type InvitationDetails, type UserDetails} from "amber-client"
 import AmberGlobalAdmin from "./AmberGlobalAdmin.vue";
 import type { VForm } from "vuetify/components";
+import { state } from "@/common";
 
 const emit = defineEmits<{
   (e: 'userInTenant', details: {client: AmberClient,userId:string, userName:string, userEmail:string, tenant:string,roles:string[]} | null): void,
@@ -12,15 +13,16 @@ const emit = defineEmits<{
 var props = defineProps<{
   tenant?:string,
   allowGlobalTenantSelection?:boolean,
-  skipTenantSelection?: boolean
-  invitation?:string 
+  skipTenantSelection?: boolean,
+  invitation?:string,
+  message?:string 
 }>();
 
 var tab = ref("login");
 var showLogin = ref(false);
 var showTenantSelector = ref(false);
 var loginFailed = ref(false);
-var userEmail = ref("");
+var userEmail = ref(state.uiContext.userEmail || "");
 var userPassword = ref("");
 var showPassword = ref(false);
 var showUserDetails = ref(false);
@@ -34,7 +36,7 @@ var amber = ref<AmberClient | undefined>(undefined);
 var invitationDetails = ref<InvitationDetails | null>(null);
 var invitationFailure = ref("");
 var registrationForm = ref<VForm|null>(null);
-
+var message= ref(props.message || "");
 if (props.invitation)
 {
   invitationFailure.value = "Loading invitation details";
@@ -302,7 +304,10 @@ var amberInit = new AmberClientInit()
     </v-tabs>
     <v-tabs-window v-model="tab">
     <v-tabs-window-item value="login">
-    <v-card-text><p v-if="tenant">Tenant {{ tenant }}</p></v-card-text>
+    <v-card-text>
+      <p v-if="tenant && !message">Tenant {{ tenant == '*' ? "GLOBAL" : tenant }}</p>
+      <p v-if="message">{{ message }}</p>
+    </v-card-text>
     <v-card-text><p v-if="loginFailed">Wrong email or password</p>
       <v-text-field v-model="userEmail" label="Email"></v-text-field>
       <v-text-field
@@ -311,7 +316,7 @@ var amberInit = new AmberClientInit()
             :type="showPassword ? 'text' : 'password'"
             name="amber-pw"
             @click:append="showPassword = !showPassword"
-            @keydown.enter.prevent="doLogin"
+            @keydown.enter.prevent="doLogin()"
             label="Password"
           ></v-text-field>
       <v-checkbox v-model="stayLoggedIn" label="Stay logged in"></v-checkbox>
@@ -343,7 +348,7 @@ var amberInit = new AmberClientInit()
             :type="showPassword ? 'text' : 'password'"
             name="amber-register-pw-confirm"
             @click:append="showPassword = !showPassword"
-            @keydown.enter.prevent="doRegister"
+            @keydown.enter.prevent="doRegister()"
             :rules="[validatePasswordConfirm]"
           ></v-text-field>
         </v-form>
