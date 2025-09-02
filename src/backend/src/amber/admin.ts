@@ -90,6 +90,19 @@ export function enableAdminApi(app:Express, config:Config, repo:AmberRepo, authS
         }
     });
 
+    // Update user details. The admin can change the user name, email and password.
+    app.post('/users/:id/passwordResetToken', async (req, res) => {
+        if (!authService.checkAdmin(req, res)) return;
+        var userId = req.params.id;
+
+        try {
+            var passwordResetToken = await authService.createPasswordResetToken(userId, 24*7);
+            res.send(nu<string>(passwordResetToken));
+        } catch (e) {
+            res.status(400).send(error(e.message));
+        }
+    });
+
     app.delete('/users/:id', async (req, res) => {
         if (!authService.checkAdmin(req, res, true)) return;
         var userId = req.params.id;

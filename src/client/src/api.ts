@@ -1,5 +1,5 @@
 import { AmberLoginManager } from './login.js';
-import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails, UserInfo, AmberMetricsBucket, ChangeUserPasswordRequest, CreateTenantRequest, ChangeUserProfileRequest, ChangeUserRequest} from './shared/dtos.js'
+import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails, UserInfo, AmberMetricsBucket, ChangeUserPasswordRequest, CreateTenantRequest, ChangeUserProfileRequest, ChangeUserRequest, ResetUserPasswordRequest} from './shared/dtos.js'
 
 /**
  * Internal class to wrap REST like api calls to the amber server for convenience
@@ -177,6 +177,16 @@ export class AmberAdminApi{
     async changePasswordOfSingleTenantUser(userId:string, newPassword:string) : Promise<ActionResult> {
         return await this.apiClient.fetch<ActionResult>("POST", '/tenant/:tenant/admin/user/' + userId + '/password',  newPassword);
     }
+
+    /**
+     * Get a passwordResetToken of a single tenant user. It can only be used for users that are ONLY registered in the current tenant. The admin of the tenant is considered the main admin for this user.
+     * The passwordResetToken can be used by the user to change his password using the AmberUserApi.changeUserPasswordWithToken method.
+     * @param userId The user id of the user to change the password for.
+     * @returns The password reset token that can be used to change the password.
+     */
+    async createPasswordResetTokenOfSingleTenantUser(userId:string) : Promise<string> {
+        return await this.apiClient.fetchText("POST", '/tenant/:tenant/admin/user/' + userId + '/passwordResetToken');
+    }
 }
 
 /**
@@ -282,6 +292,16 @@ export class AmberGlobalAdminApi{
      */
     async deleteUser(userId:string) : Promise<ActionResult> {
         return await this.apiClient.fetch<ActionResult>("DELETE", '/users/' + userId);
+    }
+
+    /**
+     * Create a password reset token for a user that can be used in a "forgot password" flow.
+     * The token can be used by the user to change his password using the AmberUserApi.changeUserPasswordWithToken method.
+     * @param userId The user id to create the token for
+     * @returns The password reset token that can be used to change the password.
+     */
+    async createPasswordResetToken(userId:string) : Promise<string> {
+        return await this.apiClient.fetchText("POST", '/users/' + userId + '/passwordResetToken');
     }
 }
 
@@ -394,6 +414,22 @@ export class AmberUserApi{
         }
         catch(e) {
             return nu<ActionResult>({success:false, error: "Unable to update user password"});
+        }
+    }
+
+    /**
+     * 
+     * @param resetToken The password reset token that was created using the AmberUserApi.createPasswordResetToken or AmberGlobalAdminApi.createPasswordResetToken method it is validated to see if it is expired or the password was already changed in the meantime
+     * @param newPassword 
+     * @returns 
+     */
+    async changePasswordWithToken(resetToken:string, newPassword:string) : Promise<boolean> {
+        try{
+            var result = await this.apiClient.fetch<ActionResult>("POST", '/user/passwordReset', nu<ResetUserPasswordRequest>({passwordResetToken: resetToken, newPassword}));
+            return result.success;
+        } 
+        catch(e) {
+            return false;
         }
     }
 

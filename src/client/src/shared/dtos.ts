@@ -130,6 +130,21 @@ export interface ChangeUserPasswordRequest{
     newPassword:string;
 }
 
+
+/**
+ * Request reset of a users password. The user must have received a password reset token to be allowed to do that.
+ */
+export interface ResetUserPasswordRequest{
+    /**
+     * Password reset token the user received (e.g. via email). It is only valid once (bound to the current password) and includes the userId.
+     */
+    passwordResetToken:string;
+    /**
+     * New password
+     */
+    newPassword:string;
+}
+
 /**
  * Request change a users profile details.
  */
