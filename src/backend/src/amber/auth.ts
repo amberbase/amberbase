@@ -1,7 +1,7 @@
 import { Express, Request, Response } from 'express';
 import {Config} from './config.js';
-import {AmberRepo, Invitation, User} from './db/repo.js';
-import {ActionResult, LoginRequest, nu, error, SessionToken as SessionTokenDto, RegisterRequest, AcceptInvitationRequest, UserDetails, CreateInvitationRequest, UserWithRoles as UserWithRolesDto, TenantWithRoles, InvitationDetails, UserInfo, ChangeUserPasswordRequest, ChangeUserProfileRequest} from './../../../client/src/shared/dtos.js';
+import {AmberRepo, Invitation, User, UserWithCredential} from './db/repo.js';
+import {ActionResult, LoginRequest, nu, error, SessionToken as SessionTokenDto, RegisterRequest, AcceptInvitationRequest, UserDetails, CreateInvitationRequest, UserWithRoles as UserWithRolesDto, TenantWithRoles, InvitationDetails, UserInfo, ChangeUserPasswordRequest, ChangeUserProfileRequest, ResetUserPasswordRequest} from './../../../client/src/shared/dtos.js';
 import * as crypto from 'node:crypto';
 import { sleep } from './../../../client/src/shared/helper.js';
 import { BruteProtection } from './helper.js';
@@ -241,6 +241,31 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
     });
 
     /**
+     * Change the password of a user from the user him/herself
+     */
+    app.post('/user/passwordReset', async (req, res) => {
+        var request: ResetUserPasswordRequest = req.body;
+        if (!request){
+            res.status(400).send(error("Missing password reset token"));
+            return;
+        }
+
+        if (!await changePasswordBruteProtection.check())
+        {
+            res.status(429).send(error("Too many parallel password changes"));
+            return;
+        }
+
+        if (await authService.changeUserPasswordWithResetToken(request.passwordResetToken, request.newPassword)){
+            res.send(nu<ActionResult>({success:true}));
+        }
+        else{
+            res.status(400).send(error("Missmatch the reset token is not valid (maybe expired or already used)"));
+            return;
+        }
+    });
+
+    /**
      * Update user details from the user him/herself
      */
     app.post('/user', async (req, res) => {
@@ -374,6 +399,23 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
             res.send(nu<ActionResult>({success:true}));
             return;
         }
+    });
+
+    app.post('/tenant/:tenant/admin/user/:userid/passwordResetToken', async (req, res) => {
+        if (!authService.checkAdmin(req, res)) return;
+        var userId = req.params.userid;
+        var user = await repo.getUserDetails(userId);
+        if (!user){
+            res.status(401).send(error("User not found"));
+            return;
+        }
+        if(user.tenants[req.params.tenant] && Object.keys(user.tenants).length === 1)
+        {
+            // this is the only tenant, so we can issue a password reset token
+            var passwordResetToken = await authService.createPasswordResetToken(userId, 24*7);
+            res.send(nu<string>(passwordResetToken));
+            return;
+        }
 
         res.status(401).send(error("User is not only member of this tenant"));
         return;
@@ -424,6 +466,27 @@ export interface AmberAuth {
      * @returns true if the password was changed, false if the old password was incorrect or the user was not found
      */
     changeUserPassword(id:string, oldpassword :string, newPassword:string): Promise<boolean>;
+
+    /**
+     * Change the password of a user from the user him/herself using a reset token (such as from a "forgot password" flow)
+     * @param id the id of the user to change the password for
+     * @param resetToken token to validate the password reset request
+     * @param newPassword the new password to set
+     * @returns true if the password was changed, false if the old password was incorrect or the user was not found
+     */
+    changeUserPasswordWithResetToken(resetToken :string, newPassword:string): Promise<boolean>;
+
+    /**
+     * Utility function to validate a password reset token.
+     * @param resetToken the password reset token to validate as a string
+     */
+    validatePasswordResetToken(resetToken: string): Promise<UserWithCredential | null>;
+
+    /**
+     * Create a password reset token for a user that can be used in a "forgot password" flow.
+     * @param userId the id of the user to create the token for
+     */
+    createPasswordResetToken(userId:string, validityHours:number): Promise<string>;
 
     /**
      * change the user, potentially including the password, therefore take caution.
@@ -640,6 +703,13 @@ export class AmberAuthService implements AmberAuth {
         return undefined;
     }
 
+    /**
+     * Change the password of a user from the user him/herself
+     * @param id the id of the user to change the password for
+     * @param oldpassword the old password to validate
+     * @param newPassword the new password to set
+     * @returns true if the password was changed, false if the old password was incorrect or the user was not found
+     */
     async changeUserPassword(id:string, oldpassword :string, newPassword:string): Promise<boolean>{
         var user = await this.repo.getUserById(id);
         if (!user)
@@ -663,6 +733,69 @@ export class AmberAuthService implements AmberAuth {
         });
     }
    
+    async createPasswordResetToken(userId:string, validityHours:number): Promise<string>{
+        var user = await this.repo.getUserById(userId); 
+        if (!user)
+            throw new Error("User not found");
+
+        var token = {
+            userId: userId,
+            expires: new Date(Date.now() + validityHours * 60 * 60_000).toISOString()
+        };
+
+        var tokenPayload = Buffer.from(JSON.stringify(token)).toString('base64url');
+        var hmac = crypto.createHmac('sha256', this.primarySecret);
+        hmac.update(tokenPayload + "." + user.credential_hash); // include the current password hash in the token, so that changing the password will invalidate the token
+        var signature = hmac.digest('base64url');
+        return tokenPayload + "." + signature;
+    }
+
+    async validatePasswordResetToken(resetToken: string): Promise<UserWithCredential | null>{
+        
+        var [tokenPayload, signature] = resetToken.split('.');
+        
+        var tokenString = Buffer.from(tokenPayload, 'base64url').toString();
+        var t = JSON.parse(tokenString) as {userId: string, expires: string};
+
+        var user = await this.repo.getUserById(t.userId);
+        if (!user)
+            return null;
+
+        var hmac = crypto.createHmac('sha256', this.primarySecret);
+        hmac.update(tokenPayload + "." + user.credential_hash); // include the current password hash in the token, so that changing the password will invalidate the token
+        var calculatedSignature = hmac.digest('base64url');
+        if (calculatedSignature !== signature)
+        {
+            // second try. Maybe we are in a secret rollover
+            hmac = crypto.createHmac('sha256', this.secondarySecret);
+            hmac.update(tokenPayload + "." + user.credential_hash); // include the current password hash in the token, so that changing the password will invalidate the token
+            calculatedSignature = hmac.digest('base64url');
+            if (calculatedSignature !== signature)
+            {
+                return null;
+            }
+        }
+                
+        if (new Date(t.expires) < new Date())
+            return null;
+        return user;
+    }
+
+    async changeUserPasswordWithResetToken(resetToken :string, newPassword:string): Promise<boolean>{
+        
+        var user = await this.validatePasswordResetToken(resetToken);
+        if (!user)
+            return false;
+        var passwordHash = this.createPasswordHash(newPassword);
+
+        return await this.repo.updateUser({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            credential_hash: passwordHash
+        });
+    }
+
     /**
      * change the user, potentially including the password, therefore take caution.
      * @param id the id of the user to change

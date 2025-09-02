@@ -99,6 +99,26 @@ export function enableUi(app: express.Express, config: Config, repo: AmberRepo, 
         renderIndex(req, res, uiContext);
     });
 
+    app.get('/ui/resetpassword', async (req: express.Request, res: express.Response) => {
+        var token = req.query.token as string;
+
+        if (!token){
+            res.status(400).send("Missing token");
+            return;
+        }
+        var tokenInfo = await auth.validatePasswordResetToken(token);
+        if (!tokenInfo){
+            res.status(400).send("Token is not valid (maybe expired or already used)");
+            return;
+        }
+        const uiContext: AmberUiContext = {
+            view: "reset-password",
+            passwordResetToken: token,
+            userEmail: tokenInfo.email,
+        };
+        renderIndex(req, res, uiContext);
+    });
+
     app.get('/ui/invitation', async (req: express.Request, res: express.Response) => {
         var tenant = req.query.tenant as string;
         var invitation = req.query.invitation as string;
