@@ -145,6 +145,8 @@ var onUserLoggedInForApp = (details:{client: AmberClient,userId:string, userName
     }
 };
 
+
+
 </script>
 
 <template>
@@ -217,7 +219,7 @@ var onUserLoggedInForApp = (details:{client: AmberClient,userId:string, userName
         <AmberLogin @user-in-tenant="onUserInTenant" :tenant="tenant" :allowGlobalTenantSelection="true" @user-ready="onUserReady" message="Login as tenant admin"></AmberLogin>
       </v-row>
       <v-row v-else>
-        <AmberTenantAdmin :amber-client="amberClient" :tenant="tenant!" :tenant-name="tenantName!" :roles="[adminRole, ...state.uiConfig.availableRoles]"></AmberTenantAdmin>
+        <AmberTenantAdmin :amber-client="amberClient" :tenant="tenant!" :tenant-name="tenantName!" :roles="[adminRole, ...state.uiConfig.availableRoles]" @tenant-changed="(e)=>{tenantName = e;}"></AmberTenantAdmin>
       </v-row>
     </v-container>
 

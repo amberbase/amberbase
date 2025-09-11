@@ -269,7 +269,7 @@ export interface CreateTenantRequest{
     name:string;
 
     /**
-     * Optional data field. This is a string that can be used to store additional information about the tenant. The content is up to the application.
+     * Optional data field. This is a string containing json that can be used to store additional information about the tenant. The content is up to the application.
      */
     data:string;
 }
@@ -283,7 +283,7 @@ export interface TenantDetails{
      */
     name:string;
     /**
-     * Optional data field. This is a string that can be used to store additional information about the tenant. The content is up to the application.
+     * Optional data field. This is a string, interpreted as json, that can be used to store additional information about the tenant. The content is up to the application.
      */
     data:string;
 }

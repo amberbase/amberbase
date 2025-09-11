@@ -187,6 +187,23 @@ export class AmberAdminApi{
     async createPasswordResetTokenOfSingleTenantUser(userId:string) : Promise<string> {
         return await this.apiClient.fetchText("POST", '/tenant/:tenant/admin/user/' + userId + '/passwordResetToken');
     }
+
+    /**
+     * Get tenant information about the current tenant
+     * @returns Tenant details including id, name and data
+     */
+    async getTenantInfo() : Promise<TenantDetails> {
+        return await this.apiClient.fetch<TenantDetails>("GET", '/tenant/:tenant/info');
+    }
+
+    /**
+     * Update a tenant. It will update the name and data of the tenant. The id must be unique and not contain any special characters.
+     * @param request Request object
+     * @returns Action result with success or error message
+     */
+    async updateTenant(request:TenantDetails) : Promise<ActionResult> {
+        return await this.apiClient.fetch<ActionResult>("POST", '/tenant/:tenant', request);
+    }
 }
 
 /**
@@ -239,6 +256,15 @@ export class AmberGlobalAdminApi{
      */
     async updateTenant(tenantId:string, request:TenantDetails) : Promise<ActionResult> {
         return await this.apiClient.fetch<ActionResult>("POST", '/tenant/' + tenantId, request);
+    }
+
+    /**
+     * Get information about a specific tenant
+     * @param tenantId Tenant to get the information for
+     * @returns Tenant details including id, name and data
+     */
+    async getTenantInfo(tenantId:string) : Promise<TenantDetails> {
+        return await this.apiClient.fetch<TenantDetails>("GET", '/tenant/' + tenantId + '/info');
     }
 
     /**
@@ -326,6 +352,14 @@ export class AmberApi{
      */
     async getUsers() : Promise<UserInfo[]> {
         return await this.apiClient.fetch<UserInfo[]>("GET", '/tenant/:tenant/users');
+    }
+
+    /**
+     * Get information about the current tenant
+     * @returns Tenant details including id, name and data
+     */
+    async getTenantInfo() : Promise<TenantDetails> {
+        return await this.apiClient.fetch<TenantDetails>("GET", '/tenant/:tenant/info');
     }
 }
 

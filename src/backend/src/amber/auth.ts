@@ -1,7 +1,7 @@
 import { Express, Request, Response } from 'express';
 import {Config} from './config.js';
 import {AmberRepo, Invitation, User, UserWithCredential} from './db/repo.js';
-import {ActionResult, LoginRequest, nu, error, SessionToken as SessionTokenDto, RegisterRequest, AcceptInvitationRequest, UserDetails, CreateInvitationRequest, UserWithRoles as UserWithRolesDto, TenantWithRoles, InvitationDetails, UserInfo, ChangeUserPasswordRequest, ChangeUserProfileRequest, ResetUserPasswordRequest} from './../../../client/src/shared/dtos.js';
+import {ActionResult, LoginRequest, nu, error, SessionToken as SessionTokenDto, RegisterRequest, AcceptInvitationRequest, UserDetails, CreateInvitationRequest, UserWithRoles as UserWithRolesDto, TenantWithRoles, InvitationDetails, UserInfo, ChangeUserPasswordRequest, ChangeUserProfileRequest, ResetUserPasswordRequest, TenantDetails} from './../../../client/src/shared/dtos.js';
 import * as crypto from 'node:crypto';
 import { sleep } from './../../../client/src/shared/helper.js';
 import { BruteProtection } from './helper.js';
@@ -338,6 +338,19 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         res.send(nu<UserInfo[]>(users));
     });
 
+    //get the tenant data (allowed for users of the tenant).
+    app.get('/tenant/:tenant/info', async (req, res) => {
+        var sessionToken = req.header(sessionHeader);
+        var session = authService.validateSessionToken(sessionToken);
+        if (!session || (session.tenant !== req.params.tenant && session.tenant !== allTenantsId)) {
+            res.status(401).send(error("Not authorized"));
+            return;
+        }
+        
+        var tenant = await repo.getTenant(req.params.tenant);
+        res.send(nu<TenantDetails>(tenant));
+    });
+
     // admin functionality for tenant admin user management
     app.get('/tenant/:tenant/admin/users', async (req, res) => {
         if (!authService.checkAdmin(req, res)) return;
@@ -454,6 +467,7 @@ export interface AmberAuth {
      * The session token is expected to be in the header "AmberSession".
      * @param req Request to handle
      * @param res Response to potentially send the 401 to
+     * @param onlyAllowGlobal If true, only the global admin role will be accepted
      * @returns Boolean if the use is an admin
      */
     checkAdmin(req: Request, res: Response, onlyAllowGlobal?: boolean): boolean;
