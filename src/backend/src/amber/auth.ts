@@ -39,7 +39,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         res.send(nu<ActionResult>({success:true}));
     });
 
-    // This is the endpoint for a login with credentials that will set a cookie with a user token
+    // This is the endpoint for a login with an existing token that will set a cookie with a refreshed user token
     app.post( '/loginWithToken', async (req, res) => {
         var stayLoggedIn = req.query.stayLoggedIn;
         var oldToken = req.cookies?.auth;
@@ -78,6 +78,7 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         
         var token = req.cookies.auth;
         var userToken = authService.validateUserToken(token);
+        var includeAdmin = req.query.includeAdmin === 'true';
         if (!userToken){
             res.status(401).send(
                 error("Invalid user token, better get a new one")
@@ -93,6 +94,12 @@ export async function auth(app:Express, config:Config, repo:AmberRepo) : Promise
         }
 
         var roles = await repo.getUserRoles(userToken.userId, req.params.tenant);
+        if(!includeAdmin && roles.indexOf(tenantAdminRole) !== -1){
+            // remove the admin role if not explicitly requested
+            roles = roles.filter(r => r !== tenantAdminRole);
+        }
+        
+        // if we don't have any roles in this tenant, we can't issue a session token
         if (user === undefined || !roles || roles.length === 0){
             res.status(401).send(error("No access to tenant"));
             return;

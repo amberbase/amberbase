@@ -33,6 +33,8 @@ export class AmberLoginManager {
     provider: (failed: boolean) => Promise<{ email: string; pw: string; stayLoggedIn:boolean }>;
     tenantSelector?: ((availableTenants:{id:string, name:string, roles:string[]}[]) => Promise<string>) | undefined ;
 
+    includeAdminRole: boolean = false;
+
     sessionTokenValidity: number = 0;
     sessionTokenValue: string = "";
     
@@ -40,12 +42,14 @@ export class AmberLoginManager {
         apiPrefix : string, 
         provider:(failed:boolean)=>Promise<{email:string, pw:string; stayLoggedIn:boolean}>,
         cleanUser:boolean = false,
-        tenantSelector : ((availableTenants:{id:string, name:string, roles:string[]}[]) => Promise<string> ) | undefined) 
+        tenantSelector : ((availableTenants:{id:string, name:string, roles:string[]}[]) => Promise<string> ) | undefined,
+        includeAdminRole: boolean = false) 
     {
         this.apiPrefix = apiPrefix;
         this.tenantSelector = tenantSelector;
         this.provider = provider;
         this.loginLoop(cleanUser);
+        this.includeAdminRole = includeAdminRole;
     }
 
     public close() {
@@ -213,7 +217,7 @@ export class AmberLoginManager {
         }
         else
         {
-            var response = await fetch(this.apiPrefix + '/token/' + this.tenant, {
+            var response = await fetch(this.apiPrefix + '/token/' + this.tenant + (this.includeAdminRole? "?includeAdmin=true":""), {
                 method: 'GET',
                 credentials: 'include',
                 headers: {

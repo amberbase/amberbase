@@ -1,4 +1,5 @@
 import { AmberClientMessage, AmberServerResponseMessage, ChannelClientWsMessage, joinChannelName, SendToChannelMessage, ServerChannelMessage, splitChannelName, SubscribeChannelMessage, UnsubscribeChannelMessage } from './../../../client/src/shared/dtos.js';
+import { tenantAdminRole } from './auth.js';
 import { ActiveConnection, AmberConnectionManager, AmberConnectionMessageHandler, errorResponse, sendToClient, successResponse, UserContext } from "./connection.js";
 import { amberStats, Stats, StatsProvider } from "./stats.js";
 
@@ -94,24 +95,24 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
             return errorResponse(message, 'bad-request',`Channel ${channel} does not support subchannels`);
         }
 
-        if (channelSettings.accessRights) {
-            if (typeof channelSettings.accessRights == 'function') {
-                if (!channelSettings.accessRights(connection, channelName.channel, channelName.subchannel, 'subscribe')) {
-                    return errorResponse(message, 'unauthorized', `Access denied to channel ${channel}`);
-                }
-            } else {
-                var settings = channelSettings;
-                var rights = channelSettings.accessRights as {[role:string]:ChannelAccessAction[]};
-                if (!connection.roles.some(role => rights[role]?.includes('subscribe')
-                    
-                )) {
-                    return errorResponse(message, 'unauthorized',`Access denied to channel ${channel}`);
-                }
-            }
+        if(!this.checkAccessRights(connection, channelSettings, channelName.channel, channelName.subchannel, 'subscribe')){
+            return errorResponse(message, 'unauthorized', `Access denied to channel ${channel}`);
         }
 
         connection.items.set(`channel.${channel}`, true); // mark the connection as subscribed to the channel
         return successResponse(message);
+    }
+
+    checkAccessRights(user: UserContext, channelSettings: ChannelSettings<any>, channel: string, subchannel: string | null, action: ChannelAccessAction): boolean {
+        if (channelSettings.accessRights && user.roles.includes(tenantAdminRole) == false) { // tenant admins always have access
+            if (typeof channelSettings.accessRights == 'function') {
+                return channelSettings.accessRights(user, channel, subchannel, action);
+            } else {
+                var rights = channelSettings.accessRights as {[role:string]:ChannelAccessAction[]};
+                return user.roles.some(role => rights[role]?.includes(action));
+            }
+        }
+        return true;
     }
 
     async handleUnsubscribeChannel(connection: ActiveConnection, message: UnsubscribeChannelMessage): Promise<AmberServerResponseMessage> {
@@ -152,6 +153,10 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
             if (!channelSettings.validator(connection, channelName.channel, channelName.subchannel, message.message)) {
                 return errorResponse(message, 'validation-failed', `Invalid message for channel ${message.channel}`);
             }
+        }
+
+        if (!this.checkAccessRights(connection, channelSettings, channelName.channel, channelName.subchannel, 'publish')) {
+            return errorResponse(message, 'unauthorized', `Access denied to channel ${message.channel}`);
         }
         this.publishMessage(connection.tenant, channelName.channel, channelName.subchannel, message.message);
         return successResponse(message);
