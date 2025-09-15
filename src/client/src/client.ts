@@ -26,6 +26,10 @@ export class AmberClientInit{
     /**
      * @internal
      */
+    includeAdminRole:boolean = false;
+    /**
+     * @internal
+     */
     credentialsProvider: ((failed:boolean) => Promise<{ email: string; pw: string; stayLoggedIn : boolean }>) | undefined;
     /**
      * @internal
@@ -82,6 +86,16 @@ export class AmberClientInit{
     }
 
     /**
+     * Request the admin role for the user. This will add the "admin" role to the requested roles when logging in. This is useful if you want to build a management UI that requires admin access.
+     * Note that the user needs to be registered having the admin role in the tenant to be able to get a successful session.
+     * @returns Continuation of the fluent API to configure the client.
+     */
+    withAdminRole() : AmberClientInit{
+        this.includeAdminRole = true;
+        return this;
+    }
+
+    /**
      * Set the user credentials to use for the client. This is useful for testing or if you want to hardcode the credentials or you somehow retrieve the credentials through another mechanism. 
      * It is mutually exclusive to the other methods that handle user login credentials: @see withCredentialsProvider and @see withAmberUiLogin.
      * @param email the email of the user
@@ -134,6 +148,7 @@ export class AmberClientInit{
 
         
         this.tenantSelector = async (availableTenants) => {
+            
             if (this.tenant)
             {
                 return this.tenant;
@@ -216,7 +231,8 @@ export class AmberClientInit{
             this.apiPrefix, 
             this.credentialsProvider, 
             this.cleanUser,
-            this.tenantSelector
+            this.tenantSelector,
+            this.includeAdminRole
         );
         
         var loginManager = client.loginManager;
@@ -246,9 +262,9 @@ export class AmberClient{
      * @internal
      */
     constructor(apiPrefix:string | undefined, credentialsProvider: ((failed:boolean) => Promise<{ email: string; pw: string; stayLoggedIn:boolean }>), cleanUser:boolean = false,
-        tenantSelector: ((availableTenants:{id:string, name:string, roles:string[]}[]) => Promise<string>) | undefined){
+        tenantSelector: ((availableTenants:{id:string, name:string, roles:string[]}[]) => Promise<string>) | undefined, includeAdminRole:boolean = false) {
         this.apiPrefix = apiPrefix || '/amber';
-        this.loginManager = new AmberLoginManager(this.apiPrefix, credentialsProvider, cleanUser, tenantSelector);     
+        this.loginManager = new AmberLoginManager(this.apiPrefix, credentialsProvider, cleanUser, tenantSelector, includeAdminRole);
     }
 
     /**

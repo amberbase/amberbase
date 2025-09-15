@@ -188,7 +188,7 @@ var onUserLoggedInForApp = (details:{client: AmberClient,userId:string, userName
     <v-main class="d-flex" style="min-height: 300px;">
     <v-container v-if ="state.uiContext.view=='login'">
       <v-row>
-        <AmberLogin @user-in-tenant="onUserLoggedInForApp" @user-ready="onUserReady"></AmberLogin>
+        <AmberLogin @user-in-tenant="onUserLoggedInForApp" @user-ready="onUserReady" :include-admin-role="false"></AmberLogin>
       </v-row>
     </v-container>
 
@@ -200,14 +200,14 @@ var onUserLoggedInForApp = (details:{client: AmberClient,userId:string, userName
 
     <v-container v-if ="state.uiContext.view=='invited'">
       <v-row>
-        <AmberLogin @user-in-tenant="onUserLoggedInForApp" :tenant="tenant" :invitation="invitation"></AmberLogin>
+        <AmberLogin @user-in-tenant="onUserLoggedInForApp" :tenant="tenant" :invitation="invitation" :include-admin-role="false"></AmberLogin>
       </v-row>
     </v-container>
 
      <v-container v-if = "state.uiContext.view=='global-admin'">
       <v-row v-if="!amberUserInTenant || amberUserInTenant.tenant != globalTenant || !amberUserInTenant.roles.includes(adminRole) || !amberClient">
 
-        <AmberLogin @user-in-tenant="onUserInTenant" :tenant="globalTenant" @user-ready="onUserReady" message="Login as global admin"></AmberLogin>
+        <AmberLogin @user-in-tenant="onUserInTenant" :tenant="globalTenant" @user-ready="onUserReady" message="Login as global admin" :include-admin-role="true"></AmberLogin>
       </v-row>
       <v-row v-else>
         <AmberGlobalAdmin :amber-client="amberClient"></AmberGlobalAdmin>
@@ -216,7 +216,7 @@ var onUserLoggedInForApp = (details:{client: AmberClient,userId:string, userName
 
     <v-container v-if = "state.uiContext.view=='tenant-admin'">
       <v-row v-if="!amberUserInTenant || !amberUserInTenant.tenant || !amberUserInTenant.roles.includes(adminRole) || !amberClient">
-        <AmberLogin @user-in-tenant="onUserInTenant" :tenant="tenant" :allowGlobalTenantSelection="true" @user-ready="onUserReady" message="Login as tenant admin"></AmberLogin>
+        <AmberLogin @user-in-tenant="onUserInTenant" :tenant="tenant" :allowGlobalTenantSelection="true" @user-ready="onUserReady" message="Login as tenant admin" :include-admin-role="true"></AmberLogin>
       </v-row>
       <v-row v-else>
         <AmberTenantAdmin :amber-client="amberClient" :tenant="tenant!" :tenant-name="tenantName!" :roles="[adminRole, ...state.uiConfig.availableRoles]" @tenant-changed="(e)=>{tenantName = e;}"></AmberTenantAdmin>
@@ -225,7 +225,7 @@ var onUserLoggedInForApp = (details:{client: AmberClient,userId:string, userName
 
     <v-container v-if = "state.uiContext.view=='tenant-monitoring'">
       <v-row v-if="!amberUserInTenant || amberUserInTenant.tenant == globalTenant || !amberUserInTenant.tenant || !amberUserInTenant.roles.includes(adminRole) || !amberClient">
-        <AmberLogin @user-in-tenant="onUserInTenant" @user-ready="onUserReady" message="Login as tenant admin"></AmberLogin>
+        <AmberLogin @user-in-tenant="onUserInTenant" @user-ready="onUserReady" message="Login as tenant admin" :include-admin-role="true"></AmberLogin>
       </v-row>
       <v-row v-else>
         <AmberTenantStats :amber-client="amberClient" :tenant="amberUserInTenant.tenant"></AmberTenantStats>
@@ -234,7 +234,7 @@ var onUserLoggedInForApp = (details:{client: AmberClient,userId:string, userName
 
     <v-container v-if = "state.uiContext.view=='global-monitoring'">
       <v-row v-if="!amberUserInTenant || amberUserInTenant.tenant != globalTenant || !amberUserInTenant.tenant || !amberUserInTenant.roles.includes(adminRole) || !amberClient">
-        <AmberLogin @user-in-tenant="onUserInTenant" :tenant = "globalTenant" @user-ready="onUserReady" message="Login as global admin"></AmberLogin>
+        <AmberLogin @user-in-tenant="onUserInTenant" :tenant = "globalTenant" @user-ready="onUserReady" message="Login as global admin" :include-admin-role="true"></AmberLogin>
       </v-row>
       <v-row v-else>
         <AmberTenantStats :amber-client="amberClient" :tenant="globalTenant"></AmberTenantStats>
@@ -243,7 +243,7 @@ var onUserLoggedInForApp = (details:{client: AmberClient,userId:string, userName
     
     <v-container v-if = "state.uiContext.view=='user-profile'">
       <v-row >
-        <AmberLogin @user-ready="onUserReady" skipTenantSelection ></AmberLogin>
+        <AmberLogin @user-ready="onUserReady" skipTenantSelection :include-admin-role="false"></AmberLogin>
       </v-row>
       <v-row v-if="amberClient">
         <AmberUserProfile :amber-client="amberClient"></AmberUserProfile>

@@ -1,5 +1,5 @@
 import { AmberClientMessage, AmberCollectionClientMessage, AmberMetricName, AmberServerResponseMessage, CollectionClientWsMessage,  CreateDocument,  DeleteDocument,  ServerError, ServerSuccess, ServerSuccessWithDocument, ServerSyncDocument, SubscribeCollectionMessage, UnsubscribeCollectionMessage, UpdateDocument} from './../../../client/src/shared/dtos.js';
-import { SessionToken } from "./auth.js";
+import { SessionToken, tenantAdminRole } from "./auth.js";
 import { Config } from "./config.js";
 import { AmberRepo, Document, DocumentWithAccessTags } from "./db/repo.js";
 import { SimpleWebsocket, WebsocketHandler } from "./websocket/websocket.js";
@@ -235,6 +235,10 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
     
 
     private checkAccessRight(user: UserContext, collectionSettings: CollectionSettings<any>, action: CollectionAccessAction, doc: any | null): boolean {
+        if (user.roles.includes(tenantAdminRole)) {
+            return true; // tenant admins always have access
+        }
+
         if (collectionSettings.accessRights && typeof collectionSettings.accessRights === 'object')
         {
             let hasAccess = false;
@@ -253,6 +257,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
     }
 
     private async handleSubscribe(connection:ActiveConnection, message:SubscribeCollectionMessage, collectionSettings:CollectionSettings<any>): Promise<AmberServerResponseMessage> {
+        var isAdmin = connection.roles.includes(tenantAdminRole);
         // check if the user has read access to the collection
         if (connection.items.has(collectionItem(message.collection)))
         {
@@ -264,7 +269,9 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             return errorResponse(message, 'unauthorized', `You don't have subscribe access to the collection ${message.collection}`);
         }
 
-        var accessTags = collectionSettings.accessTagsFromUser ? collectionSettings.accessTagsFromUser({userId: connection.userId, roles: connection.roles}) : undefined;
+        // admins should be able to get ALL documents, even those without matching access tags
+        var accessTags = collectionSettings.accessTagsFromUser && !isAdmin ? collectionSettings.accessTagsFromUser({userId: connection.userId, roles: connection.roles}) : undefined;
+
         connection.items.set(collectionItem(message.collection), message.start);
         let documentIdsSend = new Set<string>();
         await this.repo.streamAllDocuments(connection.tenant, message.collection, message.start, accessTags, undefined, async (document) => {
@@ -395,8 +402,8 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         {
             for (const connection of this.connectionManager.activeConnectionsForTenant(tenant)) {
                 if (connection.items.has(collectionItem( collection))) {
-                    // we need to check if the collection is filtered by access tags
-                    let accessTagsForUser = collectionSettings.accessTagsFromUser ? collectionSettings.accessTagsFromUser({userId: connection.userId, roles: connection.roles}) : undefined;
+                    // we need to check if the collection is filtered by access tags, not for admins though
+                    let accessTagsForUser = collectionSettings.accessTagsFromUser && !connection.roles.includes(tenantAdminRole) ? collectionSettings.accessTagsFromUser({userId: connection.userId, roles: connection.roles}) : undefined;
 
                     if (accessTagsForUser)
                     {
@@ -486,7 +493,9 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         if (changeNumber) {
             for (const connection of this.connectionManager.activeConnectionsForTenant(tenant)) {
                 if (connection.items.has(collectionItem(collection)) ) {
-                    // we might send a delete message to a client that does not have access to the document via the access tags. We accept this for now.
+                    // we might send a delete message to a client that does not have access to the document via the access tags. We accept this for now. 
+                    // Alternative would be to calculate the access tags from the old document and check if the user had access to it. 
+                    // But this would be more complex.
                     sendToClient<ServerSyncDocument>(connection, {
                         collection: collection,
                         type: "sync-document",
@@ -582,8 +591,8 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             for (const connection of this.connectionManager.activeConnectionsForTenant(tenant)) {
                 if (connection.items.has(collectionItem(collection))) {
                     
-                     // we need to check if the collection is filtered by access tags
-                     let userAccessTags = collectionSettings.accessTagsFromUser ? collectionSettings.accessTagsFromUser({userId: connection.userId, roles: connection.roles}) : undefined;
+                     // we need to check if the collection is filtered by access tags. Send to admins anyway
+                     let userAccessTags = collectionSettings.accessTagsFromUser && !connection.roles.includes(tenantAdminRole) ? collectionSettings.accessTagsFromUser({userId: connection.userId, roles: connection.roles}) : undefined;
 
                      if (userAccessTags)
                      {

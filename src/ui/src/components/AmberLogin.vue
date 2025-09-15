@@ -15,7 +15,8 @@ var props = defineProps<{
   allowGlobalTenantSelection?:boolean,
   skipTenantSelection?: boolean,
   invitation?:string,
-  message?:string 
+  message?:string,
+  includeAdminRole:boolean
 }>();
 
 var tab = ref("login");
@@ -85,6 +86,11 @@ var amberInit = new AmberClientInit()
       login = resolve;
     })
   });
+
+if (props.includeAdminRole)
+{
+  amberInit = amberInit.withAdminRole();
+}
 
   amberInit.onUserChanged(async (user)=>{
     userDetails.value = user;
