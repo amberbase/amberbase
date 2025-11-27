@@ -16,7 +16,8 @@ export default defineConfig(({mode}) => ({
   build:{
     outDir: "../backend/dist/ui",
     emptyOutDir: true,
-    sourcemap : true
+    sourcemap : true,
+    minify: false
   },
   define: {
      __VUE_PROD_DEVTOOLS__: mode !== 'production'

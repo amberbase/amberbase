@@ -34,7 +34,7 @@ export interface AmberChannels{
     /**
      * Get the interface to work with a given channel
      * @param channel The name of the channel
-     * @param subchannel An optional subchannel (the serverside needs to enable subchannels for this to work) 
+     * @param subchannel An optional subchannel (the serverside needs to enable subchannels for this to work, if it is the subchannel must be defined). An admin can subscribe to the top level channel even if subchannels are used.
      */
     getChannel<T>(channel:string, subchannel?:string | undefined): AmberChannel<T>;
 }
@@ -45,10 +45,12 @@ export interface AmberChannels{
 export interface AmberChannel<T>{
     
     /**
-     * Subscribe to a channel. This will start receiving messages for the channel.
-     * @param onMessage Callback for when a message is received
+     * Subscribe to a channel. This will start receiving messages for the channel. 
+     * If a channel has subchannels enabled, the subscription is only for the given subchannel and will throw an error if no subchannel has been selected. 
+     * Tenant admins can subscribe to the top level channel even if subchannels are used.
+     * @param onMessage Callback for when a message is received and the channel name as it was received
      */
-    subscribe(onMessage:(doc:T) => void): void;
+    subscribe(onMessage:(doc:T, channelName:string) => void): void;
 
     /**
      * Unsubscribe from the channel. This will stop receiving messages
@@ -67,7 +69,7 @@ export interface AmberChannel<T>{
 export class AmberChannelsClient implements ConnectionHandler, AmberChannels{
     
     subscriptions: Map<string,{
-        onMessage:(message:any) => void,
+        onMessage:(message:any, channelName:string) => void,
     }> = new Map();
     connection: AmberConnectionsClient;
 
@@ -80,7 +82,7 @@ export class AmberChannelsClient implements ConnectionHandler, AmberChannels{
     getChannel<T>(channel: string, subchannel:string|undefined): AmberChannel<T> {
         const channelName = joinChannelName(channel, subchannel);
         return { 
-            subscribe: (onMessage:(message:T) => void) => {
+            subscribe: (onMessage:(message:T, subchannel:string) => void) => {
                 this.subscribe<T>(channelName, onMessage);
             },
             unsubscribe: () => {
@@ -104,9 +106,10 @@ export class AmberChannelsClient implements ConnectionHandler, AmberChannels{
     handleMessage(message: AmberServerMessage): void {
         if (message.type === "channel-message") {
             const syncMessage = message as ServerChannelMessage;
+            const toplevelChannel = syncMessage.channel.split('/')[0];
             const subscription = this.subscriptions.get(syncMessage.channel);
             if (subscription) {
-              subscription.onMessage(syncMessage.message);
+              subscription.onMessage(syncMessage.message, syncMessage.channel);
             }
         } 
     }
@@ -122,7 +125,7 @@ export class AmberChannelsClient implements ConnectionHandler, AmberChannels{
     }
 
 
-    subscribe<T>(channelName:string, onMessage:(message:T) => void) 
+    subscribe<T>(channelName:string, onMessage:(message:T, channelName:string) => void) 
     {
         this.subscriptions.set(channelName, {onMessage:onMessage});
 

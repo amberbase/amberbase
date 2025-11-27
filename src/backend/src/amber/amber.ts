@@ -185,13 +185,11 @@ export class AmberInit{
         var connectionManager = new AmberConnectionManager();
         this.wsHandler.push(connectionManager.websocketBinding());
 
-        var collectionsService = new CollectionsService(this.config, repo, this.collections, connectionManager);
-        connectionManager.registerHandler(collectionsService);
+        var collectionsService = new CollectionsService(this.config, repo, this.collections, connectionManager, amberApp, amberAuth);
 
         amberStats.addStatsProvider(collectionsService);
 
         var channelService = new ChannelService(this.channels, connectionManager);
-        connectionManager.registerHandler(channelService);
         amberStats.addStatsProvider(channelService);
 
         simpleWebsockets(server, this.wsHandler, this.config.path, amberAuth);

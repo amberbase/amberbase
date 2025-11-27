@@ -45,8 +45,8 @@ Right now `Amberbase` supports MariaDB 10.6 and higher as the persistency layer.
 * `change_user` uuid, users id of the last modifying user
 * `change_time` datetime, last update time
 * `data` JSON, the payload
-* `tags` string of commaseparated tags, Fulltext index, for efficient addressing of documents
-* `access_tags` string of commaseparated tags, Fulltext index, for access management of documents
+* `tags` string of commaseparated tags, Fulltext index, for efficient addressing of documents. Fulltext index needs tags to be at least 3 characters long.
+* `access_tags` string of commaseparated tags, Fulltext index, for access management of documents. Fulltext index needs tags to be at least 3 characters long.
 
 #### Table `syncactions`
 > table to store pending actions that could result in a removal from a local replica

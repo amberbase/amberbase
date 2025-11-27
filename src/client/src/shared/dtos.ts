@@ -1,5 +1,6 @@
 export function nu<T>(arg: T): T { return arg;}
 export function error(reason: string): ActionResult { return {success:false, error:reason};}
+export function success(result?:any): ActionResult { return {success:true, result:result};}
 
 /**
  * Login request for the /login endpoint
@@ -47,11 +48,12 @@ export interface RegisterRequest{
 }
 
 /**
- * Common result to indicate success or failure of an operation
+ * Common result to indicate success or failure of an operation. "result" can return additional information
  */
 export interface ActionResult{
     success:boolean;
     error?:string;
+    result?:any;
 }
 
 /**
@@ -320,6 +322,51 @@ export interface InvitationDetails{
  * "Header" prefix to be used as a protocol in the websocket handshake. Yes that sucks but it is a best practice (weird one, but nevertheless)
  */
 export const AmberSessionProtocolPrefix="ambersession.";
+
+// Collection Admin DTOs
+
+/**
+ * Information about a collection to be used in the admin API
+ */
+export interface CollectionInfo{
+    name:string;
+    hasAccessTags:boolean;
+    hasTags:boolean;
+    accessRightsMethod: "code" | "roles" | "none";
+}
+
+/**
+ * Result of a document check for validity against the collection settings
+ */
+export interface CollectionDocumentCheckResult{
+    isValid:boolean;
+    error?:string;
+    createdAccessTags:string[];
+    createdTags:string[];
+    authorized:boolean;
+}
+
+/**
+ * Meta information about a document in a collection for the collection debug api
+ */
+export interface CollectionDocumentInfo{
+    id:string;
+    change_number:number;
+    change_user:string;
+    change_time:Date;
+    access_tags:string[];
+    tags:string[];
+}
+
+/**
+ * Information about a user's access to a collection
+ */
+export interface CollectionAccessInfo{
+    accessRights?:string[];
+    accessTags:string[];
+}
+
+
 
 // Amber websocket messages
 /**

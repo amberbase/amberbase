@@ -348,18 +348,20 @@ export class AmberClient{
      * @returns the collections client for this tenant
      */
     getCollectionsApi(): AmberCollections{
+        var tenant = this.loginManager.tenant;
+        if (tenant == null){
+            throw new Error("No tenant set in login manager yet");
+        }
+
         if (this.connectionsClient == null){
-            var tenant = this.loginManager.tenant;
-            if (tenant == null){
-                throw new Error("No tenant set in login manager yet");
-            }
+            
             this.connectionsClient = new AmberConnectionsClient(this.apiPrefix, 
                 tenant ,
                 ()=>this.loginManager.sessionToken()
             );
         }
         if (this.collectionsClient == null){
-            this.collectionsClient = new AmberCollectionsClient( this.connectionsClient);
+            this.collectionsClient = new AmberCollectionsClient( this.connectionsClient, this.apiPrefix, tenant, ()=>this.loginManager.sessionToken());
         }
         return this.collectionsClient;
     }

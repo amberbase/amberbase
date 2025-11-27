@@ -12,6 +12,9 @@ defineProps<{
   label?: string
 }>();
 
+const emit = defineEmits<{
+  (e: 'active', isActive: boolean): void
+}>();
 
 
 var inEditMode = ref(false);
@@ -19,6 +22,10 @@ var buttonactionmode = ref(false);
 const refTextArea = ref<VTextarea | null>(null);
 watch(model, (newVal)=>{
   modelValue.value = newVal || "{}";
+});
+
+watch(inEditMode, (newVal)=>{
+  emit('active', newVal);
 });
 
 onMounted(async ()=>{

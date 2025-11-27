@@ -161,7 +161,7 @@ The `userId` is attached to the change issued as a result of the original change
 
 ## Finding documents
 When processing documents serverside, for example as an `onDocumentChanged`event handler, we need to address the documents we want to change or delete. Since the schema of the data is application specific and not known to the database, we do not have an optimized (in databases this equals to "indexed") way to retrieve the right documents apart from addressing it directly by `id`. We would need to read ALL documents (of a given `collection` and `tenant`), parse the json and apply some javascript predicate as a selector (function that returns a boolean). This would not scale since it moves all data through the database connection into the memory of the server application.
-This is the reason why the only method to retrieve them serverside (the browser clients have a copy of the full collection anyways) is by using `allDocumentsByTags` to iterate over documents that contain all `tags`, you need to specify a minimum of one. These `tags` are calculated by a configured javascript handler called `tagsFromDocument`. It must return an array of string that we call `tags` and are added to the document in a searchable (that means optimized "indexed") way.
+This is the reason why the only method to retrieve them serverside (the browser clients have a copy of the full collection anyways) is by using `allDocumentsByTags` to iterate over documents that contain all `tags`, so you need to specify a minimum of one `tag`. These `tags` are calculated by a configured javascript handler called `tagsFromDocument`. It must return an array of string that we call `tags` and are added to the document in a searchable (that means optimized "indexed") way. Tags are stored in a fulltext index, so they need to be at least 3 characters long.
 
 For example we have a collection with "books" and one with "annotations". The annotations belong to a book, but the book does not know about the annotations (a user who is allowed to create an annotation does not necessarily have the access to change the book). We can just expose the books `id` as a tag for an annotation. Now when a book is deleted, we can delete the annotations as well.
 
@@ -295,5 +295,6 @@ The concept of `access tags` is meant for these cases. The idea is, that once th
     });
 ```
 
-It usually makes sense to combine the `access tags` concept with a code based `accessRights` calculation, to compare the properties of the document that protects it from being viewed in the case that it is updated or deleted.
+It usually makes sense to combine the `access tags` concept with a code based `accessRights` calculation, to compare the properties of the document that protects it from being viewed in the case that it is updated or deleted. 
+> Important note: Tags need to be at least 3 characters long due to them being stored in the fulltext index!
 

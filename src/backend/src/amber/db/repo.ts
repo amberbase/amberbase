@@ -7,7 +7,7 @@ export interface UserWithTenantsAndRoles{id:string, email:string, name:string, t
 export interface UserWithRoles{id:string, email:string, name:string, roles:string[]};
 export interface Invitation{tenant:string, roles:string[], valid_until:Date, accepted?:Date, id:string};
 export interface Document{tenant:string, collection:string, id:string, change_number:number, change_user:string, change_time:Date, data:string | null};
-export interface DocumentWithAccessTags extends Document{access_tags:string[] | null};
+export interface DocumentWithTags extends Document{access_tags:string[] | null, tags:string[] | null};
 
 export interface SyncAction{tenant:string, collection:string, id:string, change_number:number, change_time:Date, access_tags:string[] | null, new_access_tags:string[] | null, deleted:boolean};
 
@@ -80,6 +80,14 @@ export class AmberRepo {
             console.log(e);
         }
         await conn.query(`USE ${conn.escapeId(this.config.db_name)}`);
+
+        // we need to disable full text stopwords to be able to use tags correctly
+        var fullTextStopwordsUsedResult = await conn.query<{value:string}[]>("SHOW VARIABLES LIKE 'innodb_ft_enable_stopword'");
+        if (fullTextStopwordsUsedResult.length === 1 && fullTextStopwordsUsedResult[0].value === "ON")
+        {
+            await conn.query("SET SESSION innodb_ft_enable_stopword = 'OFF'");
+        }
+
         await conn.query("CREATE TABLE IF NOT EXISTS system (`value` VARCHAR(255), `name` VARCHAR(255), `timestamp` DATETIME DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (`name`))");
         var result = await conn.query<{value:string}[]>("SELECT value FROM system WHERE name = 'db_migration' LIMIT 1");
         var migrationVersion = 0;
@@ -518,10 +526,10 @@ export class AmberRepo {
         return lastNumber;
     }
 
-    async getDocument(tenant:string, collection:string, id:string): Promise<DocumentWithAccessTags | undefined> {
+    async getDocument(tenant:string, collection:string, id:string): Promise<DocumentWithTags | undefined> {
         var conn = await this.pool.getConnection();
         try{
-            var result = await conn.query<{tenant:string, collection:string, id:string, change_number:number, change_user:string, change_time:Date, data:string, access_tags:string}[]>("SELECT tenant, collection, id, change_number, change_user, change_time, data, access_tags FROM documents WHERE tenant = ? AND collection = ? AND id = ?", [tenant, collection, id]);
+            var result = await conn.query<{tenant:string, collection:string, id:string, change_number:number, change_user:string, change_time:Date, data:string, access_tags:string, tags:string}[]>("SELECT tenant, collection, id, change_number, change_user, change_time, data, access_tags, tags FROM documents WHERE tenant = ? AND collection = ? AND id = ?", [tenant, collection, id]);
             if (result.length === 0){
                 return undefined;
             }
@@ -533,7 +541,8 @@ export class AmberRepo {
                 change_user: result[0].change_user,
                 change_time: result[0].change_time,
                 data: result[0].data,
-                access_tags: result[0].access_tags ? result[0].access_tags.split(" ") : []
+                access_tags: result[0].access_tags ? result[0].access_tags.split(" ") : [],
+                tags: result[0].tags ? result[0].tags.split(" ") : []
             };
         }
         finally{
@@ -585,7 +594,7 @@ export class AmberRepo {
      * @param oldDocument we need the old document anyway in the flow. So we use it for optimistic concurrency and to see if we need to add a sync action or not.
      * @returns The new changeNumber or 0 if no change was performed.
      */
-    async updateDocument(tenant:string, collection:string, id:string, changeUser:string | undefined, data:string, accessTags:string[], tags:string[], oldDoc : DocumentWithAccessTags): Promise<number> {
+    async updateDocument(tenant:string, collection:string, id:string, changeUser:string | undefined, data:string, accessTags:string[], tags:string[], oldDoc : DocumentWithTags): Promise<number> {
         if (data === undefined ){
             return 0; // nothing to do, and we just did that
         }

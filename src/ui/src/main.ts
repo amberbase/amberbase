@@ -13,6 +13,7 @@ import AmberUi from './components/AmberUi.vue'
 import { state } from './common'
 import { amber } from 'vuetify/util/colors'
 import type { AmberUiConfig, AmberUiContext } from '../../shared/src'
+import { amberDarkTheme, amberLightTheme } from './theme'
 
 declare global {
   interface Window{
@@ -30,7 +31,14 @@ const vuetify = createVuetify({
         sets: {
           mdi,
         }
-    }
+    },
+    theme: {
+    defaultTheme: 'amberLightTheme',
+    themes: {
+      "amberLightTheme":amberLightTheme,
+      "amberDarkTheme": amberDarkTheme
+    },
+  },
   });
   
   

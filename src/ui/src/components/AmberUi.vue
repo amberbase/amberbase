@@ -150,7 +150,7 @@ var onUserLoggedInForApp = (details:{client: AmberClient,userId:string, userName
 </script>
 
 <template>
-  <v-app :theme="theme">
+  <v-app :theme="theme!='light'? 'amberDarkTheme' : 'amberLightTheme'">
     <v-app-bar >
       <v-app-bar-title>{{ title }} {{ tenantName? (" - " + tenantName) : "" }}</v-app-bar-title>
       <v-spacer></v-spacer>

@@ -1,3 +1,4 @@
+import e from 'express';
 import { AmberClientMessage, AmberServerResponseMessage, ChannelClientWsMessage, joinChannelName, SendToChannelMessage, ServerChannelMessage, splitChannelName, SubscribeChannelMessage, UnsubscribeChannelMessage } from './../../../client/src/shared/dtos.js';
 import { tenantAdminRole } from './auth.js';
 import { ActiveConnection, AmberConnectionManager, AmberConnectionMessageHandler, errorResponse, sendToClient, successResponse, UserContext } from "./connection.js";
@@ -15,6 +16,7 @@ export interface ChannelSettings<T>{
 
     /**
      * Model the access to the channel. Either as code or just a simple type and role based mapping. Default is allow all access to all roles (still requires a valid user in the tenant)
+     * Tenant admin can always access all channels.
      */
     accessRights?: {[role:string]:ChannelAccessAction[]} | ((user: UserContext, channel: string, subchannel : string | null, action:ChannelAccessAction)=>boolean);
 
@@ -47,6 +49,7 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
     {
         this.channels = channels;
         this.connectionManager = connectionManager;
+        connectionManager.registerHandler(this);
     }
 
     async stats(): Promise<Stats>
@@ -78,6 +81,8 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
         var channel = message.channel;
         var channelName = splitChannelName(channel);        
 
+        var isAdmin = connection.roles.includes(tenantAdminRole);
+
         if (channelName == null) {
             return errorResponse(message, 'bad-request', 'Channel name is required');
         }
@@ -87,7 +92,7 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
         if (!channelSettings) {
             return errorResponse(message, 'not-found', `Channel ${channel} not found`);
         }
-        if (channelSettings.subchannels && !channelName.subchannel) {
+        if (channelSettings.subchannels && !channelName.subchannel && !isAdmin) { // tenant admins can subscribe to the top level channel
             return errorResponse(message, 'bad-request',`Channel ${channel} requires a subchannel`);
         }
 
@@ -95,7 +100,7 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
             return errorResponse(message, 'bad-request',`Channel ${channel} does not support subchannels`);
         }
 
-        if(!this.checkAccessRights(connection, channelSettings, channelName.channel, channelName.subchannel, 'subscribe')){
+        if(!isAdmin && !this.checkAccessRights(connection, channelSettings, channelName.channel, channelName.subchannel, 'subscribe')){ // tenant admins always have access
             return errorResponse(message, 'unauthorized', `Access denied to channel ${channel}`);
         }
 
@@ -104,7 +109,7 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
     }
 
     checkAccessRights(user: UserContext, channelSettings: ChannelSettings<any>, channel: string, subchannel: string | null, action: ChannelAccessAction): boolean {
-        if (channelSettings.accessRights && user.roles.includes(tenantAdminRole) == false) { // tenant admins always have access
+        if (channelSettings.accessRights) { 
             if (typeof channelSettings.accessRights == 'function') {
                 return channelSettings.accessRights(user, channel, subchannel, action);
             } else {
@@ -128,20 +133,20 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
         if (!channelSettings) {
             return errorResponse(message, 'not-found', `Channel ${channel} not found`);
         }
-        if (channelSettings.subchannels && !channelName.subchannel) {
-            return errorResponse(message, 'bad-request', `Channel ${channel} requires a subchannel`);
-        }
 
         if (!channelSettings.subchannels && channelName.subchannel) {
             return errorResponse(message, 'bad-request', `Channel ${channel} does not support subchannels`);
         }
 
-        connection.items.delete(`channel.${channel}`); // remove the subscription from the connection
+        connection.items.delete(`channel.${channel}`); // remove the subscription
+        
         return successResponse(message);
     }
 
     async handleSendToChannel(connection: ActiveConnection, message: SendToChannelMessage): Promise<AmberServerResponseMessage> {
         var channelName = splitChannelName(message.channel);
+        var isAdmin = connection.roles.includes(tenantAdminRole);
+
         if (channelName == null) {
             return errorResponse(message, 'bad-request', 'Channel name is required');
         }
@@ -155,7 +160,7 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
             }
         }
 
-        if (!this.checkAccessRights(connection, channelSettings, channelName.channel, channelName.subchannel, 'publish')) {
+        if (!isAdmin && !this.checkAccessRights(connection, channelSettings, channelName.channel, channelName.subchannel, 'publish')) {
             return errorResponse(message, 'unauthorized', `Access denied to channel ${message.channel}`);
         }
         this.publishMessage(connection.tenant, channelName.channel, channelName.subchannel, message.message);
@@ -167,7 +172,7 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
 
         var channelName = joinChannelName(channel, subchannel);
         for (const connection of this.connectionManager.activeConnectionsForTenant(tenant)) {
-            if (connection.items.has(`channel.${channelName}`)) {
+            if (connection.items.has(`channel.${channelName}`) || connection.items.has(`channel.${channel}`)) { // admins can subscribe to the main channel without subchannel
                 sendToClient<ServerChannelMessage>(connection,{
                     type: 'channel-message',
                     channel: channel,

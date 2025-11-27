@@ -1,11 +1,12 @@
-import { AmberClientMessage, AmberCollectionClientMessage, AmberMetricName, AmberServerResponseMessage, CollectionClientWsMessage,  CreateDocument,  DeleteDocument,  ServerError, ServerSuccess, ServerSuccessWithDocument, ServerSyncDocument, SubscribeCollectionMessage, UnsubscribeCollectionMessage, UpdateDocument} from './../../../client/src/shared/dtos.js';
-import { SessionToken, tenantAdminRole } from "./auth.js";
+import { ActionResult, AmberClientMessage, AmberCollectionClientMessage, AmberMetricName, AmberServerResponseMessage, CollectionAccessInfo, CollectionClientWsMessage,  CollectionDocumentCheckResult,  CollectionDocumentInfo,  CollectionInfo,  CreateDocument,  DeleteDocument,  error,  nu,  ServerError, ServerSuccess, ServerSuccessWithDocument, ServerSyncDocument, SubscribeCollectionMessage, success, UnsubscribeCollectionMessage, UpdateDocument} from './../../../client/src/shared/dtos.js';
+import { AmberAuth, SessionToken, tenantAdminRole } from "./auth.js";
 import { Config } from "./config.js";
-import { AmberRepo, Document, DocumentWithAccessTags } from "./db/repo.js";
+import { AmberRepo, Document, DocumentWithTags } from "./db/repo.js";
 import { SimpleWebsocket, WebsocketHandler } from "./websocket/websocket.js";
 import { ActiveConnection, AmberConnectionManager, AmberConnectionMessageHandler, errorResponse, sendToClient, successResponse, UserContext } from "./connection.js";
 import { amberStats, Stats, StatsProvider } from "./stats.js";
-
+import * as express from 'express';
+import { isString } from './helper.js';
 export const CollectionActionCreate = "create";
 export const CollectionActionSubscribe = "subscribe";
 export const CollectionActionUpdate = "update";
@@ -25,14 +26,14 @@ export interface CollectionSettings<T>{
      */
     accessRights?: {[role:string]:CollectionAccessAction[]} | ((user: UserContext, document: T | null, action:CollectionAccessAction)=>boolean);
     /**
-     * Filter the accessible documents for the user. This is executed server side to limit the documents to the user.
+     * Filter the accessible documents for the user. This is executed server side to limit the documents to the user. Tags have a minimum length of 3 characters.
      * @param user the user to filter the collection for
      * @returns a set of tags. Only documents with one of these tags are accessible for the user.
      */
     accessTagsFromUser?: (user: UserContext)=>string[];
 
     /**
-     * Calculate the access tags for the document. Only documents that have a common access tag with users are accessible if the this hook is configured.
+     * Calculate the access tags for the document. Only documents that have a common access tag with users are accessible if the this hook is configured. Tags have a minimum length of 3 characters.
      * @param doc The document to calculate the access tags for.
      * @returns The list of access tags that can be used to find the documents for server side processing (e.g. for the onDocumentChange hook).
      */
@@ -40,7 +41,7 @@ export interface CollectionSettings<T>{
 
 
     /**
-     * Calculate a list of tags that are used to find documents in the collection in a more efficient way. 
+     * Calculate a list of tags that are used to find documents in the collection in a more efficient way.Tags have a minimum length of 3 characters.
      * There can be up to 4096 character of tags in total, one character is used to delimit the tags. So try to keep the tags short. A common way to use this is to use referenced document ids with a prefix (of maximum 2 characters). With those we consume 40 characters which means we have around 100 tags available per document.
      * @param doc The document to calculate the tags for.
      * @returns The list of tags that can be used to find the documents for server side processing (e.g. for the onDocumentChange hook).
@@ -48,9 +49,10 @@ export interface CollectionSettings<T>{
     tagsFromDocument?: (doc: T)=>string[];
 
     /**
-     * Validate the document before creating or updating it. This is executed on the server to ensure integrity.
+     * Validate the document before creating or updating it. This is executed on the server to ensure integrity. 
+     * A string return  value is considered an error message implicating an invalid document.
      */
-    validator?: (user: UserContext, oldDocument: T | null, newDocument: T | null, action: CollectionAccessAction) => boolean;
+    validator?: (user: UserContext, oldDocument: T | null, newDocument: T | null, action: CollectionAccessAction) => boolean | string;
 
     /**
      * A callback that is called when a document is created, updated or deleted. This can be used to trigger additional actions cacading deletes or updating other documents that have a reference to this document.
@@ -105,7 +107,7 @@ export interface AmberCollection<T>{ // the API to be used by the server side ap
      * @param data The new data of the document. This is the JSON object that will be stored in the collection.
      * @param expectedChangeNumber The expected change number of the document. If this is presented and does not match, the update will fail with a change number mismatch error.
      */
-    updateDocument(tenant: string, documentId:string, userId : string | undefined, data: T, expectedChangeNumber:number|undefined): Promise<boolean>;
+    updateDocument(tenant: string, documentId:string, userId : string | undefined, data: T, expectedChangeNumber?:number|undefined): Promise<boolean>;
 
     /**
      * Update a document in the collection using a callback that receives the old document and returns the new document. This is useful to implement read-modify-write operations.
@@ -133,12 +135,238 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
     collectionSettings: Map<string, CollectionSettings<any>>;
     connectionManager: AmberConnectionManager;
     validDocumentIdRegex = /^[a-zA-Z0-9_\-]{1,36}$/;
+    authService: AmberAuth;
 
-    constructor(config: Config, repo: AmberRepo, collections: Map<string, CollectionSettings<any>>, connectionManager: AmberConnectionManager) {
+    constructor(config: Config, repo: AmberRepo, collections: Map<string, CollectionSettings<any>>, connectionManager: AmberConnectionManager, expressApp:express.Express, authService: AmberAuth, enableDebugApi = true) {
         this.config = config;
         this.repo = repo;
         this.collectionSettings = collections;
         this.connectionManager = connectionManager;
+        this.authService = authService;
+        connectionManager.registerHandler(this);
+        if (enableDebugApi)
+        {
+            this.enableDebugApi(expressApp);
+        }
+    }
+
+
+    /**
+     * Enable the debug API to inspect and edit collections data plane by an admin of the tenant.
+     * @param app The express app to add the debug API to. 
+     */
+    enableDebugApi(app:express.Express) {
+
+
+        let getUserFromRequest = async (req: express.Request): Promise<UserContext | null> => {
+            let userId = req.query.userId as string | undefined;
+            if(userId) {
+                return {userId: userId, roles: await this.authService.getUserRoles(userId, req.params.tenant)};
+            }
+            else {
+                return  this.authService.getSessionToken(req);
+            }
+        };
+
+        // Get all collections metadata
+        app.get('/tenant/:tenant/collections', async (req: express.Request, res: express.Response) => {
+                if (!this.authService.getSessionToken(req)) return;
+                res.send(nu<CollectionInfo[]>(Array.from(this.collectionSettings.entries()).map( ([name, settings]) => {
+
+                    var accessRightsMethod : "code" | "roles" | "none" = "none";
+                    if (settings.accessRights)
+                    {
+                        accessRightsMethod = typeof settings.accessRights === 'function' ? "code" : "roles";
+                    }
+                    return {
+                        name: name, 
+                        hasAccessTags: settings.accessTagsFromDocument? true : false, 
+                        hasTags: settings.tagsFromDocument? true : false,
+                        accessRightsMethod: accessRightsMethod
+                    };
+                })));
+            });
+
+        // Check a document for validity and get the access tags and tags that would be created for it.
+        // Supports impersonation of a user by providing the userId query parameter, an old document via the oldId parameter to check an update operation. 
+        // The body must contain the document to check.
+        app.post('/tenant/:tenant/collection/:collection/check', async (req: express.Request, res: express.Response) => {
+                if (!this.authService.checkAdmin(req, res)) return;
+                let tenant = req.params.tenant;
+                var oldId = req.body.documentId as string | null;
+                let collection = req.params.collection;
+                let user = await getUserFromRequest(req);
+
+                var doc = req.body;
+                let collectionSettings = this.collectionSettings.get(collection);
+                if (!collectionSettings)
+                {
+                    res.status(404).send(nu<ActionResult>({success:false, error: `Collection ${collection} not found`}));
+                    return;
+                }
+
+                var oldDocContent = null;
+                if (oldId) {
+                    let oldDoc = await this.repo.getDocument(tenant, collection, oldId);
+                    if (!oldDoc) {
+                        res.status(404).send(nu<ActionResult>({success:false, error: `Old document with id ${oldId} not found in collection ${collection}`}));
+                        return;
+                    }
+                    oldDocContent = JSON.parse(oldDoc.data);
+                }
+                try{
+
+                    let [isValid,validationError] = executeValidator(collectionSettings.validator, user, oldDocContent, doc, oldId ? CollectionActionUpdate : CollectionActionCreate);
+                    let isAuthorized = this.checkAccessRight(user!, collectionSettings, oldId ? CollectionActionUpdate : CollectionActionCreate, doc);  
+                    var result : CollectionDocumentCheckResult = {
+                        isValid:  isValid, 
+                        error: validationError,
+                        createdAccessTags: collectionSettings.accessTagsFromDocument ? collectionSettings.accessTagsFromDocument(doc) : [],
+                        createdTags: collectionSettings.tagsFromDocument ? collectionSettings.tagsFromDocument(doc) : [],
+                        authorized: isAuthorized
+                    };
+                    res.send(nu<CollectionDocumentCheckResult>(result));
+                }
+                catch(e) {
+                    res.status(500).send(error( `Error during validation: ${e.message}`));
+                }
+            });
+
+        // Get a document meta data with access tags and data tags from a collection
+        app.get('/tenant/:tenant/collection/:collection/document/:id/info', async (req: express.Request, res: express.Response) => {
+                if (!this.authService.checkAdmin(req, res)) return;
+                let tenant = req.params.tenant;
+                let collection = req.params.collection;
+                let id = req.params.id;
+                let doc = await this.repo.getDocument(tenant, collection, id);
+                if (doc) {
+                    let result : CollectionDocumentInfo = {
+                        id: doc.id,
+                        change_number: doc.change_number,
+                        change_time: doc.change_time,
+                        change_user: doc.change_user,
+                        access_tags: doc.access_tags,
+                        tags: doc.tags
+                    };
+                    res.send(nu<CollectionDocumentInfo>(result));
+                }
+                else {
+                    res.status(404).send(error("Document not found"));
+                }
+            });
+
+        // Create or update a document with optional impersonation
+        // Supports impersonation of a user by providing the userId query parameter. 
+        // If the document id exists the document will be updated, otherwise created. 
+        // If the document id is not provided or whitespace a new id will be generated.
+        // The body must contain the document .
+        app.post('/tenant/:tenant/collection/:collection/document/:docId', async (req: express.Request, res: express.Response) => {
+                if (!this.authService.checkAdmin(req, res)) return;
+                let tenant = req.params.tenant;
+                let docId = req.params.docId || undefined;
+                let collectionId = req.params.collection;
+                let user = await getUserFromRequest(req);
+                if(docId)
+                {
+                    docId = docId.trim();
+                    if(docId.length === 0)
+                    {
+                        docId = undefined;
+                    }
+                }
+                var doc = req.body;
+                let collection = this.getCollection(collectionId);
+                if (!collection)
+                {
+                    res.status(404).send(nu<ActionResult>({success:false, error: `Collection ${collection} not found`}));
+                    return;
+                }
+
+                if (docId)
+                {
+                    // let's see if the document exists
+                    let existingDoc = await this.repo.getDocument(tenant, collectionId, docId);
+                    if (existingDoc)
+                    {
+                        try{
+                            var result = await collection.updateDocument(tenant, docId, user.userId, doc);
+                            if(result)
+                            {
+                                res.send(success(docId));
+                            }
+                            else
+                            {
+                                res.send(error("Error updating the document"));
+                            }
+                            
+                        }
+                        catch(e) {
+                            res.status(500).send(error( `Error during update: ${e.message}`));
+                        }
+                        return;
+                    }
+                }
+                try{
+                    var createResult = await collection.createDocument(tenant, user.userId, doc, docId);
+                    if(createResult.error)
+                    {
+                        res.send(error(createResult.error));
+                    }
+                    else
+                    {
+                        res.send(success(createResult.id));
+                    }
+
+                }
+                catch(e) {
+                    res.status(500).send(error( `Error during creation: ${e.message}`));
+                }
+
+                
+            });
+
+        // Get a the user access tags for a collection
+        app.get('/tenant/:tenant/collection/:collection/user-access/:userId', async (req: express.Request, res: express.Response) => {
+                if (!this.authService.checkAdmin(req, res)) return;
+
+                let tenant = req.params.tenant;
+                let collection = req.params.collection;
+                let userId = req.params.userId;
+                var collectionSettings = this.collectionSettings.get(collection);
+                if (!collectionSettings)
+                {
+                    res.status(404).send(error("Collection not found"));
+                }
+                var roles = await this.authService.getUserRoles(userId,tenant);
+
+                if (!roles)
+                {
+                    res.status(404).send(error("User not found or not in tenant"));
+                }
+
+                try{
+                var accessTags = collectionSettings.accessTagsFromUser? collectionSettings.accessTagsFromUser({userId, roles}) : [];
+                var accessRightsInfo:string[] | undefined; 
+                if (collectionSettings.accessRights && typeof collectionSettings.accessRights === 'object')
+                {
+                    var accessRightsSet = new Set<string>();
+                    for (const role of roles) {
+                        if (collectionSettings.accessRights[role]) {
+                            for (const right of collectionSettings.accessRights[role]) {
+                                accessRightsSet.add(right);
+                            }
+                        }
+                    }
+                    accessRightsInfo = Array.from(accessRightsSet);
+                }
+
+
+                res.send(nu<CollectionAccessInfo>({accessTags:accessTags, accessRights: accessRightsInfo}));
+                } catch(e) {
+                    res.status(500).send(error( `Error getting access tags: ${e.message}`));
+                }
+                
+            });
     }
 
     getCollection<T>(collection: string): AmberCollection<T> | undefined {
@@ -352,13 +580,14 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             return errorResponse(message, 'unauthorized',`You don't have create access to the collection ${message.collection}`);
         }
 
-        if (collectionSettings.validator)
+        
+        let [isValid,validationError] = executeValidator(collectionSettings.validator, connection, null, message.content, CollectionActionCreate);
+        
+        if(!isValid)
         {
-            if(!collectionSettings.validator(connection, null,  message.content, CollectionActionCreate))
-            {
-                return errorResponse(message, 'validation-failed', `Document creation validation failed for the collection ${message.collection}`);
-            }
+            return errorResponse(message, 'validation-failed', `Document creation validation failed for the collection ${message.collection} with error: ${validationError}`);
         }
+    
 
         var result = await this.createDocument(connection.tenant, message.collection,collectionSettings, connection.userId, message.content, message.id);
         
@@ -463,12 +692,10 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
             return errorResponse(message, "unauthorized", `You don't have delete access to the collection ${message.collection}`);
         }
 
-        if (collectionSettings.validator)
+        let [isValid,validationError] = executeValidator(collectionSettings.validator, connection, oldDocument.data, null, CollectionActionDelete);
+        if(!isValid)
         {
-            if(!collectionSettings.validator(connection, oldDocument.data, null, CollectionActionDelete))
-            {
-                return errorResponse(message, "validation-failed",`Document deletion validation failed for the collection ${message.collection}`);
-            }
+            return errorResponse(message, "validation-failed",`Document deletion validation failed for the collection ${message.collection} with error: ${validationError}`);
         }
 
         var success = await this.deleteDocument(connection.tenant, message.collection, collectionSettings, connection.userId, message.documentId);
@@ -538,13 +765,11 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         {
             return errorResponse(message, "unauthorized",`You don't have update access to the collection ${message.collection}`);
         }
-
-        if (collectionSettings.validator)
+        
+        let [isValid,validationError] = executeValidator(collectionSettings.validator, connection, JSON.parse(oldDocument.data), message.content, CollectionActionUpdate);
+        if(!isValid)
         {
-            if(!collectionSettings.validator(connection, oldDocument.data, message.content, CollectionActionUpdate))
-            {
-                return errorResponse(message, "validation-failed", `Document update validation failed for the collection ${message.collection}`);
-            }
+            return errorResponse(message, "validation-failed", `Document update validation failed for the collection ${message.collection} with error: ${validationError}`);
         }
 
         var success = await this.updateDocumentWithOld(connection.tenant, message.collection, collectionSettings, message.documentId, connection.userId, message.content, oldDocument);
@@ -578,7 +803,7 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
      * @param expectedChangeNumber 
      * @returns 
      */
-    private async updateDocumentWithOld( tenant: string, collection:string, collectionSettings : CollectionSettings<any>, documentId:string, userId : string | undefined, data: any| undefined, oldDoc :DocumentWithAccessTags): Promise<boolean> {
+    private async updateDocumentWithOld( tenant: string, collection:string, collectionSettings : CollectionSettings<any>, documentId:string, userId : string | undefined, data: any| undefined, oldDoc :DocumentWithTags): Promise<boolean> {
 
         let accessTags = collectionSettings.accessTagsFromDocument ? collectionSettings.accessTagsFromDocument(data) : [];
         let dataTags = collectionSettings.tagsFromDocument ? collectionSettings.tagsFromDocument(data) : [];
@@ -654,5 +879,20 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         }
         return changeNumber > 0;
     }
+}
 
+function executeValidator(validator: (user: UserContext, oldDocument: any, newDocument: any, action: CollectionAccessAction) => boolean | string, user: UserContext, oldDocContent: any, doc: any, action: CollectionAccessAction): [boolean, string | undefined]
+{
+    if (!validator)
+    {
+        return [true, undefined];
+    }
+    try{
+        let validationResult = validator(user, oldDocContent, doc, action);
+        let isValid = isString(validationResult)? false : !!validationResult; // strings are considered as error messages
+        let errorMessage = isValid ? undefined : (isString(validationResult)? validationResult as string : "Invalid document");
+        return [isValid, errorMessage];
+    } catch(e) {
+        return [false, `Validator exception: ${e.message}`];
+    }
 }
