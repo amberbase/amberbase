@@ -1,5 +1,6 @@
+import { AmberChannelAdmin } from './channels.js';
 import { AmberLoginManager } from './login.js';
-import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails, UserInfo, AmberMetricsBucket, ChangeUserPasswordRequest, CreateTenantRequest, ChangeUserProfileRequest, ChangeUserRequest, ResetUserPasswordRequest, CollectionDocumentInfo, CollectionDocumentCheckResult, CollectionInfo, CollectionAccessInfo} from './shared/dtos.js'
+import {LoginRequest, nu, UserDetails, SessionToken, RegisterRequest, Tenant, ActionResult, TenantDetails, UserWithRoles, CreateInvitationRequest, TenantWithRoles, AcceptInvitationRequest, InvitationDetails, UserInfo, AmberMetricsBucket, ChangeUserPasswordRequest, CreateTenantRequest, ChangeUserProfileRequest, ChangeUserRequest, ResetUserPasswordRequest, CollectionDocumentInfo, CollectionDocumentCheckResult, CollectionInfo, CollectionAccessInfo, ChannelInfo, ChannelDocumentCheckResult} from './shared/dtos.js'
 
 /**
  * Internal class to wrap REST like api calls to the amber server for convenience
@@ -493,8 +494,21 @@ export class AmberCollectionAdminApi{
     }
 
     async createOrUpdateDocument<T>(collection:string,  doc:T, documentId?:string, userId?:string) : Promise<ActionResult> {
-        var path ='/tenant/:tenant/collection/'+collection+'/document/' + documentId;
+        var path ='/tenant/:tenant/collection/'+collection+'/document';
+
         var queryParams = userId ? "?userId="+encodeURIComponent(userId) : "";
+        if (documentId)
+        {
+            if(queryParams != "")
+            {
+                queryParams += "&";
+            }
+            else
+            {
+                queryParams+= "?";
+            }
+            queryParams+="docId="+encodeURIComponent(documentId);
+        }
 
         return await this.apiClient.fetch<ActionResult>("POST", path + queryParams, doc);
     }
@@ -520,6 +534,34 @@ export class AmberCollectionAdminApi{
 
     async getCollectionsInfo() : Promise<CollectionInfo[]> {
         return await this.apiClient.fetch<CollectionInfo[]>("GET", '/tenant/:tenant/collections');
+    }
+}
+
+export class AmberChannelAdminApi implements AmberChannelAdmin{
+    apiClient: ApiClient;
+    constructor(prefix: string, tenant:string, tokenProvider: () => Promise<string>) {
+        this.apiClient = new ApiClient(prefix, tenant, tokenProvider);
+    }
+
+    async checkMessage<T>(channel:string, message:T, subchannel?:string, userId?:string): Promise<ChannelDocumentCheckResult> {
+        
+        var path ='/tenant/:tenant/channel/'+encodeURIComponent(channel)+'/check';    
+        var queryParams = "";
+        if (userId)
+        {
+            queryParams = "?userId="+encodeURIComponent(userId);
+        }
+        if (subchannel)
+        {
+            queryParams += (queryParams.length === 0 ? "?" : "&") + "subchannel="+encodeURIComponent(subchannel);
+        }
+
+        path += queryParams;
+        return await this.apiClient.fetch<ChannelDocumentCheckResult>("POST", path, message);
+    }
+
+    async getChannels(): Promise<ChannelInfo[]> {
+        return await this.apiClient.fetch<ChannelInfo[]>("GET", '/tenant/:tenant/channels');
     }
 }
 

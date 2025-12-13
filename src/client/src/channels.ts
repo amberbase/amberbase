@@ -1,5 +1,6 @@
+import { AmberChannelAdminApi } from "./api.js";
 import { AmberConnectionsClient, ConnectionHandler } from "./connection.js";
-import { AmberSessionProtocolPrefix, CollectionClientWsMessage, CollectionDocument, AmberServerMessage, SubscribeCollectionMessage, AmberServerResponseMessage, AmberCollectionClientMessage, ServerError, ServerSyncDocument, DeletedCollectionDocument, UnsubscribeCollectionMessage, ServerSuccessWithDocument, CreateDocument, UpdateDocument, ServerSuccess, DeleteDocument, joinChannelName, SubscribeChannelMessage, ServerChannelMessage, UnsubscribeChannelMessage, SendToChannelMessage } from "./shared/dtos.js";
+import { AmberSessionProtocolPrefix, CollectionClientWsMessage, CollectionDocument, AmberServerMessage, SubscribeCollectionMessage, AmberServerResponseMessage, AmberCollectionClientMessage, ServerError, ServerSyncDocument, DeletedCollectionDocument, UnsubscribeCollectionMessage, ServerSuccessWithDocument, CreateDocument, UpdateDocument, ServerSuccess, DeleteDocument, joinChannelName, SubscribeChannelMessage, ServerChannelMessage, UnsubscribeChannelMessage, SendToChannelMessage, ChannelDocumentCheckResult, ChannelInfo } from "./shared/dtos.js";
 
 /**
  * SDK API for the amber channels
@@ -37,6 +38,29 @@ export interface AmberChannels{
      * @param subchannel An optional subchannel (the serverside needs to enable subchannels for this to work, if it is the subchannel must be defined). An admin can subscribe to the top level channel even if subchannels are used.
      */
     getChannel<T>(channel:string, subchannel?:string | undefined): AmberChannel<T>;
+
+    /**
+     * Get the debug API for channels. Only available for admin users.
+     */
+    getAdminApi(): AmberChannelAdmin;
+}
+/**
+ * Debug interface for channels. Only available for admin users.
+ */
+export interface AmberChannelAdmin{
+    /**
+     * Check a message against the channel's validation and authorization rules.
+     * @param channel Channel name
+     * @param message Message to check, as serialized json
+     * @param subchannel subchannel name (optional)
+     * @param userId user id to check the message for another user (optional)
+     */
+    checkMessage(channel:string, message:string,  subchannel?:string, userId?:string): Promise<ChannelDocumentCheckResult>;
+
+    /**
+     * Get the list of channels available on the server. It will only enumerate the main channels, not subchannels (since they only exist virtually if someone subscribed to them).
+     */
+    getChannels(): Promise<ChannelInfo[]>;
 }
 
 /**
@@ -48,6 +72,8 @@ export interface AmberChannel<T>{
      * Subscribe to a channel. This will start receiving messages for the channel. 
      * If a channel has subchannels enabled, the subscription is only for the given subchannel and will throw an error if no subchannel has been selected. 
      * Tenant admins can subscribe to the top level channel even if subchannels are used.
+     * If a subscription already exists for the particular channel, it will be replaced. There are never two subscriptions receiving the same message. 
+     * If an admin subscribes to a top level channel AND a subchannel of the same top level, the more specific subchannel subscription will be triggered.
      * @param onMessage Callback for when a message is received and the channel name as it was received
      */
     subscribe(onMessage:(doc:T, channelName:string) => void): void;
@@ -68,15 +94,17 @@ export interface AmberChannel<T>{
 
 export class AmberChannelsClient implements ConnectionHandler, AmberChannels{
     
+
     subscriptions: Map<string,{
         onMessage:(message:any, channelName:string) => void,
     }> = new Map();
     connection: AmberConnectionsClient;
-
+    adminApiClient: AmberChannelAdmin;
     
-    constructor(connection:AmberConnectionsClient){
+    constructor(connection:AmberConnectionsClient, prefix:string, tenant:string, sessionToken: () => Promise<string>){
         this.connection = connection;
         connection.registerConnectionHandler(this);
+        this.adminApiClient = new AmberChannelAdminApi(prefix, tenant, sessionToken);
     }
 
     getChannel<T>(channel: string, subchannel:string|undefined): AmberChannel<T> {
@@ -107,9 +135,17 @@ export class AmberChannelsClient implements ConnectionHandler, AmberChannels{
         if (message.type === "channel-message") {
             const syncMessage = message as ServerChannelMessage;
             const toplevelChannel = syncMessage.channel.split('/')[0];
+
             const subscription = this.subscriptions.get(syncMessage.channel);
             if (subscription) {
-              subscription.onMessage(syncMessage.message, syncMessage.channel);
+                subscription.onMessage(syncMessage.message, syncMessage.channel);
+                return; // the more specific subscription takes precedence
+            }
+
+            const toplevelSubscription = this.subscriptions.get(toplevelChannel);
+            if(toplevelSubscription) {
+                toplevelSubscription.onMessage(syncMessage.message, syncMessage.channel);
+
             }
         } 
     }
@@ -160,6 +196,10 @@ export class AmberChannelsClient implements ConnectionHandler, AmberChannels{
 
     public async disconnect(): Promise<void> {
         await this.connection.disconnect();
+    }
+
+    public getAdminApi(){
+        return this.adminApiClient;
     }
 
 }

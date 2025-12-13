@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import {ref, onMounted, watch, toRaw, computed, useTemplateRef} from "vue"
-import { AmberClient, type UserWithRoles, type Tenant, type UserDetails, type TenantDetails, type UserInfo, amberClient, type AmberCollection} from "amber-client"
-import { copy, generatePassword, renderIsoTime, renderRelativeTime, uiHelper} from "@/common"
-import type {} from "./AmberCollectionEditor.vue"
-import JsonEdit from "./shared/JsonEdit.vue"
-import type { CollectionAccessInfo, CollectionDocument, CollectionInfo } from "amber-client/dist/src/shared/dtos";
+import {ref, onMounted} from "vue"
+import { AmberClient, type UserInfo} from "amber-client"
+import type { CollectionAccessInfo} from "amber-client/dist/src/shared/dtos";
 import AmberCollectionEditor from "./AmberCollectionEditor.vue"
 var props = defineProps<{
   amberClient: AmberClient, 
@@ -18,9 +15,6 @@ var loggedInUser = ref<UserInfo|null>(null);
 
 const currentSelectedUser = ref<UserInfo|null>(null);
 const currentUser = ()=>currentSelectedUser.value || loggedInUser.value;
-const showSelectUser = ref<boolean>(false);
-const currentUserAccess = ref<CollectionAccessInfo>({accessTags:[]});
-const collectionsClient = props.amberClient.getCollectionsApi();
 var collectionApi = props.amberClient.getCollectionsApi()!;
 var tenantApi = props.amberClient.getAmberApi()!;
 

@@ -366,7 +366,25 @@ export interface CollectionAccessInfo{
     accessTags:string[];
 }
 
+// Channel Admin DTOs
+/**
+ * Information about a collection to be used in the admin API
+ */
+export interface ChannelInfo{
+    name:string;
+    accessRightsMethod: "code" | "roles" | "none";
+    hasSubchannels: boolean;
+}
 
+/**
+ * Result of a document check for validity against the collection settings
+ */
+export interface ChannelDocumentCheckResult{
+    isValid:boolean;
+    error?:string;
+    publishAuthorized:boolean;
+    subscribeAuthorized:boolean;
+}
 
 // Amber websocket messages
 /**

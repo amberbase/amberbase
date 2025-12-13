@@ -187,6 +187,8 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
                     subscription.onDocumentDelete(syncMessage.document.id);
                 }
                 else {
+                    var doc = syncMessage.document as CollectionDocument;
+                    doc.change_time = new Date(doc.change_time); // parse iso string
                     subscription.onDocument(syncMessage.document as CollectionDocument);
                 }
                 subscription.lastReceivedChange = Math.max(subscription.lastReceivedChange || 0, syncMessage.document.change_number);

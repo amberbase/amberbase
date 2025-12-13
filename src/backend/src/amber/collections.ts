@@ -7,6 +7,7 @@ import { ActiveConnection, AmberConnectionManager, AmberConnectionMessageHandler
 import { amberStats, Stats, StatsProvider } from "./stats.js";
 import * as express from 'express';
 import { isString } from './helper.js';
+import { StringifyOptions } from 'node:querystring';
 export const CollectionActionCreate = "create";
 export const CollectionActionSubscribe = "subscribe";
 export const CollectionActionUpdate = "update";
@@ -260,10 +261,10 @@ export class CollectionsService implements AmberConnectionMessageHandler, AmberC
         // If the document id exists the document will be updated, otherwise created. 
         // If the document id is not provided or whitespace a new id will be generated.
         // The body must contain the document .
-        app.post('/tenant/:tenant/collection/:collection/document/:docId', async (req: express.Request, res: express.Response) => {
+        app.post('/tenant/:tenant/collection/:collection/document', async (req: express.Request, res: express.Response) => {
                 if (!this.authService.checkAdmin(req, res)) return;
                 let tenant = req.params.tenant;
-                let docId = req.params.docId || undefined;
+                let docId = req.query.docId as string|| undefined;
                 let collectionId = req.params.collection;
                 let user = await getUserFromRequest(req);
                 if(docId)

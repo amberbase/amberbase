@@ -4,6 +4,7 @@ import { AmberClient, type UserWithRoles, type Tenant, type UserDetails, type Te
 import { copy, generatePassword, uiHelper} from "@/common"
 import JsonEdit from "./shared/JsonEdit.vue"
 import AmberCollectionAdmin from "./AmberCollectionsAdmin.vue"
+import AmberChannelsAdmin from "./AmberChannelsAdmin.vue"
 var props = defineProps<{
   amberClient: AmberClient, 
   tenant : string,
@@ -189,7 +190,8 @@ const updateTenant = async ()=>{
     >
       <v-tab value="users">Users</v-tab>
       <v-tab value="settings">Settings</v-tab>
-      <v-tab value="data" v-if ="props.tenant != '*'">Collection Data</v-tab>
+      <v-tab value="data" v-if ="props.tenant != '*'">Collections</v-tab>
+      <v-tab value="channels" v-if ="props.tenant != '*'">Channels</v-tab>
     </v-tabs>    
   </v-row>
   </v-container>
@@ -277,6 +279,9 @@ const updateTenant = async ()=>{
     </v-tabs-window-item>
     <v-tabs-window-item value="data">
       <amber-collection-admin :amber-client="props.amberClient" :tenant="props.tenant"/>
+    </v-tabs-window-item>
+    <v-tabs-window-item value="channels">
+      <amber-channels-admin :amber-client="props.amberClient" :tenant="props.tenant"/>
     </v-tabs-window-item>
     </v-tabs-window>
   

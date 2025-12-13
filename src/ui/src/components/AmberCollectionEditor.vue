@@ -5,6 +5,7 @@ import { copy, generatePassword, renderIsoTime, renderRelativeTime, uiHelper} fr
 import JsonEdit from "./shared/JsonEdit.vue"
 import type { CollectionAccessInfo, CollectionDocument, CollectionInfo } from "amber-client/dist/src/shared/dtos";
 import { adminRole } from "../../../shared/src";
+import RelativeTime from "./shared/RelativeTime.vue";
 var props = defineProps<{
   amberClient: AmberClient, 
   tenant : string,
@@ -46,6 +47,7 @@ const editEntityAuthorized = ref<boolean>(false);
 const entityInfoBusy = ref<boolean>(false);
 var viewEntityId = ref<string>("");
 var editJson = ref<string>("");
+var editEntityNewId = ref<string>("");
 
 var receiveEntitySync = (msg: CollectionDocument<any>)=>{
     lastChangeNumber.value = msg.change_number;
@@ -354,11 +356,6 @@ const validateEditEntity = async ()=>{
         return;
     entityInfoBusy.value = true;
     try{
-      if (!editEntity.value)
-      {
-          entityInfoBusy.value = false;
-          return;
-      }
       var checkInfo = await adminApi.checkDocument(JSON.parse(editJson.value), currentUser()?.id, editEntity.value?.id);
       editEntityAccessTags.value = checkInfo.createdAccessTags || [];
       editEntityTags.value = checkInfo.createdTags || [];
@@ -407,7 +404,7 @@ const saveEditEntity = async ()=>{
     try{
       var updatedDoc = await adminApi.createOrUpdateDocument(
         JSON.parse(editJson.value),
-        editEntity.value?.id,
+        editEntity.value?.id || (editEntityNewId.value!="" ? editEntityNewId.value : undefined),
         currentUser().id
       );
       showEditEntity.value = false;
@@ -460,6 +457,7 @@ const newEditDocument = async ()=>{
     selectedEntityTags.value = [];
     selectedEntityAccessTags.value = [];
     showEditEntity.value = true;
+    editEntityNewId.value = "";
     await validateEditEntity();
     
 };
@@ -636,8 +634,8 @@ watch(editJson, async (newVal)=>{
           <span class="id" :title="doc.id">
             #{{ doc.id }}
           </span>
-          <span class="time" :title="renderIsoTime(doc.change_time)">
-            {{ renderRelativeTime(doc.change_time) }}
+          <span class="time">
+             <RelativeTime :date="doc.change_time" precision="minute"></RelativeTime>
           </span>
           <span class="user">
             by {{getUser(doc.change_user)}}
@@ -671,6 +669,10 @@ watch(editJson, async (newVal)=>{
         {{ currentUser()?.name }} ({{ currentUser()?.email }}) <v-btn icon="mdi-pencil" small @click="showSelectUser = true" title="Change User"></v-btn>
         </template>
       </v-card-title>
+      <v-card-subtitle v-if="editEntity == null">
+        <v-text-field label="Document Id (leave empty to generate)" v-model="editEntityNewId" ></v-text-field>
+        If a document with the same id exists, it will be overwritten
+      </v-card-subtitle>
       <v-card-subtitle>
         <div v-if="accessRightsMethod =='roles' ">
             User Collection Roles:
@@ -687,6 +689,7 @@ watch(editJson, async (newVal)=>{
                 v-for="tag in currentUserAccess.accessTags"
                 :key="tag"
                 outlined
+                :color="selectedEntityAccessTags.includes(tag) ? 'primary':''"
               >{{ tag }}</v-chip>
           </div>
       </v-card-subtitle>
@@ -697,8 +700,14 @@ watch(editJson, async (newVal)=>{
                 v-for="tag in selectedEntityAccessTags"
                 :key="tag"
                 outlined
+                :color="currentUserAccess.accessTags.includes(tag) ? 'primary':''"
               >{{ tag }}</v-chip>
           </div>
+          <v-alert type="warning" v-if="hasAccessTags && !editEntityAccessTags.some(tag => currentUserAccess.accessTags.includes(tag))">
+            <div>
+              <strong>The selected user would not be able to see this since there is no overlapping access tag</strong>
+            </div>
+          </v-alert>
           <div v-if="hasTags">
             Document Tags:
               <v-chip
@@ -731,6 +740,8 @@ watch(editJson, async (newVal)=>{
             <strong>The selected user would not be authorized to do this change</strong>
           </div>
         </v-alert>
+
+        
       </v-card-item>
 
       <v-card-item>
