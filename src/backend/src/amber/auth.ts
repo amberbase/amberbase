@@ -462,7 +462,7 @@ interface UserToken{
 export interface AmberAuth {
     /**
      * Utility function to get the session token from the request header.
-     * If the session token is not valid or expired, it will return undefined.
+     * If the session token is not valid or expired, it will return undefined. It will check if a parameter "tenant" is present in the path and validate that the session token is valid for this tenant.
      * @param req Request to handle
      * @returns SessionToken or undefined if not valid
      */
@@ -546,6 +546,14 @@ export interface AmberAuth {
      * @param roles The roles to add to the user in the tenant
      */
     addUserToTenant(email:string, name:string, pw:string, tenant:string, roles:string[]) : Promise<string>;
+
+    /**
+     * Get the roles of a user in a tenant.
+     * @param userId The id of the user to get the roles for
+     * @param tenant The tenant to get the roles for
+     * @return The roles of the user in the tenant
+     * */
+    getUserRoles(userId:string, tenant:string): Promise<string[]>
 }
 
 export class AmberAuthService implements AmberAuth {
@@ -600,9 +608,12 @@ export class AmberAuthService implements AmberAuth {
         var sessionToken = req.header(sessionHeader);
         if (!sessionToken)
             return undefined;
-        return this.validateSessionToken(sessionToken);
+        var session =  this.validateSessionToken(sessionToken);
+        if (req.params.tenant && session?.tenant !== req.params.tenant && session?.tenant !== allTenantsId)
+            return undefined;
+        return session;
     }
-
+    
     /**
      * 
      * @ignore
@@ -907,6 +918,11 @@ export class AmberAuthService implements AmberAuth {
             await this.addRolesToUser(id, tenant, roles);
         }
         return id;
+    }
+
+    async getUserRoles(userId:string, tenant:string): Promise<string[]>{
+        var roles = await this.repo.getUserRoles(userId, tenant);
+        return roles;
     }
 }
 

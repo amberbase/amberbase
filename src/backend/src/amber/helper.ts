@@ -1,5 +1,10 @@
 import { sleep } from "../../../client/src/shared/helper.js";
 import * as crypto from 'node:crypto';
+
+export function isString(value: any): boolean {
+    return typeof value === 'string' || value instanceof String;
+}
+
 export class BruteProtection{
     heat: number = 0;
     last:number = Date.now();

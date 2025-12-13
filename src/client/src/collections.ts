@@ -1,5 +1,6 @@
+import { AmberCollectionAdminApi } from "./api.js";
 import { AmberConnectionsClient, ConnectionHandler, ServerErrorResponse } from "./connection.js";
-import { AmberSessionProtocolPrefix, CollectionClientWsMessage, CollectionDocument, AmberServerMessage, SubscribeCollectionMessage, AmberServerResponseMessage, AmberCollectionClientMessage, ServerError, ServerSyncDocument, DeletedCollectionDocument, UnsubscribeCollectionMessage, ServerSuccessWithDocument, CreateDocument, UpdateDocument, ServerSuccess, DeleteDocument, nu } from "./shared/dtos.js";
+import { AmberSessionProtocolPrefix, CollectionClientWsMessage, CollectionDocument, AmberServerMessage, SubscribeCollectionMessage, AmberServerResponseMessage, AmberCollectionClientMessage, ServerError, ServerSyncDocument, DeletedCollectionDocument, UnsubscribeCollectionMessage, ServerSuccessWithDocument, CreateDocument, UpdateDocument, ServerSuccess, DeleteDocument, nu, CollectionInfo, CollectionDocumentCheckResult, CollectionDocumentInfo, ActionResult, CollectionAccessInfo } from "./shared/dtos.js";
 
 /**
  * SDK API for the amber collections
@@ -36,6 +37,24 @@ export interface AmberCollections{
      * @param collection 
      */
     getCollection<T>(collection:string): AmberCollection<T>;
+    /**
+     * Get information about all collections that are configured. Since this is only metadata, it is available for all users of a tenant.
+     * @returns A promise that resolves to an array of collection info objects.
+     */
+    getCollectionsInfo(): Promise<CollectionInfo[]>;
+
+    /**
+     * Get the admin interface to work with a given collection. This interface has additional methods to manage the collection.
+     * @param collection The collection
+     */
+    getCollectionAdmin<T>(collection:string): AmberCollectionAdmin<T>;
+}
+
+export interface AmberCollectionAdmin<T>{
+    checkDocument(doc:T, userId?: string, documentId?:string): Promise<CollectionDocumentCheckResult >;
+    getDocumentInfo(documentId:string): Promise<CollectionDocumentInfo>;
+    createOrUpdateDocument(doc:T, documentId?:string, userId?:string): Promise<ActionResult>;
+    getUserAccess(userId:string): Promise<CollectionAccessInfo>;
 }
 
 /**
@@ -44,6 +63,10 @@ export interface AmberCollections{
  */
 export interface AmberCollection<T>{
     
+    /**
+     * Get the name of the collection
+     */
+    name(): string;
     /**
      * Subscribe to a collection. This will start receiving messages for the collection. The lastReceivedChange is used to determine the starting point for the subscription.
      * @param lastReceivedChange The last change number received. This is used to determine the starting point for the subscription.
@@ -127,15 +150,17 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
         onDocumentDelete:(docId:string) => void,
     }> = new Map();
     connection: AmberConnectionsClient;
-
+    adminApiClient: AmberCollectionAdminApi;
     
-    constructor(connection:AmberConnectionsClient){
+    constructor(connection:AmberConnectionsClient, prefix:string, tenant:string, sessionToken: () => Promise<string>) {
         this.connection = connection;
         connection.registerConnectionHandler(this);
+        this.adminApiClient = new AmberCollectionAdminApi(prefix, tenant, sessionToken);
     }
 
     getCollection<T>(collection: string): AmberCollection<T> {
-        return {        
+        return {    
+            name: () => collection,    
             createDoc: (content:T, documentId?:string) => this.createDoc<T>(collection, content, documentId),
             updateDoc: (documentId:string, changeNumber:number, content:T) => this.updateDoc<T>(collection, documentId, changeNumber, content),
             deleteDoc: (documentId:string) => this.deleteDoc(collection, documentId),
@@ -162,6 +187,8 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
                     subscription.onDocumentDelete(syncMessage.document.id);
                 }
                 else {
+                    var doc = syncMessage.document as CollectionDocument;
+                    doc.change_time = new Date(doc.change_time); // parse iso string
                     subscription.onDocument(syncMessage.document as CollectionDocument);
                 }
                 subscription.lastReceivedChange = Math.max(subscription.lastReceivedChange || 0, syncMessage.document.change_number);
@@ -187,6 +214,7 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
         // if we are already connected, send the subscribe message. Otherwise it will be sent when we connect
         if(this.connection.isConnected())
         {
+            console.debug("Subscribing to collection ", collection, " from change ", lastReceivedChange);
             this.connection.send<SubscribeCollectionMessage>({action:"subscribe-collection", collection:collection, requestId:this.connection.incrementedRequestId(), start: lastReceivedChange});
         }
     }
@@ -197,6 +225,7 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
         // if we are already connected, send the unsubscribe message.
         if(this.connection.isConnected())
         {
+            console.debug("Unsubscribing from collection ", collection);
             this.connection.send<UnsubscribeCollectionMessage>({action:"unsubscribe-collection", collection:collection, requestId:this.connection.incrementedRequestId()});
         }
     }
@@ -236,11 +265,40 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
         await this.connection.sendAndReceive<DeleteDocument, ServerSuccess>({action:"delete-doc", collection:collection, requestId:this.connection.incrementedRequestId(), documentId:documentId});
     }
 
+    /**
+     * Connects the underlying connection
+     */
     public async connect(): Promise<void> {
         await this.connection.connect();
     }
 
+    /**
+     * Disconnects the underlying connection
+     */
     public async disconnect(): Promise<void> {
         await this.connection.disconnect();
+    }
+
+    /**
+     * Get information about all collections that are configured. Since this is only metadata, it is available for all users of a tenant. The server needs to have the collection debug api enabled
+     * @returns 
+     */
+    getCollectionsInfo(): Promise<CollectionInfo[]> {
+        return this.adminApiClient.getCollectionsInfo();
+    }
+
+    /**
+     * Get the admin interface to work with a given collection. This interface has additional methods to manage and debug the collection.
+     * The server needs to have the collection debug api enabled
+     * @param collection The collection to get the API for
+     * @returns The admin interface for the collection
+     */
+    getCollectionAdmin<T>(collection: string): AmberCollectionAdmin<T> {
+        return {
+            checkDocument: (doc:T, userId?: string, documentId?:string) => this.adminApiClient.checkDocument<T>(collection, doc, userId, documentId),
+            getDocumentInfo: (documentId:string) => this.adminApiClient.getDocumentInfo(collection,documentId),
+            createOrUpdateDocument: (doc:T, documentId:string, userId?:string) => this.adminApiClient.createOrUpdateDocument(collection, doc, documentId, userId),
+            getUserAccess: (userId:string) => this.adminApiClient.getUserAccess(collection, userId)
+        };
     }
 }
