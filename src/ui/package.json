@@ -21,11 +21,11 @@
     "@mdi/font": "^7.4.47",
     "@tsconfig/node20": "^20.1.4",
     "@types/node": "^20.16.11",
-    "@vitejs/plugin-vue": "^5.2.3",
+    "@vitejs/plugin-vue": "^6.0.7",
     "@vue/tsconfig": "^0.5.1",
     "npm-run-all2": "^6.2.3",
     "typescript": "~5.5.4",
-    "vite": "^6.4.2",
+    "vite": "^8.0.16",
     "vue-tsc": "^2.1.6"
   }
 }
