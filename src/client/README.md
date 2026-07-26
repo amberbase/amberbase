@@ -8,7 +8,7 @@
 ## Amberbase client library
 This is the client library for `amberbase` and helps to connect your frontend code to your amberbase based backend.
 
-Install the client library in your code via `npm install amberbase-client` and use it similar to the following example:
+Install the client library in your code via `npm install amber-client` and use it similar to the following example:
 ```ts
 
 var clientBuilder = amberClient().withPath("/amber").withTenant("production");
