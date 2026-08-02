@@ -119,8 +119,8 @@ function arraySetToString(a: string[] | undefined): string {
   if (a === undefined) {
     return "";
   }
-  var sorted = [...a.map((i) => i.trim())].sort((a, b) => a.localeCompare(b)); // sort the array to make sure that the order is the same
-  return a.join(" ");
+  var sorted = a.map((i) => i.trim()).sort((a, b) => a.localeCompare(b)); // sort the array to make sure that the order is the same
+  return sorted.join(" ");
 }
 
 // this class is a singleton! That means that it can keep some state in a cache and reuse it between requests
