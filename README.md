@@ -75,7 +75,7 @@ amberApp.listen(port, "0.0.0.0");
 ```
 
 ### Client side
-Install the client library in your code via `npm install amberbase-client` and use it similar to the following example:
+Install the client library in your code via `npm install amber-client` and use it similar to the following example:
 ```ts
 
 var clientBuilder = amberClient().withPath("/amber").withTenant("production");
@@ -109,6 +109,12 @@ amberClient.getCollectionsApi().getCollection<ToDoEntity>("todos")
         completed: false
     });
 ```
+
+# Development
+This repo is a pnpm workspace covering `src/backend`, `src/client`, and `src/ui`. To work on it:
+* `pnpm install` at the repo root installs all three packages.
+* `pnpm -r run build` builds every package; `pnpm -r run test` and `pnpm -r run lint` run tests/lint across all of them.
+* Target a single package with `pnpm --filter <name> run <script>`, e.g. `pnpm --filter amberbase run build` or `pnpm --filter amber-ui run dev`.
 
 # Learn
 To get to know and understand `amberbase` beyond the hello world example, you can go several routes

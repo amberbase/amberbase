@@ -1,110 +1,140 @@
 import { AmberCollectionAdminApi } from "./api.js";
 import { AmberConnectionsClient, ConnectionHandler, ServerErrorResponse } from "./connection.js";
-import { AmberSessionProtocolPrefix, CollectionClientWsMessage, CollectionDocument, AmberServerMessage, SubscribeCollectionMessage, AmberServerResponseMessage, AmberCollectionClientMessage, ServerError, ServerSyncDocument, DeletedCollectionDocument, UnsubscribeCollectionMessage, ServerSuccessWithDocument, CreateDocument, UpdateDocument, ServerSuccess, DeleteDocument, nu, CollectionInfo, CollectionDocumentCheckResult, CollectionDocumentInfo, ActionResult, CollectionAccessInfo } from "./shared/dtos.js";
+import {
+  AmberSessionProtocolPrefix,
+  CollectionClientWsMessage,
+  CollectionDocument,
+  AmberServerMessage,
+  SubscribeCollectionMessage,
+  AmberServerResponseMessage,
+  AmberCollectionClientMessage,
+  ServerError,
+  ServerSyncDocument,
+  DeletedCollectionDocument,
+  UnsubscribeCollectionMessage,
+  ServerSuccessWithDocument,
+  CreateDocument,
+  UpdateDocument,
+  ServerSuccess,
+  DeleteDocument,
+  nu,
+  CollectionInfo,
+  CollectionDocumentCheckResult,
+  CollectionDocumentInfo,
+  ActionResult,
+  CollectionAccessInfo,
+} from "./shared/dtos.js";
 
 /**
  * SDK API for the amber collections
  */
-export interface AmberCollections{
-    /**
-     * Connect to the amber server. This will open a websocket connection and start receiving messages. The connection is potentially already established, there will only be one.
-     * 
-     * @returns A promise that resolves when the connection is established.
-     */
-    connect(): Promise<void>;
+export interface AmberCollections {
+  /**
+   * Connect to the amber server. This will open a websocket connection and start receiving messages. The connection is potentially already established, there will only be one.
+   *
+   * @returns A promise that resolves when the connection is established.
+   */
+  connect(): Promise<void>;
 
-    /**
-     * Disconnect from the amber server. This will close the websocket connection and stop receiving messages.
-     * 
-     * @returns A promise that resolves when the connection is closed.
-     */
-    disconnect(): Promise<void>;
+  /**
+   * Disconnect from the amber server. This will close the websocket connection and stop receiving messages.
+   *
+   * @returns A promise that resolves when the connection is closed.
+   */
+  disconnect(): Promise<void>;
 
-    /**
-     * Listen to connection changes. If the connection already exists the callback will be immediately called with true.
-     * @param callback Listener
-     */
-    onConnectionChanged(callback:(connected:boolean) => void): void;
+  /**
+   * Listen to connection changes. If the connection already exists the callback will be immediately called with true.
+   * @param callback Listener
+   */
+  onConnectionChanged(callback: (connected: boolean) => void): void;
 
-    /**
-     * Stop listening to connection changes.
-     * @param callback The same listener that was passed to onConnectionChanged
-     */
-    offConnectionChanged(callback:(connected:boolean) => void): void;
+  /**
+   * Stop listening to connection changes.
+   * @param callback The same listener that was passed to onConnectionChanged
+   */
+  offConnectionChanged(callback: (connected: boolean) => void): void;
 
-    /**
-     * Get the interface to work with a given collection
-     * @param collection 
-     */
-    getCollection<T>(collection:string): AmberCollection<T>;
-    /**
-     * Get information about all collections that are configured. Since this is only metadata, it is available for all users of a tenant.
-     * @returns A promise that resolves to an array of collection info objects.
-     */
-    getCollectionsInfo(): Promise<CollectionInfo[]>;
+  /**
+   * Get the interface to work with a given collection
+   * @param collection
+   */
+  getCollection<T>(collection: string): AmberCollection<T>;
+  /**
+   * Get information about all collections that are configured. Since this is only metadata, it is available for all users of a tenant.
+   * @returns A promise that resolves to an array of collection info objects.
+   */
+  getCollectionsInfo(): Promise<CollectionInfo[]>;
 
-    /**
-     * Get the admin interface to work with a given collection. This interface has additional methods to manage the collection.
-     * @param collection The collection
-     */
-    getCollectionAdmin<T>(collection:string): AmberCollectionAdmin<T>;
+  /**
+   * Get the admin interface to work with a given collection. This interface has additional methods to manage the collection.
+   * @param collection The collection
+   */
+  getCollectionAdmin<T>(collection: string): AmberCollectionAdmin<T>;
 }
 
-export interface AmberCollectionAdmin<T>{
-    checkDocument(doc:T, userId?: string, documentId?:string): Promise<CollectionDocumentCheckResult >;
-    getDocumentInfo(documentId:string): Promise<CollectionDocumentInfo>;
-    createOrUpdateDocument(doc:T, documentId?:string, userId?:string): Promise<ActionResult>;
-    getUserAccess(userId:string): Promise<CollectionAccessInfo>;
+export interface AmberCollectionAdmin<T> {
+  checkDocument(
+    doc: T,
+    userId?: string,
+    documentId?: string,
+  ): Promise<CollectionDocumentCheckResult>;
+  getDocumentInfo(documentId: string): Promise<CollectionDocumentInfo>;
+  createOrUpdateDocument(doc: T, documentId?: string, userId?: string): Promise<ActionResult>;
+  getUserAccess(userId: string): Promise<CollectionAccessInfo>;
 }
 
 /**
  * Interface for a collection in the Amber SDK. This is used to create, update, delete and subscribe to documents in a collection.
  * Methods might throw a @see ServerErrorResponse if the operation fails.
  */
-export interface AmberCollection<T>{
-    
-    /**
-     * Get the name of the collection
-     */
-    name(): string;
-    /**
-     * Subscribe to a collection. This will start receiving messages for the collection. The lastReceivedChange is used to determine the starting point for the subscription.
-     * @param lastReceivedChange The last change number received. This is used to determine the starting point for the subscription.
-     * @param onDocument Callback for when a document is received
-     * @param onDocumentDelete Callback for when a document is deleted
-     */
-    subscribe(lastReceivedChange:number, onDocument:(doc:CollectionDocument<T>) => void, onDocumentDelete:(docId:string) => void): void;
+export interface AmberCollection<T> {
+  /**
+   * Get the name of the collection
+   */
+  name(): string;
+  /**
+   * Subscribe to a collection. This will start receiving messages for the collection. The lastReceivedChange is used to determine the starting point for the subscription.
+   * @param lastReceivedChange The last change number received. This is used to determine the starting point for the subscription.
+   * @param onDocument Callback for when a document is received
+   * @param onDocumentDelete Callback for when a document is deleted
+   */
+  subscribe(
+    lastReceivedChange: number,
+    onDocument: (doc: CollectionDocument<T>) => void,
+    onDocumentDelete: (docId: string) => void,
+  ): void;
 
-    /**
-     * Unsubscribe from a collection. This will stop receiving messages for the collection.
-     */
-    unsubscribe(): void;
+  /**
+   * Unsubscribe from a collection. This will stop receiving messages for the collection.
+   */
+  unsubscribe(): void;
 
-    /**
-     * Create a new document
-     * @param content content of the document
-     * @param documentId Optional document id containing case sensitive alpha-numerics with "-" and "_" of a max-length of 36 characters. If not provided a new one will be generated. If it is povided and the id already exists, the call will fail with a ServerErrorResponse of errorCode "duplicate-id"
-     * @returns the document id of the created document. If this call succeeds, the document will already be sent to the client as a sync.
-     */
+  /**
+   * Create a new document
+   * @param content content of the document
+   * @param documentId Optional document id containing case sensitive alpha-numerics with "-" and "_" of a max-length of 36 characters. If not provided a new one will be generated. If it is povided and the id already exists, the call will fail with a ServerErrorResponse of errorCode "duplicate-id"
+   * @returns the document id of the created document. If this call succeeds, the document will already be sent to the client as a sync.
+   */
 
-    createDoc(content:T, documentId?:string): Promise<string>;
+  createDoc(content: T, documentId?: string): Promise<string>;
 
-    /**
-     * Update a document. This will update the document in the collection and return the document id. 
-     * The document will be sent to the client as a sync message before the promise resolves succesfully. 
-     * @param documentId The document id of the document to update
-     * @param content The content of the document
-     * @returns The document id of the updated document
-     */
-    updateDoc(documentId:string, changeNumber:number, content:T): Promise<void>;
+  /**
+   * Update a document. This will update the document in the collection and return the document id.
+   * The document will be sent to the client as a sync message before the promise resolves succesfully.
+   * @param documentId The document id of the document to update
+   * @param content The content of the document
+   * @returns The document id of the updated document
+   */
+  updateDoc(documentId: string, changeNumber: number, content: T): Promise<void>;
 
-    /**
-     * Delete a document. This will delete the document in the collection and return the document id. 
-     * The document will be sent to the client as a sync-delete message before the promise resolves succesfully. 
-     * @param documentId The document id of the document to delete
-     * @returns The document id of the deleted document
-     */
-    deleteDoc(documentId:string): Promise<void>;
+  /**
+   * Delete a document. This will delete the document in the collection and return the document id.
+   * The document will be sent to the client as a sync-delete message before the promise resolves succesfully.
+   * @param documentId The document id of the document to delete
+   * @returns The document id of the deleted document
+   */
+  deleteDoc(documentId: string): Promise<void>;
 }
 
 /**
@@ -114,191 +144,244 @@ export interface AmberCollection<T>{
  * @param documentIdHint The hint for the document id
  * @returns The document id of the created document
  */
-export async function createDocWithDocumentIdHint<T>(collection:AmberCollection<T>, content:T, documentIdHint:string) : Promise<string>
-{
-    var hintAsId = documentIdHint.replace(/[^a-zA-Z0-9_\-]/g, '-').substring(0,36);
-    var creationId = hintAsId;
-    var attempts = 0;
-    var maxAttempts = 10;
-    while(attempts < maxAttempts)
-    {
-        attempts++;
-        try
-        {
-            var createdId = await collection.createDoc(content, creationId);
-            return createdId;
-        }catch(e)
-        {
-            var serverError = e as ServerErrorResponse;
-            if (serverError.errorCode == "duplicate-id")
-            {
-                var randomSuffix = Math.floor(Math.random() * 1000);
-                creationId = hintAsId.substring(0,32) + "-" + randomSuffix;
-                continue;
-            }
-            throw e;
-        }
+export async function createDocWithDocumentIdHint<T>(
+  collection: AmberCollection<T>,
+  content: T,
+  documentIdHint: string,
+): Promise<string> {
+  var hintAsId = documentIdHint.replace(/[^a-zA-Z0-9_\-]/g, "-").substring(0, 36);
+  var creationId = hintAsId;
+  var attempts = 0;
+  var maxAttempts = 10;
+  while (attempts < maxAttempts) {
+    attempts++;
+    try {
+      var createdId = await collection.createDoc(content, creationId);
+      return createdId;
+    } catch (e) {
+      var serverError = e as ServerErrorResponse;
+      if (serverError.errorCode == "duplicate-id") {
+        var randomSuffix = Math.floor(Math.random() * 1000);
+        creationId = hintAsId.substring(0, 32) + "-" + randomSuffix;
+        continue;
+      }
+      throw e;
     }
-    return await collection.createDoc(content)
+  }
+  return await collection.createDoc(content);
 }
 
-export class AmberCollectionsClient implements ConnectionHandler, AmberCollections{
-    
-    subscriptions: Map<string,{
-        lastReceivedChange:number,
-        onDocument:(doc:CollectionDocument) => void,
-        onDocumentDelete:(docId:string) => void,
-    }> = new Map();
-    connection: AmberConnectionsClient;
-    adminApiClient: AmberCollectionAdminApi;
-    
-    constructor(connection:AmberConnectionsClient, prefix:string, tenant:string, sessionToken: () => Promise<string>) {
-        this.connection = connection;
-        connection.registerConnectionHandler(this);
-        this.adminApiClient = new AmberCollectionAdminApi(prefix, tenant, sessionToken);
+export class AmberCollectionsClient implements ConnectionHandler, AmberCollections {
+  subscriptions: Map<
+    string,
+    {
+      lastReceivedChange: number;
+      onDocument: (doc: CollectionDocument) => void;
+      onDocumentDelete: (docId: string) => void;
     }
+  > = new Map();
+  connection: AmberConnectionsClient;
+  adminApiClient: AmberCollectionAdminApi;
 
-    getCollection<T>(collection: string): AmberCollection<T> {
-        return {    
-            name: () => collection,    
-            createDoc: (content:T, documentId?:string) => this.createDoc<T>(collection, content, documentId),
-            updateDoc: (documentId:string, changeNumber:number, content:T) => this.updateDoc<T>(collection, documentId, changeNumber, content),
-            deleteDoc: (documentId:string) => this.deleteDoc(collection, documentId),
-            subscribe: (lastReceivedChange:number, onDocument:(doc:CollectionDocument<T>) => void, onDocumentDelete:(docId:string) => void) => this.subscribe<T>(collection, lastReceivedChange, onDocument, onDocumentDelete),
-            unsubscribe: () => this.unsubscribe(collection)
-        };
+  constructor(
+    connection: AmberConnectionsClient,
+    prefix: string,
+    tenant: string,
+    sessionToken: () => Promise<string>,
+  ) {
+    this.connection = connection;
+    connection.registerConnectionHandler(this);
+    this.adminApiClient = new AmberCollectionAdminApi(prefix, tenant, sessionToken);
+  }
+
+  getCollection<T>(collection: string): AmberCollection<T> {
+    return {
+      name: () => collection,
+      createDoc: (content: T, documentId?: string) =>
+        this.createDoc<T>(collection, content, documentId),
+      updateDoc: (documentId: string, changeNumber: number, content: T) =>
+        this.updateDoc<T>(collection, documentId, changeNumber, content),
+      deleteDoc: (documentId: string) => this.deleteDoc(collection, documentId),
+      subscribe: (
+        lastReceivedChange: number,
+        onDocument: (doc: CollectionDocument<T>) => void,
+        onDocumentDelete: (docId: string) => void,
+      ) => this.subscribe<T>(collection, lastReceivedChange, onDocument, onDocumentDelete),
+      unsubscribe: () => this.unsubscribe(collection),
+    };
+  }
+
+  handleConnectionChanged(connected: boolean): void {
+    if (connected) {
+      // send all subscriptions to the server
+      this.subscriptions.forEach((subscription, collection) => {
+        this.connection.send<SubscribeCollectionMessage>({
+          action: "subscribe-collection",
+          collection: collection,
+          requestId: this.connection.incrementedRequestId(),
+          start: subscription.lastReceivedChange,
+        });
+      });
     }
+  }
 
-    handleConnectionChanged(connected: boolean): void {
-        if(connected) {
-            // send all subscriptions to the server
-            this.subscriptions.forEach((subscription, collection) => {
-                this.connection.send<SubscribeCollectionMessage>({action:"subscribe-collection", collection:collection, requestId:this.connection.incrementedRequestId(), start: subscription.lastReceivedChange});
-            });
+  handleMessage(message: AmberServerMessage): void {
+    if (message.type === "sync-document") {
+      const syncMessage = message as ServerSyncDocument;
+      const subscription = this.subscriptions.get(syncMessage.collection);
+      if (subscription) {
+        if ((syncMessage.document as DeletedCollectionDocument).removed) {
+          subscription.onDocumentDelete(syncMessage.document.id);
+        } else {
+          var doc = syncMessage.document as CollectionDocument;
+          doc.change_time = new Date(doc.change_time); // parse iso string
+          subscription.onDocument(syncMessage.document as CollectionDocument);
         }
+        subscription.lastReceivedChange = Math.max(
+          subscription.lastReceivedChange || 0,
+          syncMessage.document.change_number,
+        );
+      }
     }
+  }
 
-    handleMessage(message: AmberServerMessage): void {
-        if (message.type === "sync-document") {
-            const syncMessage = message as ServerSyncDocument;
-            const subscription = this.subscriptions.get(syncMessage.collection);
-            if (subscription) {
-                if ( (syncMessage.document as DeletedCollectionDocument).removed) {
-                    subscription.onDocumentDelete(syncMessage.document.id);
-                }
-                else {
-                    var doc = syncMessage.document as CollectionDocument;
-                    doc.change_time = new Date(doc.change_time); // parse iso string
-                    subscription.onDocument(syncMessage.document as CollectionDocument);
-                }
-                subscription.lastReceivedChange = Math.max(subscription.lastReceivedChange || 0, syncMessage.document.change_number);
-            }
-        } 
+  onConnectionChanged(callback: (connected: boolean) => void) {
+    this.connection.onConnectionChanged(callback);
+  }
+
+  offConnectionChanged(callback: (connected: boolean) => void) {
+    this.connection.offConnectionChanged(callback);
+  }
+
+  subscribe<T>(
+    collection: string,
+    lastReceivedChange: number,
+    onDocument: (doc: CollectionDocument<T>) => void,
+    onDocumentDelete: (docId: string) => void,
+  ) {
+    this.subscriptions.set(collection, {
+      lastReceivedChange: lastReceivedChange,
+      onDocument: onDocument,
+      onDocumentDelete: onDocumentDelete,
+    });
+
+    // if we are already connected, send the subscribe message. Otherwise it will be sent when we connect
+    if (this.connection.isConnected()) {
+      console.debug("Subscribing to collection ", collection, " from change ", lastReceivedChange);
+      this.connection.send<SubscribeCollectionMessage>({
+        action: "subscribe-collection",
+        collection: collection,
+        requestId: this.connection.incrementedRequestId(),
+        start: lastReceivedChange,
+      });
     }
+  }
 
-    onConnectionChanged(callback:(connected:boolean) => void)
-    {
-        this.connection.onConnectionChanged(callback);
+  unsubscribe(collection: string) {
+    this.subscriptions.delete(collection);
+    // if we are already connected, send the unsubscribe message.
+    if (this.connection.isConnected()) {
+      console.debug("Unsubscribing from collection ", collection);
+      this.connection.send<UnsubscribeCollectionMessage>({
+        action: "unsubscribe-collection",
+        collection: collection,
+        requestId: this.connection.incrementedRequestId(),
+      });
     }
+  }
 
-    offConnectionChanged(callback:(connected:boolean) => void)
-    {
-        this.connection.offConnectionChanged(callback);
-    }
+  /**
+   * Create a document.
+   * @param collection The collection to create it into
+   * @param content content of the document
+   * @param documentId Optional document id. If not provided a new one will be generated. If it is povided and the id already exists, the call will fail with a ServerErrorResponse of errorCode "duplicate-id"
+   * @returns the document id of the created document. If this call succeeds, the document will already be sent to the client as a sync.
+   */
+  async createDoc<T>(collection: string, content: T, documentId?: string): Promise<string> {
+    var response = await this.connection.sendAndReceive<CreateDocument, ServerSuccessWithDocument>({
+      action: "create-doc",
+      collection: collection,
+      requestId: this.connection.incrementedRequestId(),
+      content: content,
+      id: documentId,
+    });
+    return response.documentId;
+  }
 
+  /**
+   * Update a document.
+   * @param collection The collection to update it into
+   * @param documentId The document id to update
+   * @param content content of the document
+   * @returns the document id of the updated document. If this call succeeds, the document will already be sent to the client as a sync.
+   */
+  async updateDoc<T>(
+    collection: string,
+    documentId: string,
+    changeNumber: number,
+    content: T,
+  ): Promise<void> {
+    await this.connection.sendAndReceive<UpdateDocument, ServerSuccess>({
+      action: "update-doc",
+      collection: collection,
+      requestId: this.connection.incrementedRequestId(),
+      documentId: documentId,
+      content: content,
+      expectedChangeNumber: changeNumber,
+    });
+  }
 
-    subscribe<T>(collection:string, lastReceivedChange:number, onDocument:(doc:CollectionDocument<T>) => void, onDocumentDelete:(docId:string) => void) 
-    {
-        this.subscriptions.set(collection, {lastReceivedChange:lastReceivedChange, onDocument:onDocument, onDocumentDelete:onDocumentDelete});
+  /**
+   * Delete a document.
+   * @param collection The collection to delete from
+   * @param documentId The document id to delete
+   */
+  async deleteDoc(collection: string, documentId: string): Promise<void> {
+    await this.connection.sendAndReceive<DeleteDocument, ServerSuccess>({
+      action: "delete-doc",
+      collection: collection,
+      requestId: this.connection.incrementedRequestId(),
+      documentId: documentId,
+    });
+  }
 
-        // if we are already connected, send the subscribe message. Otherwise it will be sent when we connect
-        if(this.connection.isConnected())
-        {
-            console.debug("Subscribing to collection ", collection, " from change ", lastReceivedChange);
-            this.connection.send<SubscribeCollectionMessage>({action:"subscribe-collection", collection:collection, requestId:this.connection.incrementedRequestId(), start: lastReceivedChange});
-        }
-    }
+  /**
+   * Connects the underlying connection
+   */
+  public async connect(): Promise<void> {
+    await this.connection.connect();
+  }
 
-    unsubscribe(collection:string) 
-    {
-        this.subscriptions.delete(collection);
-        // if we are already connected, send the unsubscribe message.
-        if(this.connection.isConnected())
-        {
-            console.debug("Unsubscribing from collection ", collection);
-            this.connection.send<UnsubscribeCollectionMessage>({action:"unsubscribe-collection", collection:collection, requestId:this.connection.incrementedRequestId()});
-        }
-    }
+  /**
+   * Disconnects the underlying connection
+   */
+  public async disconnect(): Promise<void> {
+    await this.connection.disconnect();
+  }
 
-    /**
-     * Create a document.
-     * @param collection The collection to create it into
-     * @param content content of the document
-     * @param documentId Optional document id. If not provided a new one will be generated. If it is povided and the id already exists, the call will fail with a ServerErrorResponse of errorCode "duplicate-id"
-     * @returns the document id of the created document. If this call succeeds, the document will already be sent to the client as a sync.
-     */
-    async createDoc<T>(collection:string, content:T, documentId?:string) : Promise<string> 
-    {
-        var response = await this.connection.sendAndReceive<CreateDocument, ServerSuccessWithDocument>({action:"create-doc", collection:collection, requestId:this.connection.incrementedRequestId(), content:content, id:documentId});
-        return response.documentId;
-    }
+  /**
+   * Get information about all collections that are configured. Since this is only metadata, it is available for all users of a tenant. The server needs to have the collection debug api enabled
+   * @returns
+   */
+  getCollectionsInfo(): Promise<CollectionInfo[]> {
+    return this.adminApiClient.getCollectionsInfo();
+  }
 
-    /**
-     * Update a document.
-     * @param collection The collection to update it into
-     * @param documentId The document id to update
-     * @param content content of the document
-     * @returns the document id of the updated document. If this call succeeds, the document will already be sent to the client as a sync.
-     */
-    async updateDoc<T>(collection:string, documentId:string, changeNumber:number, content:T) : Promise<void> 
-    {
-        await this.connection.sendAndReceive<UpdateDocument, ServerSuccess>({action:"update-doc", collection:collection, requestId:this.connection.incrementedRequestId(), documentId:documentId, content:content, expectedChangeNumber:changeNumber});
-    }
-
-    /**
-     * Delete a document.
-     * @param collection The collection to delete from
-     * @param documentId The document id to delete
-     */
-    async deleteDoc(collection:string, documentId:string) : Promise<void> 
-    {
-        await this.connection.sendAndReceive<DeleteDocument, ServerSuccess>({action:"delete-doc", collection:collection, requestId:this.connection.incrementedRequestId(), documentId:documentId});
-    }
-
-    /**
-     * Connects the underlying connection
-     */
-    public async connect(): Promise<void> {
-        await this.connection.connect();
-    }
-
-    /**
-     * Disconnects the underlying connection
-     */
-    public async disconnect(): Promise<void> {
-        await this.connection.disconnect();
-    }
-
-    /**
-     * Get information about all collections that are configured. Since this is only metadata, it is available for all users of a tenant. The server needs to have the collection debug api enabled
-     * @returns 
-     */
-    getCollectionsInfo(): Promise<CollectionInfo[]> {
-        return this.adminApiClient.getCollectionsInfo();
-    }
-
-    /**
-     * Get the admin interface to work with a given collection. This interface has additional methods to manage and debug the collection.
-     * The server needs to have the collection debug api enabled
-     * @param collection The collection to get the API for
-     * @returns The admin interface for the collection
-     */
-    getCollectionAdmin<T>(collection: string): AmberCollectionAdmin<T> {
-        return {
-            checkDocument: (doc:T, userId?: string, documentId?:string) => this.adminApiClient.checkDocument<T>(collection, doc, userId, documentId),
-            getDocumentInfo: (documentId:string) => this.adminApiClient.getDocumentInfo(collection,documentId),
-            createOrUpdateDocument: (doc:T, documentId:string, userId?:string) => this.adminApiClient.createOrUpdateDocument(collection, doc, documentId, userId),
-            getUserAccess: (userId:string) => this.adminApiClient.getUserAccess(collection, userId)
-        };
-    }
+  /**
+   * Get the admin interface to work with a given collection. This interface has additional methods to manage and debug the collection.
+   * The server needs to have the collection debug api enabled
+   * @param collection The collection to get the API for
+   * @returns The admin interface for the collection
+   */
+  getCollectionAdmin<T>(collection: string): AmberCollectionAdmin<T> {
+    return {
+      checkDocument: (doc: T, userId?: string, documentId?: string) =>
+        this.adminApiClient.checkDocument<T>(collection, doc, userId, documentId),
+      getDocumentInfo: (documentId: string) =>
+        this.adminApiClient.getDocumentInfo(collection, documentId),
+      createOrUpdateDocument: (doc: T, documentId: string, userId?: string) =>
+        this.adminApiClient.createOrUpdateDocument(collection, doc, documentId, userId),
+      getUserAccess: (userId: string) => this.adminApiClient.getUserAccess(collection, userId),
+    };
+  }
 }

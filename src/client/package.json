@@ -5,9 +5,9 @@
   "version": "0.1.0-beta.1",
   "description": "The client library for an Amberbase app",
   "types": "dist/index.d.ts",
-    "scripts": {
-     "build": "tsc",
-     "docs": "npx typedoc index.ts --out ../../docs/api/frontend --plugin typedoc-plugin-markdown --excludeInternal --tsconfig tsconfig.json"
+  "scripts": {
+    "build": "tsc",
+    "docs": "npx typedoc index.ts --out ../../docs/api/frontend --plugin typedoc-plugin-markdown --excludeInternal --tsconfig tsconfig.json"
   },
   "author": "Christian Messinger, Andreas Müller",
   "license": "MIT",
