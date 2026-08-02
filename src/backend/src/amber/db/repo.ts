@@ -485,16 +485,6 @@ export class AmberRepo {
     }
   }
 
-  async getTenantRolesForUser(userId: string): Promise<{ id: string; name: string }[]> {
-    var conn = await this.pool.getConnection();
-    try {
-      var result = await conn.query<{ id: string; name: string }[]>("SELECT id, name FROM tenants");
-      return result;
-    } finally {
-      conn.end();
-    }
-  }
-
   async createTenant(id: string, name: string, data: any): Promise<boolean> {
     if (data === undefined) {
       data = {};
