@@ -1,6 +1,6 @@
 import * as http from "http";
 import * as WebSocket from "ws";
-import { AmberAuth, AmberAuthService, SessionToken } from "../auth.js";
+import { AmberAuthService, SessionToken } from "../auth.js";
 import { AmberSessionProtocolPrefix } from "./../../../../client/src/shared/dtos.js";
 
 /**
@@ -102,7 +102,7 @@ export function simpleWebsockets(
       }
       if (typeof result === "function") {
         let socketHandler = result;
-        wss.handleUpgrade(request, socket, head, (ws, req) => {
+        wss.handleUpgrade(request, socket, head, (ws, _req) => {
           let closeHandler: () => void = () => {};
           let socketStartTime = new Date();
           let aliveTime = socketStartTime.getTime();

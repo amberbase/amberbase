@@ -1,23 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, toRaw, computed, useTemplateRef } from "vue";
-import {
-  AmberClient,
-  type UserWithRoles,
-  type Tenant,
-  type UserDetails,
-  type TenantDetails,
-  type UserInfo,
-  amberClient,
-  type AmberCollection,
-} from "amber-client";
-import { copy, generatePassword, renderIsoTime, renderRelativeTime, uiHelper } from "@/common";
+import { ref, onMounted, watch, computed, useTemplateRef } from "vue";
+import { AmberClient, type UserInfo } from "amber-client";
+import { uiHelper } from "@/common";
 import JsonEdit from "./shared/JsonEdit.vue";
-import type {
-  CollectionAccessInfo,
-  CollectionDocument,
-  CollectionInfo,
-} from "amber-client/dist/src/shared/dtos";
-import { adminRole } from "../../../shared/src";
+import type { CollectionAccessInfo, CollectionDocument } from "amber-client/dist/src/shared/dtos";
 import RelativeTime from "./shared/RelativeTime.vue";
 var props = defineProps<{
   amberClient: AmberClient;
@@ -44,7 +30,6 @@ const currentUser = () => currentSelectedUser.value || loggedInUser!.value!;
 const showSelectUser = ref<boolean>(false);
 const currentUserAccess = ref<CollectionAccessInfo>({ accessTags: [] });
 const collectionsClient = props.amberClient.getCollectionsApi();
-var collectionApi = props.amberClient.getCollectionsApi()!;
 
 var editEntity = ref<CollectionDocument<any> | null>(null);
 const showEditEntity = ref<boolean>(false);

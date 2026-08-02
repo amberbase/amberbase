@@ -17,7 +17,7 @@ export class AsyncQueue<T> {
     if (this.queue.length > 0) {
       Promise.resolve(this.queue.shift());
     }
-    return new Promise<T>((resolve, reject) => {
+    return new Promise<T>((resolve, _reject) => {
       this.pendingRequests.push(resolve);
     });
   }
@@ -28,7 +28,7 @@ export class CompletablePromise<T> {
   resolver!: (value: T) => void;
   value: T | null = null;
   prepare() {
-    this.promise = new Promise<T>((resolve, reject) => {
+    this.promise = new Promise<T>((resolve, _reject) => {
       this.resolver = resolve;
     });
   }

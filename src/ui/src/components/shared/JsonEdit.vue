@@ -2,7 +2,6 @@
 import { sleep } from "amber-client/dist/src/shared/helper";
 import { ref, onMounted, watch } from "vue";
 import type { VTextarea } from "vuetify/components";
-import { sl } from "vuetify/locale";
 
 const model = defineModel<string>();
 
@@ -127,7 +126,7 @@ var focusTextArea = async () => {
     <v-btn
       class="edit-icon"
       icon
-      @click.="
+      @click="
         inEditMode = true;
         focusTextArea();
       "

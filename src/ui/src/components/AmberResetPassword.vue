@@ -1,14 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import {
-  AmberClient,
-  AmberClientInit,
-  AmberUserApi,
-  type InvitationDetails,
-  type UserDetails,
-} from "amber-client";
-import AmberGlobalAdmin from "./AmberGlobalAdmin.vue";
-import type { VForm } from "vuetify/components";
+import { AmberUserApi } from "amber-client";
 import { uiHelper } from "@/common";
 import { sleep } from "amber-client/dist/src/shared/helper";
 

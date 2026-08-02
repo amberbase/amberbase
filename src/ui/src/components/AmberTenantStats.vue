@@ -1,14 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
-import {
-  AmberClient,
-  type UserWithRoles,
-  type Tenant,
-  type UserDetails,
-  type MetricValue,
-  type AmberMetricsBucket,
-  type AmberMetricName,
-} from "amber-client";
+import { AmberClient, type AmberMetricsBucket, type AmberMetricName } from "amber-client";
 import { Line } from "vue-chartjs";
 import {
   Chart as ChartJS,

@@ -20,7 +20,6 @@
   "devDependencies": {
     "@mdi/font": "^7.4.47",
     "@tsconfig/node20": "^20.1.4",
-    "@vue/reactivity": "^3.5.11",
     "@types/node": "^20.16.11",
     "@vitejs/plugin-vue": "^5.2.3",
     "@vue/tsconfig": "^0.5.1",

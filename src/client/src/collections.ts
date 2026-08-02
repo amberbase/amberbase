@@ -1,14 +1,9 @@
 import { AmberCollectionAdminApi } from "./api.js";
 import { AmberConnectionsClient, ConnectionHandler, ServerErrorResponse } from "./connection.js";
 import {
-  AmberSessionProtocolPrefix,
-  CollectionClientWsMessage,
   CollectionDocument,
   AmberServerMessage,
   SubscribeCollectionMessage,
-  AmberServerResponseMessage,
-  AmberCollectionClientMessage,
-  ServerError,
   ServerSyncDocument,
   DeletedCollectionDocument,
   UnsubscribeCollectionMessage,
@@ -17,7 +12,6 @@ import {
   UpdateDocument,
   ServerSuccess,
   DeleteDocument,
-  nu,
   CollectionInfo,
   CollectionDocumentCheckResult,
   CollectionDocumentInfo,
@@ -149,7 +143,7 @@ export async function createDocWithDocumentIdHint<T>(
   content: T,
   documentIdHint: string,
 ): Promise<string> {
-  var hintAsId = documentIdHint.replace(/[^a-zA-Z0-9_\-]/g, "-").substring(0, 36);
+  var hintAsId = documentIdHint.replace(/[^a-zA-Z0-9_-]/g, "-").substring(0, 36);
   var creationId = hintAsId;
   var attempts = 0;
   var maxAttempts = 10;

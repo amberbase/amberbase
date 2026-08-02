@@ -416,7 +416,6 @@ export class AmberRepo {
     } finally {
       conn.end();
     }
-    return false;
   }
 
   /**
@@ -435,7 +434,7 @@ export class AmberRepo {
         user.id,
       ]);
       return true;
-    } catch (e) {
+    } catch {
       return false;
     } finally {
       conn.end();
@@ -490,7 +489,7 @@ export class AmberRepo {
       data = {};
     }
     var dataString = JSON.stringify(data);
-    var validTenantId = /^[a-zA-Z0-9\-]{1,50}$/;
+    var validTenantId = /^[a-zA-Z0-9-]{1,50}$/;
     if (!validTenantId.test(id)) {
       throw new Error("Invalid tenant id");
     }
@@ -811,7 +810,6 @@ export class AmberRepo {
     } finally {
       conn.end();
     }
-    return 0;
   }
 
   /**
@@ -843,7 +841,7 @@ export class AmberRepo {
           [tenant, collection, id, changeNumberForSyncAction, changeTime],
         );
         await conn.commit();
-      } catch (err) {
+      } catch {
         await conn.rollback();
         return 0;
       }
@@ -856,7 +854,7 @@ export class AmberRepo {
   async getDocumentCountPerTenant(): Promise<{ [tenant: string]: number }> {
     var conn = await this.pool.getConnection();
     try {
-      var result = await conn.query<{ tenant: string; count: BigInt }[]>(
+      var result = await conn.query<{ tenant: string; count: bigint }[]>(
         "SELECT `tenant`, COUNT(*) AS count FROM documents GROUP BY `tenant`",
       );
       var tenantCount: { [tenant: string]: number } = {};
@@ -898,7 +896,7 @@ export class AmberRepo {
       accessTagFilter =
         " AND (" +
         withOneOfTheseAccessTags
-          .map((tag) => `MATCH(access_tags) AGAINST(? IN BOOLEAN MODE)`)
+          .map((_tag) => `MATCH(access_tags) AGAINST(? IN BOOLEAN MODE)`)
           .join(" OR ") +
         ")";
     }
@@ -910,7 +908,7 @@ export class AmberRepo {
       withAllOfTheseTags = withAllOfTheseTags.map((tag) => `"${tag}"`);
       tagFilter =
         " AND (" +
-        withAllOfTheseTags.map((tag) => `MATCH(tags) AGAINST(? IN BOOLEAN MODE)`).join(" AND ") +
+        withAllOfTheseTags.map((_tag) => `MATCH(tags) AGAINST(? IN BOOLEAN MODE)`).join(" AND ") +
         ")";
     }
 
@@ -986,7 +984,7 @@ export class AmberRepo {
       accessTagFilter =
         " AND (" +
         withOneOfTheseAccessTags
-          .map((tag) => `MATCH(access_tags) AGAINST(? IN BOOLEAN MODE)`)
+          .map((_tag) => `MATCH(access_tags) AGAINST(? IN BOOLEAN MODE)`)
           .join(" OR ") +
         ")";
     }

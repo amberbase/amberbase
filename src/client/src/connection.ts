@@ -1,20 +1,8 @@
 import {
   AmberSessionProtocolPrefix,
-  CollectionClientWsMessage,
-  CollectionDocument,
   AmberServerMessage,
-  SubscribeCollectionMessage,
   AmberServerResponseMessage,
-  AmberCollectionClientMessage,
   ServerError,
-  ServerSyncDocument,
-  DeletedCollectionDocument,
-  UnsubscribeCollectionMessage,
-  ServerSuccessWithDocument,
-  CreateDocument,
-  UpdateDocument,
-  ServerSuccess,
-  DeleteDocument,
   AmberClientWsMessage,
   ServerErrorCode,
   nu,
@@ -154,7 +142,7 @@ export class AmberConnectionsClient {
 
   async innerConnect(): Promise<void> {
     var token = await this.sessionToken();
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, _reject) => {
       const url = `${this.websocketPrefix}${location.host}${this.apiPrefix}/ws/amber/${this.tenant}`;
 
       this.ws = new WebSocket(url, [AmberSessionProtocolPrefix + token, "amber"]);

@@ -21,7 +21,6 @@ import {
   TenantDetails,
 } from "./../../../client/src/shared/dtos.js";
 import * as crypto from "node:crypto";
-import { sleep } from "./../../../client/src/shared/helper.js";
 import { BruteProtection } from "./helper.js";
 
 export const tenantAdminRole = "admin";

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { AmberClient, type UserInfo } from "amber-client";
-import type { CollectionAccessInfo } from "amber-client/dist/src/shared/dtos";
 import AmberCollectionEditor from "./AmberCollectionEditor.vue";
 var props = defineProps<{
   amberClient: AmberClient;
@@ -10,10 +9,6 @@ var props = defineProps<{
 
 const users = ref<UserInfo[]>([]);
 const usersLookup = ref<Map<string, UserInfo>>(new Map());
-var loggedInUser = ref<UserInfo | null>(null);
-
-const currentSelectedUser = ref<UserInfo | null>(null);
-const currentUser = () => currentSelectedUser.value || loggedInUser.value;
 var collectionApi = props.amberClient.getCollectionsApi()!;
 var tenantApi = props.amberClient.getAmberApi()!;
 
@@ -35,8 +30,6 @@ const onConnectionChanged = (connected: boolean) => {
 };
 
 onMounted(async () => {
-  var u = await props.amberClient.user();
-  loggedInUser.value = { id: u.id, name: u.name, email: u.email };
   users.value = await tenantApi.getUsers();
   for (var user of users.value) {
     usersLookup.value.set(user.id, user);

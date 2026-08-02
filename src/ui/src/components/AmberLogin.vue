@@ -6,7 +6,6 @@ import {
   type InvitationDetails,
   type UserDetails,
 } from "amber-client";
-import AmberGlobalAdmin from "./AmberGlobalAdmin.vue";
 import type { VForm } from "vuetify/components";
 import { state } from "@/common";
 
@@ -50,11 +49,11 @@ var loginFailed = ref(false);
 var userEmail = ref(state.uiContext.userEmail || "");
 var userPassword = ref("");
 var showPassword = ref(false);
-var showUserDetails = ref(false);
 var userDetails = ref<UserDetails | null>(null);
 var stayLoggedIn = ref(true);
 var roles = ref<string[]>([]);
 var login: (record: { email: string; pw: string; stayLoggedIn: boolean }) => void = () => {};
+// oxlint-disable-next-line vue/no-dupe-keys -- intentional local reactive copy of the `tenant` prop, kept in sync explicitly below
 var tenant = ref("");
 var tenantsToChooseFrom = ref<{ id: string; name: string; roles: string[] }[]>([]);
 var amber = ref<AmberClient | undefined>(undefined);
@@ -143,8 +142,6 @@ amberInit.onRolesChanged((newTenant, newRoles) => {
 
   if (newTenant != null && newRoles != null && newRoles.length > 0 && userDetails.value) {
     tenant.value = newTenant;
-    var amberClient = amber.value!;
-    var a: AmberClient = amberClient;
     emit("userInTenant", {
       client: amber.value!,
       userId: userDetails.value?.id || "",
@@ -185,12 +182,8 @@ var doLogin = () => {
   login({ email: userEmail.value, pw: pw, stayLoggedIn: stayLoggedIn.value });
 };
 
-var doLogout = () => {
-  amber.value?.loginManager?.logout();
-};
-
 var validateEmail = (email: string) => {
-  const re = /^[a-zA-Z0-9][a-zA-Z0-9_+\.\-]*@[a-zA-Z0-9][a-zA-Z0-9\.\-]*\.[a-zA-Z]{2,24}$/; // I don't like punny code and subdomain addresses ;-)
+  const re = /^[a-zA-Z0-9][a-zA-Z0-9_+.-]*@[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,24}$/; // I don't like punny code and subdomain addresses ;-)
   if (!re.test(email)) {
     return "Email is not in a valid format";
   }

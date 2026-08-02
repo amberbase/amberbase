@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { getCurrentInstance, ref, watch } from "vue";
-import { AmberClient, AmberClientInit } from "amber-client";
+import { ref, watch } from "vue";
+import { AmberClient } from "amber-client";
 import AmberGlobalAdmin from "./AmberGlobalAdmin.vue";
 import AmberLogin from "./AmberLogin.vue";
 import { state, uiHelper } from "@/common";

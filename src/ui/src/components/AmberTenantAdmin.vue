@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import {
-  AmberClient,
-  type UserWithRoles,
-  type Tenant,
-  type UserDetails,
-  type TenantDetails,
-} from "amber-client";
+import { AmberClient, type UserWithRoles, type Tenant, type TenantDetails } from "amber-client";
 import { copy, generatePassword, uiHelper } from "@/common";
 import JsonEdit from "./shared/JsonEdit.vue";
 import AmberCollectionAdmin from "./AmberCollectionsAdmin.vue";

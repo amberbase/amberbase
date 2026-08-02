@@ -11,7 +11,6 @@ import { aliases, mdi } from "vuetify/iconsets/mdi";
 
 import AmberUi from "./components/AmberUi.vue";
 import { state } from "./common";
-import { amber } from "vuetify/util/colors";
 import type { AmberUiConfig, AmberUiContext } from "../../shared/src";
 import { amberDarkTheme, amberLightTheme } from "./theme";
 

@@ -1,7 +1,6 @@
 import { AmberAdminApi, AmberApi, AmberGlobalAdminApi, AmberUserApi } from "./api.js";
-import { AmberClient } from "./client.js";
 import { LoginRequest, nu, UserDetails, SessionToken, RegisterRequest } from "./shared/dtos.js";
-import { CompletablePromise, sleep } from "./shared/helper.js";
+import { CompletablePromise } from "./shared/helper.js";
 
 export interface UserInTenant {
   /**
@@ -19,10 +18,10 @@ export interface UserInTenant {
 }
 
 export class AmberLoginManager {
-  onUserChanged: (user: UserDetails | null) => void = (user) => {};
+  onUserChanged: (user: UserDetails | null) => void = (_user) => {};
   onRolesChanged: (tenant: string | null, roles: string[], user: UserDetails | null) => void = (
-    tenant,
-    roles,
+    _tenant,
+    _roles,
   ) => {};
   userPromise: CompletablePromise<UserDetails> = new CompletablePromise<UserDetails>();
   userInTenantPromise: CompletablePromise<UserInTenant | null> =
@@ -91,7 +90,7 @@ export class AmberLoginManager {
   setRoles(roles: string[]) {
     if (
       this.roles.length !== roles.length ||
-      this.roles.some((role, index) => roles.indexOf(role) === -1)
+      this.roles.some((role, _index) => roles.indexOf(role) === -1)
     ) {
       this.roles = roles;
       this.onRolesChanged(this.tenant, roles, this.user);
@@ -170,7 +169,7 @@ export class AmberLoginManager {
       });
     }
 
-    while (1) {
+    while (true) {
       while (!this.user) {
         try {
           if (!this.user) {
@@ -190,7 +189,7 @@ export class AmberLoginManager {
             }
           } else {
           }
-        } catch (e) {
+        } catch {
           var loginSucces = false;
           var loginCredentialsFailed = false;
           while (!loginSucces) {
@@ -224,7 +223,6 @@ export class AmberLoginManager {
   }
 
   async sessionToken(): Promise<string> {
-    var user = await this.user;
     if (this.sessionTokenValidity > Date.now() + 1000 * 60 * 5) {
       return this.sessionTokenValue;
     } else {

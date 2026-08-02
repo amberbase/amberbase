@@ -2,10 +2,8 @@ import {
   ActionResult,
   AmberClientMessage,
   AmberCollectionClientMessage,
-  AmberMetricName,
   AmberServerResponseMessage,
   CollectionAccessInfo,
-  CollectionClientWsMessage,
   CollectionDocumentCheckResult,
   CollectionDocumentInfo,
   CollectionInfo,
@@ -13,8 +11,6 @@ import {
   DeleteDocument,
   error,
   nu,
-  ServerError,
-  ServerSuccess,
   ServerSuccessWithDocument,
   ServerSyncDocument,
   SubscribeCollectionMessage,
@@ -22,10 +18,9 @@ import {
   UnsubscribeCollectionMessage,
   UpdateDocument,
 } from "./../../../client/src/shared/dtos.js";
-import { AmberAuth, SessionToken, tenantAdminRole } from "./auth.js";
+import { AmberAuth, tenantAdminRole } from "./auth.js";
 import { Config } from "./config.js";
-import { AmberRepo, Document, DocumentWithTags } from "./db/repo.js";
-import { SimpleWebsocket, WebsocketHandler } from "./websocket/websocket.js";
+import { AmberRepo, DocumentWithTags } from "./db/repo.js";
 import {
   ActiveConnection,
   AmberConnectionManager,
@@ -38,7 +33,6 @@ import {
 import { amberStats, Stats, StatsProvider } from "./stats.js";
 import * as express from "express";
 import { isString } from "./helper.js";
-import { StringifyOptions } from "node:querystring";
 export const CollectionActionCreate = "create";
 export const CollectionActionSubscribe = "subscribe";
 export const CollectionActionUpdate = "update";
@@ -202,7 +196,7 @@ export class CollectionsService
   repo: AmberRepo;
   collectionSettings: Map<string, CollectionSettings<any>>;
   connectionManager: AmberConnectionManager;
-  validDocumentIdRegex = /^[a-zA-Z0-9_\-]{1,36}$/;
+  validDocumentIdRegex = /^[a-zA-Z0-9_-]{1,36}$/;
   authService: AmberAuth;
 
   constructor(
@@ -290,14 +284,12 @@ export class CollectionsService
         if (oldId) {
           let oldDoc = await this.repo.getDocument(tenant, collection, oldId);
           if (!oldDoc) {
-            res
-              .status(404)
-              .send(
-                nu<ActionResult>({
-                  success: false,
-                  error: `Old document with id ${oldId} not found in collection ${collection}`,
-                }),
-              );
+            res.status(404).send(
+              nu<ActionResult>({
+                success: false,
+                error: `Old document with id ${oldId} not found in collection ${collection}`,
+              }),
+            );
             return;
           }
           oldDocContent = JSON.parse(oldDoc.data);
@@ -771,7 +763,7 @@ export class CollectionsService
   private async handleUnsubscribe(
     connection: ActiveConnection,
     message: UnsubscribeCollectionMessage,
-    collectionSettings: CollectionSettings<any>,
+    _collectionSettings: CollectionSettings<any>,
   ): Promise<AmberServerResponseMessage> {
     if (!connection.items.has(collectionItem(message.collection))) {
       return errorResponse(

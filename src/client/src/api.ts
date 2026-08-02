@@ -1,10 +1,8 @@
 import { AmberChannelAdmin } from "./channels.js";
 import { AmberLoginManager } from "./login.js";
 import {
-  LoginRequest,
   nu,
   UserDetails,
-  SessionToken,
   RegisterRequest,
   Tenant,
   ActionResult,
@@ -76,12 +74,15 @@ class ApiClient {
       headers["AmberSession"] = token;
     }
 
-    var response = await fetch(this.apiPrefix + p, {
+    var init: RequestInit = {
       method: method,
       credentials: "include",
       headers: headers,
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    };
+    if (body) {
+      init.body = JSON.stringify(body);
+    }
+    var response = await fetch(this.apiPrefix + p, init);
 
     if (response.status === 401) {
       throw new Error("Not authorized");
@@ -115,12 +116,15 @@ class ApiClient {
       headers["AmberSession"] = token;
     }
 
-    var response = await fetch(this.apiPrefix + p, {
+    var init: RequestInit = {
       method: method,
       credentials: "include",
       headers: headers,
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    };
+    if (body) {
+      init.body = JSON.stringify(body);
+    }
+    var response = await fetch(this.apiPrefix + p, init);
 
     if (response.status === 401) {
       throw new Error("Not authorized");
@@ -522,7 +526,7 @@ export class AmberUserApi {
         "/user/password",
         nu<ChangeUserPasswordRequest>({ userId, currentPassword, newPassword }),
       );
-    } catch (e) {
+    } catch {
       return nu<ActionResult>({ success: false, error: "Unable to update user password" });
     }
   }
@@ -541,7 +545,7 @@ export class AmberUserApi {
         nu<ResetUserPasswordRequest>({ passwordResetToken: resetToken, newPassword }),
       );
       return result.success;
-    } catch (e) {
+    } catch {
       return false;
     }
   }
@@ -558,7 +562,7 @@ export class AmberUserApi {
         "/user",
         nu<ChangeUserProfileRequest>({ userName: userName }),
       );
-    } catch (e) {
+    } catch {
       return nu<ActionResult>({ success: false, error: "Unable to update user details" });
     }
   }

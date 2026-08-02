@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, shallowRef, watch, computed } from "vue";
 import { AmberClient, type UserInfo } from "amber-client";
-import { renderRelativeTime, uiHelper } from "@/common";
+import { uiHelper } from "@/common";
 import JsonEdit from "./shared/JsonEdit.vue";
 import RelativeTime from "./shared/RelativeTime.vue";
 var props = defineProps<{

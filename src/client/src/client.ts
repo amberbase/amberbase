@@ -107,7 +107,7 @@ export class AmberClientInit {
    * @returns Continuation of the fluent API to configure the client.
    */
   withUser(email: string, pw: string, stayLoggedIn: boolean): AmberClientInit {
-    this.credentialsProvider = async (failed: boolean) => {
+    this.credentialsProvider = async (_failed: boolean) => {
       return { email: email, pw: pw, stayLoggedIn: stayLoggedIn };
     };
     this.cleanUser = true;
@@ -134,7 +134,7 @@ export class AmberClientInit {
    * @returns Continuation of the fluent API to configure the client.
    */
   withAmberUiLogin(returnUrl?: string): AmberClientInit {
-    this.credentialsProvider = async (failed: boolean) => {
+    this.credentialsProvider = async (_failed: boolean) => {
       var loginPage = this.apiPrefix + "/ui/login";
 
       if (this.tenant) {
@@ -228,7 +228,7 @@ export class AmberClientInit {
     }
 
     if (this.tenant) {
-      this.tenantSelector = async (availableTenants) => {
+      this.tenantSelector = async (_availableTenants) => {
         return this.tenant!;
       };
     }

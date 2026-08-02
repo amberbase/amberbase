@@ -21,14 +21,14 @@ export var state: {
 
 // this is a stub for the confirm dialog implemented by AmberUi.vue
 export var uiHelper = {
-  confirmDialog: (text: string): Promise<boolean> => {
+  confirmDialog: (_text: string): Promise<boolean> => {
     return new Promise((resolve, reject) => {
       reject();
     });
   },
-  showMessage: (text: string) => {},
-  showError: (text: string) => {},
-  showSuccess: (text: string) => {},
+  showMessage: (_text: string) => {},
+  showError: (_text: string) => {},
+  showSuccess: (_text: string) => {},
 };
 
 export async function copy(text: string): Promise<void> {

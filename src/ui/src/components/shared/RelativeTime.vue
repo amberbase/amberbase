@@ -1,15 +1,5 @@
 <script setup lang="ts">
-import type { ComputedRefSymbol } from "@vue/reactivity";
-import { sleep } from "amber-client/dist/src/shared/helper";
-import {
-  onMounted,
-  onUnmounted,
-  computed,
-  getCurrentInstance,
-  type ComponentInternalInstance,
-  ref,
-} from "vue";
-import type { VTextarea } from "vuetify/components";
+import { onMounted, onUnmounted, computed, getCurrentInstance, ref } from "vue";
 
 export interface RelativeTimeProps {
   date: Date;

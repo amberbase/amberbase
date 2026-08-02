@@ -1,4 +1,3 @@
-import e from "express";
 import {
   ActionResult,
   AmberClientMessage,
@@ -142,7 +141,6 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
       "/tenant/:tenant/channel/:channel/check",
       async (req: express.Request, res: express.Response) => {
         if (!this.authService.checkAdmin(req, res)) return;
-        let tenant = req.params.tenant as string;
         let channelName = req.params.channel as string;
         let subchannel = req.query.subchannel as string | null;
         let user = await getUserFromRequest(req);
