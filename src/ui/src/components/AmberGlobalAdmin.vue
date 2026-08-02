@@ -1,28 +1,28 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from "vue";
-import { AmberClient, type Tenant, type UserDetails, type UserInfo } from "amber-client";
-import { globalTenant } from "../../../shared/src";
-import { copy, generatePassword, uiHelper } from "@/common";
-import { state } from "@/common";
+import { ref, onMounted, computed } from 'vue';
+import { AmberClient, type Tenant, type UserDetails, type UserInfo } from 'amber-client';
+import { globalTenant } from '../../../shared/src';
+import { copy, generatePassword, uiHelper } from '@/common';
+import { state } from '@/common';
 var props = defineProps<{ amberClient: AmberClient }>();
 
 const allTenants = ref<Tenant[]>([]);
-const newTenantName = ref("");
-const newTenantId = ref("");
+const newTenantName = ref('');
+const newTenantId = ref('');
 const adminApi = props.amberClient.getGlobalAdminApi()!;
 const allUsers = ref<UserInfo[]>([]);
-const userFilter = ref("");
-const tab = ref<"tenants" | "users">("tenants");
+const userFilter = ref('');
+const tab = ref<'tenants' | 'users'>('tenants');
 const selectedUser = ref<UserDetails | null>(null);
-const editSelectedUserName = ref("");
-const editSelectedUserEmail = ref("");
+const editSelectedUserName = ref('');
+const editSelectedUserEmail = ref('');
 const pwDialogOpen = ref(false);
-const newPassword = ref("");
+const newPassword = ref('');
 const showPassword = ref(false);
-const createdPasswordResetLink = ref("");
+const createdPasswordResetLink = ref('');
 var deleteTenant = async (tenantId: string) => {
-  if (!(await uiHelper.confirmDialog("Are you sure you want to delete tenant " + tenantId + "?"))) {
-    console.log("User cancelled delete tenant");
+  if (!(await uiHelper.confirmDialog('Are you sure you want to delete tenant ' + tenantId + '?'))) {
+    console.log('User cancelled delete tenant');
     return;
   }
 
@@ -33,7 +33,7 @@ var deleteTenant = async (tenantId: string) => {
 };
 
 var createTenant = async (id: string, name: string) => {
-  var result = await adminApi.createTenant({ id: id, name: name, data: "{}" });
+  var result = await adminApi.createTenant({ id: id, name: name, data: '{}' });
   await refreshTenants();
 };
 
@@ -56,8 +56,8 @@ onMounted(async () => {
 });
 
 var createLinkToTenantApp = (tenantId: string): string => {
-  var targetUrl = state.uiConfig.loginTargetUrl || "/";
-  targetUrl = targetUrl.replace("{tenant}", tenantId);
+  var targetUrl = state.uiConfig.loginTargetUrl || '/';
+  targetUrl = targetUrl.replace('{tenant}', tenantId);
 
   return targetUrl;
 };
@@ -85,7 +85,7 @@ var selectUser = async (userId: string | null) => {
     editSelectedUserName.value = selectedUser.value.name;
     editSelectedUserEmail.value = selectedUser.value.email;
   } else {
-    uiHelper.showError("User not found");
+    uiHelper.showError('User not found');
   }
 };
 
@@ -103,13 +103,13 @@ var updateSelectedUser = async () => {
       email: newEmail,
     });
     if (!result.success) {
-      uiHelper.showError("Error updating user: " + result.error);
+      uiHelper.showError('Error updating user: ' + result.error);
       return;
     }
     userChanging.name = newName;
     userChanging.email = newEmail;
 
-    uiHelper.showSuccess("User updated successfully");
+    uiHelper.showSuccess('User updated successfully');
   }
 };
 
@@ -122,22 +122,16 @@ const changePassword = async () => {
 };
 
 var createUserPasswordResetLink = async (userid: string) => {
-  createdPasswordResetLink.value = "";
+  createdPasswordResetLink.value = '';
   try {
     var passwordResetToken = await adminApi.createPasswordResetToken(userid);
 
     var loc = window.location.pathname;
-    var dir = loc.substring(0, loc.lastIndexOf("/"));
+    var dir = loc.substring(0, loc.lastIndexOf('/'));
     createdPasswordResetLink.value =
-      window.location.protocol +
-      "//" +
-      window.location.host +
-      dir +
-      "/resetpassword" +
-      "?token=" +
-      passwordResetToken;
+      window.location.protocol + '//' + window.location.host + dir + '/resetpassword' + '?token=' + passwordResetToken;
   } catch (e) {
-    uiHelper.showError("Error creating password reset link: " + e);
+    uiHelper.showError('Error creating password reset link: ' + e);
   }
 };
 
@@ -148,28 +142,24 @@ const doChangePassword = async () => {
     await adminApi.updateUserDetails(selectedUser.value.id, {
       newPassword: newPassword.value,
     });
-    uiHelper.showSuccess("Password changed successfully");
+    uiHelper.showSuccess('Password changed successfully');
   } catch (e) {
-    uiHelper.showError("Error changing password: " + e);
+    uiHelper.showError('Error changing password: ' + e);
   }
 };
 
 const deleteUser = async () => {
   if (!selectedUser.value) return;
-  if (
-    !(await uiHelper.confirmDialog(
-      "Are you sure you want to delete user " + selectedUser.value.name + "?",
-    ))
-  ) {
+  if (!(await uiHelper.confirmDialog('Are you sure you want to delete user ' + selectedUser.value.name + '?'))) {
     return;
   }
   try {
     await adminApi.deleteUser(selectedUser.value.id);
-    uiHelper.showSuccess("User deleted successfully");
+    uiHelper.showSuccess('User deleted successfully');
     selectedUser.value = null;
     allUsers.value = allUsers.value.filter((u) => u.id !== selectedUser.value!.id);
   } catch (e) {
-    uiHelper.showError("Error deleting user: " + e);
+    uiHelper.showError('Error deleting user: ' + e);
   }
 };
 </script>
@@ -188,22 +178,14 @@ const deleteUser = async () => {
                 <v-list-item v-for="tenant in allTenants" :key="tenant.id">
                   <v-list-item-title>{{ tenant.name }} [{{ tenant.id }}]</v-list-item-title>
                   <v-list-item-action>
-                    <v-btn
-                      icon="mdi-application-edit"
-                      title="manage"
-                      :href="'admin?tenant=' + tenant.id"
-                    ></v-btn>
+                    <v-btn icon="mdi-application-edit" title="manage" :href="'admin?tenant=' + tenant.id"></v-btn>
                     <v-btn
                       icon="mdi-open-in-new"
                       title="visit"
                       :href="createLinkToTenantApp(tenant.id)"
                       v-if="tenant.id != globalTenant"
                     ></v-btn>
-                    <v-btn
-                      icon="mdi-chart-line"
-                      title="monitoring"
-                      :href="'monitoring?tenant=' + tenant.id"
-                    ></v-btn>
+                    <v-btn icon="mdi-chart-line" title="monitoring" :href="'monitoring?tenant=' + tenant.id"></v-btn>
                     <v-btn
                       icon="mdi-delete-outline"
                       @click="deleteTenant(tenant.id)"
@@ -241,32 +223,20 @@ const deleteUser = async () => {
               </v-chip-group>
             </v-card-text>
             <v-card-actions v-if="selectedUser">
-              <v-btn @click="selectUser(null)" prepend-icon="mdi-arrow-left-circle"
-                >Back to user list</v-btn
-              >
+              <v-btn @click="selectUser(null)" prepend-icon="mdi-arrow-left-circle">Back to user list</v-btn>
               <v-btn
                 @click="updateSelectedUser"
                 prepend-icon="mdi-check-circle"
-                :disabled="
-                  editSelectedUserName == selectedUser.name &&
-                  editSelectedUserEmail == selectedUser.email
-                "
+                :disabled="editSelectedUserName == selectedUser.name && editSelectedUserEmail == selectedUser.email"
                 >Update User</v-btn
               >
               <v-btn @click="changePassword()" prepend-icon="mdi-key-variant">Reset Password</v-btn>
               <v-btn @click="deleteUser()" prepend-icon="mdi-delete">Delete User</v-btn>
             </v-card-actions>
             <v-card-text v-if="!selectedUser">
-              <v-text-field
-                v-model="userFilter"
-                label="Filter users by name, email or id"
-              ></v-text-field>
+              <v-text-field v-model="userFilter" label="Filter users by name, email or id"></v-text-field>
               <v-list>
-                <v-list-item
-                  v-for="user in filteredUsers"
-                  :key="user.id"
-                  @click="selectUser(user.id)"
-                >
+                <v-list-item v-for="user in filteredUsers" :key="user.id" @click="selectUser(user.id)">
                   <v-list-item-title>{{ user.name }}</v-list-item-title>
                   <v-list-item-subtitle>{{ user.email }}</v-list-item-subtitle>
                 </v-list-item>
@@ -280,9 +250,7 @@ const deleteUser = async () => {
       <v-card>
         <v-card-title class="headline">Reset User Password</v-card-title>
         <v-card-subtitle class="headline"
-          >Reset the password of {{ selectedUser?.name }} ({{
-            selectedUser?.email
-          }}).</v-card-subtitle
+          >Reset the password of {{ selectedUser?.name }} ({{ selectedUser?.email }}).</v-card-subtitle
         >
         <v-card-text>
           <p>Feel free to use the autogenerated password below or create your own.</p>
@@ -307,11 +275,9 @@ const deleteUser = async () => {
         </v-card-text>
         <v-card-text>
           <div v-if="!!createdPasswordResetLink">
-            You can also use a link and send it to the user so that he/she can set the password
-            themselves (valid for 7 days): <br />
-            <span style="font-size: 10pt; font-family: monospace"
-              >{{ createdPasswordResetLink }}
-            </span>
+            You can also use a link and send it to the user so that he/she can set the password themselves (valid for 7
+            days): <br />
+            <span style="font-size: 10pt; font-family: monospace">{{ createdPasswordResetLink }} </span>
           </div>
         </v-card-text>
         <v-card-actions>

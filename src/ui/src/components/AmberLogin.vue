@@ -1,17 +1,12 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import {
-  AmberClient,
-  AmberClientInit,
-  type InvitationDetails,
-  type UserDetails,
-} from "amber-client";
-import type { VForm } from "vuetify/components";
-import { state } from "@/common";
+import { ref } from 'vue';
+import { AmberClient, AmberClientInit, type InvitationDetails, type UserDetails } from 'amber-client';
+import type { VForm } from 'vuetify/components';
+import { state } from '@/common';
 
 const emit = defineEmits<{
   (
-    e: "userInTenant",
+    e: 'userInTenant',
     details: {
       client: AmberClient;
       userId: string;
@@ -22,7 +17,7 @@ const emit = defineEmits<{
     } | null,
   ): void;
   (
-    e: "userReady",
+    e: 'userReady',
     details: {
       client: AmberClient;
       userId: string;
@@ -42,29 +37,29 @@ var props = defineProps<{
   includeAdminRole: boolean;
 }>();
 
-var tab = ref("login");
+var tab = ref('login');
 var showLogin = ref(false);
 var showTenantSelector = ref(false);
 var loginFailed = ref(false);
-var userEmail = ref(state.uiContext.userEmail || "");
-var userPassword = ref("");
+var userEmail = ref(state.uiContext.userEmail || '');
+var userPassword = ref('');
 var showPassword = ref(false);
 var userDetails = ref<UserDetails | null>(null);
 var stayLoggedIn = ref(true);
 var roles = ref<string[]>([]);
 var login: (record: { email: string; pw: string; stayLoggedIn: boolean }) => void = () => {};
 // oxlint-disable-next-line vue/no-dupe-keys -- intentional local reactive copy of the `tenant` prop, kept in sync explicitly below
-var tenant = ref("");
+var tenant = ref('');
 var tenantsToChooseFrom = ref<{ id: string; name: string; roles: string[] }[]>([]);
 var amber = ref<AmberClient | undefined>(undefined);
 var invitationDetails = ref<InvitationDetails | null>(null);
-var invitationFailure = ref("");
+var invitationFailure = ref('');
 var registrationForm = ref<VForm | null>(null);
-var message = ref(props.message || "");
+var message = ref(props.message || '');
 if (props.invitation) {
-  invitationFailure.value = "Loading invitation details";
+  invitationFailure.value = 'Loading invitation details';
 }
-tenant.value = props.tenant || "";
+tenant.value = props.tenant || '';
 
 var shouldShowRegisterUser = () => !!invitationDetails.value;
 
@@ -76,12 +71,12 @@ var selectTenant = (tenantId: string) => {
 };
 
 var amberInit = new AmberClientInit()
-  .withPath("/amber")
+  .withPath('/amber')
   .withTenantSelector(async (tenants) => {
-    if (tenant.value != "") return tenant.value;
+    if (tenant.value != '') return tenant.value;
 
     if (!props.allowGlobalTenantSelection) {
-      tenants = tenants.filter((t) => t.id != "*");
+      tenants = tenants.filter((t) => t.id != '*');
     }
     if (tenants.length == 1) return tenants[0].id;
 
@@ -110,8 +105,8 @@ if (props.includeAdminRole) {
 
 amberInit.onUserChanged(async (user) => {
   userDetails.value = user;
-  userEmail.value = user?.email || "";
-  if (props.invitation && invitationFailure.value == "") {
+  userEmail.value = user?.email || '';
+  if (props.invitation && invitationFailure.value == '') {
     var p = amber.value?.getUserApi()?.acceptInvitation(props.invitation);
     if (p) {
       await p;
@@ -121,16 +116,16 @@ amberInit.onUserChanged(async (user) => {
   if (user == null) {
     showLogin.value = true;
     showTenantSelector.value = false;
-    emit("userReady", null);
+    emit('userReady', null);
   } else {
     showLogin.value = false;
     showTenantSelector.value = false;
-    emit("userReady", {
+    emit('userReady', {
       client: amber.value!,
       userId: user.id,
       userName: user.name,
       userEmail: user.email,
-      globalAdmin: user.tenants["*"]?.includes("admin") || false,
+      globalAdmin: user.tenants['*']?.includes('admin') || false,
     });
   }
 });
@@ -142,16 +137,16 @@ amberInit.onRolesChanged((newTenant, newRoles) => {
 
   if (newTenant != null && newRoles != null && newRoles.length > 0 && userDetails.value) {
     tenant.value = newTenant;
-    emit("userInTenant", {
+    emit('userInTenant', {
       client: amber.value!,
-      userId: userDetails.value?.id || "",
-      userName: userDetails.value?.name || "",
-      userEmail: userDetails.value?.email || "",
+      userId: userDetails.value?.id || '',
+      userName: userDetails.value?.name || '',
+      userEmail: userDetails.value?.email || '',
       tenant: newTenant,
       roles: newRoles,
     });
   } else {
-    emit("userInTenant", null);
+    emit('userInTenant', null);
   }
 });
 
@@ -163,50 +158,50 @@ if (props.invitation) {
     .getInvitationDetails(props.invitation)
     .then((details) => {
       if (!details.isStillValid) {
-        invitationFailure.value = "Invitation is no longer valid";
+        invitationFailure.value = 'Invitation is no longer valid';
         return;
       }
       invitationDetails.value = details;
-      invitationFailure.value = "";
-      tab.value = "register";
+      invitationFailure.value = '';
+      tab.value = 'register';
     })
     .catch((e) => {
-      invitationFailure.value = "Invitation not found";
+      invitationFailure.value = 'Invitation not found';
     });
 }
 
 var doLogin = () => {
   showLogin.value = false;
   var pw = userPassword.value;
-  userPassword.value = "";
+  userPassword.value = '';
   login({ email: userEmail.value, pw: pw, stayLoggedIn: stayLoggedIn.value });
 };
 
 var validateEmail = (email: string) => {
   const re = /^[a-zA-Z0-9][a-zA-Z0-9_+.-]*@[a-zA-Z0-9][a-zA-Z0-9.-]*\.[a-zA-Z]{2,24}$/; // I don't like punny code and subdomain addresses ;-)
   if (!re.test(email)) {
-    return "Email is not in a valid format";
+    return 'Email is not in a valid format';
   }
   return true;
 };
 
 var validateName = (name: string) => {
   if (name.length < 3) {
-    return "Name must be at least 3 characters long";
+    return 'Name must be at least 3 characters long';
   }
   if (name.trim() != name) {
-    return "Name must not contain leading or trailing spaces";
+    return 'Name must not contain leading or trailing spaces';
   }
   return true;
 };
 
 var validatePassword = (pw: string) => {
   if (pw.length < 8) {
-    return "Password must be at least 8 characters long";
+    return 'Password must be at least 8 characters long';
   }
 
   if (pw.trim() != pw) {
-    return "Password must not contain leading or trailing spaces";
+    return 'Password must not contain leading or trailing spaces';
   }
 
   return true;
@@ -214,16 +209,16 @@ var validatePassword = (pw: string) => {
 
 var validatePasswordConfirm = (pwConfirm: string) => {
   if (pwConfirm != registerUserPassword.value) {
-    return "Passwords do not match";
+    return 'Passwords do not match';
   }
 
   return true;
 };
 
-var registerUserEmail = ref("");
-var registerUserName = ref("");
-var registerUserPassword = ref("");
-var registerUserPasswordConfirm = ref("");
+var registerUserEmail = ref('');
+var registerUserName = ref('');
+var registerUserPassword = ref('');
+var registerUserPasswordConfirm = ref('');
 
 var doRegister = async () => {
   var validationResult = await registrationForm.value?.validate();
@@ -234,12 +229,7 @@ var doRegister = async () => {
   try {
     await amber.value
       ?.getUserApi()
-      ?.registerUser(
-        registerUserName.value,
-        registerUserEmail.value,
-        registerUserPassword.value,
-        props.invitation,
-      );
+      ?.registerUser(registerUserName.value, registerUserEmail.value, registerUserPassword.value, props.invitation);
 
     // well, we could just log in now
     invitationDetails.value = null;
@@ -299,7 +289,7 @@ var doRegister = async () => {
     <v-tabs-window v-model="tab">
       <v-tabs-window-item value="login">
         <v-card-text>
-          <p v-if="tenant && !message">Tenant {{ tenant == "*" ? "GLOBAL" : tenant }}</p>
+          <p v-if="tenant && !message">Tenant {{ tenant == '*' ? 'GLOBAL' : tenant }}</p>
           <p v-if="message">{{ message }}</p>
         </v-card-text>
         <v-card-text
@@ -323,16 +313,8 @@ var doRegister = async () => {
       <v-tabs-window-item value="register">
         <v-card-text>
           <v-form @submit.prevent ref="registrationForm">
-            <v-text-field
-              v-model="registerUserEmail"
-              label="Email"
-              :rules="[validateEmail]"
-            ></v-text-field>
-            <v-text-field
-              v-model="registerUserName"
-              label="Name"
-              :rules="[validateName]"
-            ></v-text-field>
+            <v-text-field v-model="registerUserEmail" label="Email" :rules="[validateEmail]"></v-text-field>
+            <v-text-field v-model="registerUserName" label="Name" :rules="[validateName]"></v-text-field>
             <v-text-field
               v-model="registerUserPassword"
               :append-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
@@ -357,13 +339,10 @@ var doRegister = async () => {
         </v-card-actions>
       </v-tabs-window-item>
     </v-tabs-window>
-    <v-card-text v-if="invitationFailure" class="bg-amber-darken-4">{{
-      invitationFailure
-    }}</v-card-text>
+    <v-card-text v-if="invitationFailure" class="bg-amber-darken-4">{{ invitationFailure }}</v-card-text>
     <v-card-text v-if="invitationDetails" class="bg-amber-darken-4"
-      >You are invited to {{ invitationDetails.tenantName }} to the role
-      {{ invitationDetails.roles.join(" and ") }}. Log in or create new user to accept the
-      invitation.</v-card-text
+      >You are invited to {{ invitationDetails.tenantName }} to the role {{ invitationDetails.roles.join(' and ') }}.
+      Log in or create new user to accept the invitation.</v-card-text
     >
   </v-card>
 
@@ -373,7 +352,7 @@ var doRegister = async () => {
       <v-list>
         <v-list-item v-for="tenant in tenantsToChooseFrom" :key="tenant.id">
           <v-list-item-title
-            >{{ tenant.name ? tenant.name : "Manage Tenants" }} [{{ tenant.id }}]
+            >{{ tenant.name ? tenant.name : 'Manage Tenants' }} [{{ tenant.id }}]
             <v-chip v-for="role in tenant.roles">{{ role }}</v-chip>
           </v-list-item-title>
           <v-list-item-action>

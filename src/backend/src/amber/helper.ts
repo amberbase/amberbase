@@ -1,8 +1,8 @@
-import { sleep } from "../../../client/src/shared/helper.js";
-import * as crypto from "node:crypto";
+import { sleep } from '../../../client/src/shared/helper.js';
+import * as crypto from 'node:crypto';
 
 export function isString(value: any): boolean {
-  return typeof value === "string" || value instanceof String;
+  return typeof value === 'string' || value instanceof String;
 }
 
 export function errorMessage(e: unknown): string {
@@ -18,12 +18,7 @@ export class BruteProtection {
   maxHeat = 12;
   heatIncreaseBelowDuration = 1000;
 
-  constructor(
-    maxHeat?: number,
-    resetDurationMs?: number,
-    heatIncreaseBelowDuration?: number,
-    maxParallel?: number,
-  ) {
+  constructor(maxHeat?: number, resetDurationMs?: number, heatIncreaseBelowDuration?: number, maxParallel?: number) {
     this.maxHeat = maxHeat || this.maxHeat;
     this.resetDurationMs = resetDurationMs || this.resetDurationMs;
     this.heatIncreaseBelowDuration = heatIncreaseBelowDuration || this.heatIncreaseBelowDuration;

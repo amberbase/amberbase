@@ -1,29 +1,29 @@
 <script setup lang="ts">
-import { sleep } from "amber-client/dist/src/shared/helper";
-import { ref, onMounted, watch } from "vue";
-import type { VTextarea } from "vuetify/components";
+import { sleep } from 'amber-client/dist/src/shared/helper';
+import { ref, onMounted, watch } from 'vue';
+import type { VTextarea } from 'vuetify/components';
 
 const model = defineModel<string>();
 
-const modelValue = ref<string>(model.value || "{}");
+const modelValue = ref<string>(model.value || '{}');
 defineProps<{
   rows?: number;
   label?: string;
 }>();
 
 const emit = defineEmits<{
-  (e: "active", isActive: boolean): void;
+  (e: 'active', isActive: boolean): void;
 }>();
 
 var inEditMode = ref(false);
 var buttonactionmode = ref(false);
 const refTextArea = ref<VTextarea | null>(null);
 watch(model, (newVal) => {
-  modelValue.value = newVal || "{}";
+  modelValue.value = newVal || '{}';
 });
 
 watch(inEditMode, (newVal) => {
-  emit("active", newVal);
+  emit('active', newVal);
 });
 
 onMounted(async () => {});
@@ -41,7 +41,7 @@ var prettyPrint = () => {
   try {
     return JSON.stringify(JSON.parse(model.value as string), null, 2);
   } catch {
-    return "Invalid JSON";
+    return 'Invalid JSON';
     // ignore
   }
 };
@@ -52,14 +52,14 @@ var commitIfValid = async () => {
   if (validjson()) {
     model.value = modelValue.value;
   } else {
-    modelValue.value = model.value || "{}";
+    modelValue.value = model.value || '{}';
   }
   inEditMode.value = false;
 };
 
 var reset = () => {
   var current = model.value;
-  modelValue.value = current || "{}";
+  modelValue.value = current || '{}';
   inEditMode.value = true;
 };
 

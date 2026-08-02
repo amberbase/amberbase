@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { AmberUserApi } from "amber-client";
-import { uiHelper } from "@/common";
-import { sleep } from "amber-client/dist/src/shared/helper";
+import { ref } from 'vue';
+import { AmberUserApi } from 'amber-client';
+import { uiHelper } from '@/common';
+import { sleep } from 'amber-client/dist/src/shared/helper';
 
 const emit = defineEmits<{
-  (e: "passwordChanged"): void;
+  (e: 'passwordChanged'): void;
 }>();
 
 var props = defineProps<{
@@ -13,11 +13,11 @@ var props = defineProps<{
   userEmail: string;
 }>();
 
-var userPassword = ref("");
-var userPasswordConfirm = ref("");
+var userPassword = ref('');
+var userPasswordConfirm = ref('');
 var showPassword = ref(false);
 var userEmail = ref(props.userEmail);
-var amberUserApi = new AmberUserApi("/amber", null);
+var amberUserApi = new AmberUserApi('/amber', null);
 
 var changePassword = async () => {
   var pw = userPassword.value;
@@ -25,22 +25,22 @@ var changePassword = async () => {
     var result = await amberUserApi.changePasswordWithToken(props.token, pw);
 
     if (result) {
-      uiHelper.showSuccess("Password changed successfully");
+      uiHelper.showSuccess('Password changed successfully');
       await sleep(2000);
-      emit("passwordChanged");
+      emit('passwordChanged');
       return;
     }
   } catch (e) {}
-  uiHelper.showError("Could not change password");
+  uiHelper.showError('Could not change password');
 };
 
 var validatePassword = (pw: string) => {
   if (pw.length < 8) {
-    return "Password must be at least 8 characters long";
+    return 'Password must be at least 8 characters long';
   }
 
   if (pw.trim() != pw) {
-    return "Password must not contain leading or trailing spaces";
+    return 'Password must not contain leading or trailing spaces';
   }
 
   return true;
@@ -48,7 +48,7 @@ var validatePassword = (pw: string) => {
 
 var validatePasswordConfirm = (pwConfirm: string) => {
   if (pwConfirm != userPassword.value) {
-    return "Passwords do not match";
+    return 'Passwords do not match';
   }
 
   return true;

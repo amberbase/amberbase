@@ -1,8 +1,8 @@
-import { AmberMetricName, AmberMetricsBucket } from "./../../../client/src/shared/dtos.js";
+import { AmberMetricName, AmberMetricsBucket } from './../../../client/src/shared/dtos.js';
 
-import { Express, Request, Response } from "express";
-import { Config } from "./config.js";
-import { allTenantsId, AmberAuth } from "./auth.js";
+import { Express, Request, Response } from 'express';
+import { Config } from './config.js';
+import { allTenantsId, AmberAuth } from './auth.js';
 
 export interface AmberStats {
   getTenantMinuteMetrics(tenant: string): AmberMetricsBucket[];
@@ -63,12 +63,7 @@ class AmberStatsService implements AmberStats {
     return getBuckets(this.globalHourBuckets, this.maxBuckets, 60, hourBucketName);
   }
 
-  trackMetric(
-    name: AmberMetricName,
-    value: number,
-    tenant?: string | undefined,
-    overwrite: boolean = false,
-  ): void {
+  trackMetric(name: AmberMetricName, value: number, tenant?: string | undefined, overwrite: boolean = false): void {
     var minuteName = minuteBucketName(new Date());
     var hourName = hourBucketName(new Date());
     if (tenant) {
@@ -176,7 +171,7 @@ function trackInBucket(
 }
 
 export function enableStatsApis(app: Express, config: Config, authService: AmberAuth) {
-  app.get("/tenant/:tenant/metrics/minute", (req: Request, res: Response) => {
+  app.get('/tenant/:tenant/metrics/minute', (req: Request, res: Response) => {
     if (!authService.checkAdmin(req, res)) return;
     var tenant = req.params.tenant as string;
     if (tenant == allTenantsId) {
@@ -186,7 +181,7 @@ export function enableStatsApis(app: Express, config: Config, authService: Amber
     }
   });
 
-  app.get("/tenant/:tenant/metrics/hour", (req: Request, res: Response) => {
+  app.get('/tenant/:tenant/metrics/hour', (req: Request, res: Response) => {
     if (!authService.checkAdmin(req, res)) return;
     var tenant = req.params.tenant as string;
     if (tenant == allTenantsId) {
@@ -196,11 +191,11 @@ export function enableStatsApis(app: Express, config: Config, authService: Amber
     }
   });
 
-  app.get("/metrics/minute", (req: Request, res: Response) => {
+  app.get('/metrics/minute', (req: Request, res: Response) => {
     if (!authService.checkAdmin(req, res)) return;
     res.json(amberStats.getGlobalMinuteMetrics());
   });
-  app.get("/metrics/hour", (req: Request, res: Response) => {
+  app.get('/metrics/hour', (req: Request, res: Response) => {
     if (!authService.checkAdmin(req, res)) return;
     res.json(amberStats.getGlobalHourMetrics());
   });

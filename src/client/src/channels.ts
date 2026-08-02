@@ -1,5 +1,5 @@
-import { AmberChannelAdminApi } from "./api.js";
-import { AmberConnectionsClient, ConnectionHandler } from "./connection.js";
+import { AmberChannelAdminApi } from './api.js';
+import { AmberConnectionsClient, ConnectionHandler } from './connection.js';
 import {
   AmberServerMessage,
   ServerError,
@@ -11,7 +11,7 @@ import {
   SendToChannelMessage,
   ChannelDocumentCheckResult,
   ChannelInfo,
-} from "./shared/dtos.js";
+} from './shared/dtos.js';
 
 /**
  * SDK API for the amber channels
@@ -115,12 +115,7 @@ export class AmberChannelsClient implements ConnectionHandler, AmberChannels {
   connection: AmberConnectionsClient;
   adminApiClient: AmberChannelAdmin;
 
-  constructor(
-    connection: AmberConnectionsClient,
-    prefix: string,
-    tenant: string,
-    sessionToken: () => Promise<string>,
-  ) {
+  constructor(connection: AmberConnectionsClient, prefix: string, tenant: string, sessionToken: () => Promise<string>) {
     this.connection = connection;
     connection.registerConnectionHandler(this);
     this.adminApiClient = new AmberChannelAdminApi(prefix, tenant, sessionToken);
@@ -146,7 +141,7 @@ export class AmberChannelsClient implements ConnectionHandler, AmberChannels {
       // send all subscriptions to the server
       this.subscriptions.forEach((subscription, channel) => {
         this.connection.send<SubscribeChannelMessage>({
-          action: "subscribe-channel",
+          action: 'subscribe-channel',
           channel: channel,
           requestId: this.connection.incrementedRequestId(),
         });
@@ -155,9 +150,9 @@ export class AmberChannelsClient implements ConnectionHandler, AmberChannels {
   }
 
   handleMessage(message: AmberServerMessage): void {
-    if (message.type === "channel-message") {
+    if (message.type === 'channel-message') {
       const syncMessage = message as ServerChannelMessage;
-      const toplevelChannel = syncMessage.channel.split("/")[0];
+      const toplevelChannel = syncMessage.channel.split('/')[0];
 
       const subscription = this.subscriptions.get(syncMessage.channel);
       if (subscription) {
@@ -186,7 +181,7 @@ export class AmberChannelsClient implements ConnectionHandler, AmberChannels {
     // if we are already connected, send the subscribe message. Otherwise it will be sent when we connect
     if (this.connection.isConnected()) {
       this.connection.send<SubscribeChannelMessage>({
-        action: "subscribe-channel",
+        action: 'subscribe-channel',
         channel: channelName,
         requestId: this.connection.incrementedRequestId(),
       });
@@ -198,7 +193,7 @@ export class AmberChannelsClient implements ConnectionHandler, AmberChannels {
     // if we are already connected, send the unsubscribe message.
     if (this.connection.isConnected()) {
       this.connection.send<UnsubscribeChannelMessage>({
-        action: "unsubscribe-channel",
+        action: 'unsubscribe-channel',
         channel: channelName,
         requestId: this.connection.incrementedRequestId(),
       });
@@ -206,16 +201,13 @@ export class AmberChannelsClient implements ConnectionHandler, AmberChannels {
   }
 
   async sendMessage<T>(channelName: string, message: T): Promise<void> {
-    var response = await this.connection.sendAndReceive<
-      SendToChannelMessage,
-      ServerSuccess | ServerError
-    >({
-      action: "send-to-channel",
+    var response = await this.connection.sendAndReceive<SendToChannelMessage, ServerSuccess | ServerError>({
+      action: 'send-to-channel',
       channel: channelName,
       requestId: this.connection.incrementedRequestId(),
       message: message,
     });
-    if (response.type === "error") {
+    if (response.type === 'error') {
       throw new Error(response.error);
     }
   }

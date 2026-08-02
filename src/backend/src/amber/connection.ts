@@ -5,9 +5,9 @@ import {
   ServerError,
   ServerErrorCode,
   ServerSuccess,
-} from "./../../../client/src/shared/dtos.js";
-import { SessionToken } from "./auth.js";
-import { SimpleWebsocket, WebsocketHandler } from "./websocket/websocket.js";
+} from './../../../client/src/shared/dtos.js';
+import { SessionToken } from './auth.js';
+import { SimpleWebsocket, WebsocketHandler } from './websocket/websocket.js';
 
 export interface UserContext {
   userId: string;
@@ -30,13 +30,9 @@ export interface AmberConnectionMessageHandler {
   ): Promise<AmberServerResponseMessage | undefined>;
 }
 
-export function errorResponse(
-  message: AmberClientMessage,
-  code: ServerErrorCode,
-  error: string,
-): ServerError {
+export function errorResponse(message: AmberClientMessage, code: ServerErrorCode, error: string): ServerError {
   return {
-    type: "error",
+    type: 'error',
     error: error,
     errorCode: code,
     responseTo: message.requestId,
@@ -45,15 +41,12 @@ export function errorResponse(
 
 export function successResponse(message: AmberClientMessage): ServerSuccess {
   return {
-    type: "success",
+    type: 'success',
     responseTo: message.requestId,
   };
 }
 
-export function sendToClient<T extends AmberServerMessage>(
-  connection: ActiveConnection,
-  message: T,
-): void {
+export function sendToClient<T extends AmberServerMessage>(connection: ActiveConnection, message: T): void {
   connection.socket.sendJson(message);
 }
 
@@ -85,10 +78,10 @@ export class AmberConnectionManager {
   websocketBinding(): WebsocketHandler {
     var counter = 0;
     return (path: string, protocol: string, sessionToken: SessionToken | null) => {
-      if (!sessionToken || protocol != "amber") {
+      if (!sessionToken || protocol != 'amber') {
         return undefined;
       }
-      if (!path.startsWith("/ws/amber/")) {
+      if (!path.startsWith('/ws/amber/')) {
         return undefined;
       }
       let id = counter++;
@@ -112,7 +105,7 @@ export class AmberConnectionManager {
                 break;
               }
             } catch (e) {
-              console.error("Error in amber websocket message handler", e);
+              console.error('Error in amber websocket message handler', e);
             }
           }
         });

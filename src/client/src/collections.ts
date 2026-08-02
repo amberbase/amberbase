@@ -1,5 +1,5 @@
-import { AmberCollectionAdminApi } from "./api.js";
-import { AmberConnectionsClient, ConnectionHandler, ServerErrorResponse } from "./connection.js";
+import { AmberCollectionAdminApi } from './api.js';
+import { AmberConnectionsClient, ConnectionHandler, ServerErrorResponse } from './connection.js';
 import {
   CollectionDocument,
   AmberServerMessage,
@@ -17,7 +17,7 @@ import {
   CollectionDocumentInfo,
   ActionResult,
   CollectionAccessInfo,
-} from "./shared/dtos.js";
+} from './shared/dtos.js';
 
 /**
  * SDK API for the amber collections
@@ -68,11 +68,7 @@ export interface AmberCollections {
 }
 
 export interface AmberCollectionAdmin<T> {
-  checkDocument(
-    doc: T,
-    userId?: string,
-    documentId?: string,
-  ): Promise<CollectionDocumentCheckResult>;
+  checkDocument(doc: T, userId?: string, documentId?: string): Promise<CollectionDocumentCheckResult>;
   getDocumentInfo(documentId: string): Promise<CollectionDocumentInfo>;
   createOrUpdateDocument(doc: T, documentId?: string, userId?: string): Promise<ActionResult>;
   getUserAccess(userId: string): Promise<CollectionAccessInfo>;
@@ -143,7 +139,7 @@ export async function createDocWithDocumentIdHint<T>(
   content: T,
   documentIdHint: string,
 ): Promise<string> {
-  var hintAsId = documentIdHint.replace(/[^a-zA-Z0-9_-]/g, "-").substring(0, 36);
+  var hintAsId = documentIdHint.replace(/[^a-zA-Z0-9_-]/g, '-').substring(0, 36);
   var creationId = hintAsId;
   var attempts = 0;
   var maxAttempts = 10;
@@ -154,9 +150,9 @@ export async function createDocWithDocumentIdHint<T>(
       return createdId;
     } catch (e) {
       var serverError = e as ServerErrorResponse;
-      if (serverError.errorCode == "duplicate-id") {
+      if (serverError.errorCode == 'duplicate-id') {
         var randomSuffix = Math.floor(Math.random() * 1000);
-        creationId = hintAsId.substring(0, 32) + "-" + randomSuffix;
+        creationId = hintAsId.substring(0, 32) + '-' + randomSuffix;
         continue;
       }
       throw e;
@@ -177,12 +173,7 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
   connection: AmberConnectionsClient;
   adminApiClient: AmberCollectionAdminApi;
 
-  constructor(
-    connection: AmberConnectionsClient,
-    prefix: string,
-    tenant: string,
-    sessionToken: () => Promise<string>,
-  ) {
+  constructor(connection: AmberConnectionsClient, prefix: string, tenant: string, sessionToken: () => Promise<string>) {
     this.connection = connection;
     connection.registerConnectionHandler(this);
     this.adminApiClient = new AmberCollectionAdminApi(prefix, tenant, sessionToken);
@@ -191,8 +182,7 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
   getCollection<T>(collection: string): AmberCollection<T> {
     return {
       name: () => collection,
-      createDoc: (content: T, documentId?: string) =>
-        this.createDoc<T>(collection, content, documentId),
+      createDoc: (content: T, documentId?: string) => this.createDoc<T>(collection, content, documentId),
       updateDoc: (documentId: string, changeNumber: number, content: T) =>
         this.updateDoc<T>(collection, documentId, changeNumber, content),
       deleteDoc: (documentId: string) => this.deleteDoc(collection, documentId),
@@ -210,7 +200,7 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
       // send all subscriptions to the server
       this.subscriptions.forEach((subscription, collection) => {
         this.connection.send<SubscribeCollectionMessage>({
-          action: "subscribe-collection",
+          action: 'subscribe-collection',
           collection: collection,
           requestId: this.connection.incrementedRequestId(),
           start: subscription.lastReceivedChange,
@@ -220,7 +210,7 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
   }
 
   handleMessage(message: AmberServerMessage): void {
-    if (message.type === "sync-document") {
+    if (message.type === 'sync-document') {
       const syncMessage = message as ServerSyncDocument;
       const subscription = this.subscriptions.get(syncMessage.collection);
       if (subscription) {
@@ -261,9 +251,9 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
 
     // if we are already connected, send the subscribe message. Otherwise it will be sent when we connect
     if (this.connection.isConnected()) {
-      console.debug("Subscribing to collection ", collection, " from change ", lastReceivedChange);
+      console.debug('Subscribing to collection ', collection, ' from change ', lastReceivedChange);
       this.connection.send<SubscribeCollectionMessage>({
-        action: "subscribe-collection",
+        action: 'subscribe-collection',
         collection: collection,
         requestId: this.connection.incrementedRequestId(),
         start: lastReceivedChange,
@@ -275,9 +265,9 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
     this.subscriptions.delete(collection);
     // if we are already connected, send the unsubscribe message.
     if (this.connection.isConnected()) {
-      console.debug("Unsubscribing from collection ", collection);
+      console.debug('Unsubscribing from collection ', collection);
       this.connection.send<UnsubscribeCollectionMessage>({
-        action: "unsubscribe-collection",
+        action: 'unsubscribe-collection',
         collection: collection,
         requestId: this.connection.incrementedRequestId(),
       });
@@ -293,7 +283,7 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
    */
   async createDoc<T>(collection: string, content: T, documentId?: string): Promise<string> {
     var response = await this.connection.sendAndReceive<CreateDocument, ServerSuccessWithDocument>({
-      action: "create-doc",
+      action: 'create-doc',
       collection: collection,
       requestId: this.connection.incrementedRequestId(),
       content: content,
@@ -309,14 +299,9 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
    * @param content content of the document
    * @returns the document id of the updated document. If this call succeeds, the document will already be sent to the client as a sync.
    */
-  async updateDoc<T>(
-    collection: string,
-    documentId: string,
-    changeNumber: number,
-    content: T,
-  ): Promise<void> {
+  async updateDoc<T>(collection: string, documentId: string, changeNumber: number, content: T): Promise<void> {
     await this.connection.sendAndReceive<UpdateDocument, ServerSuccess>({
-      action: "update-doc",
+      action: 'update-doc',
       collection: collection,
       requestId: this.connection.incrementedRequestId(),
       documentId: documentId,
@@ -332,7 +317,7 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
    */
   async deleteDoc(collection: string, documentId: string): Promise<void> {
     await this.connection.sendAndReceive<DeleteDocument, ServerSuccess>({
-      action: "delete-doc",
+      action: 'delete-doc',
       collection: collection,
       requestId: this.connection.incrementedRequestId(),
       documentId: documentId,
@@ -371,8 +356,7 @@ export class AmberCollectionsClient implements ConnectionHandler, AmberCollectio
     return {
       checkDocument: (doc: T, userId?: string, documentId?: string) =>
         this.adminApiClient.checkDocument<T>(collection, doc, userId, documentId),
-      getDocumentInfo: (documentId: string) =>
-        this.adminApiClient.getDocumentInfo(collection, documentId),
+      getDocumentInfo: (documentId: string) => this.adminApiClient.getDocumentInfo(collection, documentId),
       createOrUpdateDocument: (doc: T, documentId: string, userId?: string) =>
         this.adminApiClient.createOrUpdateDocument(collection, doc, documentId, userId),
       getUserAccess: (userId: string) => this.adminApiClient.getUserAccess(collection, userId),

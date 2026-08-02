@@ -1,6 +1,6 @@
 packages:
-  - "src/backend"
-  - "src/client"
-  - "src/ui"
+  - 'src/backend'
+  - 'src/client'
+  - 'src/ui'
 allowBuilds:
   esbuild: true

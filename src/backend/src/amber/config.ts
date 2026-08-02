@@ -1,5 +1,5 @@
-import * as fs from "fs";
-import { AmberUiConfig } from "../../../shared/src/ui/model.js";
+import * as fs from 'fs';
+import { AmberUiConfig } from '../../../shared/src/ui/model.js';
 export interface Config {
   db_name: string;
   db_type: string;
@@ -49,13 +49,13 @@ export interface ConfigOptions {
 }
 
 export var defaultConfig = {
-  db_name: "amber",
-  db_type: "mariadb",
-  db_host: "localhost",
+  db_name: 'amber',
+  db_type: 'mariadb',
+  db_host: 'localhost',
   db_port: 3306,
-  db_username: "root",
-  db_password: "root",
-  path: "/api/amber",
+  db_username: 'root',
+  db_password: 'root',
+  path: '/api/amber',
   enableAdminApi: true,
   enableStatsApi: true,
   inviteOnly: true,
@@ -69,7 +69,7 @@ export interface UiConfigOptions {
   /**
    * Theme for the UI, defaults to "dark"
    */
-  theme?: "dark" | "light";
+  theme?: 'dark' | 'light';
   /**
    * Title for the UI, defaults to "Amberbase App"
    */
@@ -82,14 +82,14 @@ export interface UiConfigOptions {
 
 export var defaultUiConfig: AmberUiConfig = {
   availableRoles: [],
-  theme: "dark",
-  title: "Amberbase App",
+  theme: 'dark',
+  title: 'Amberbase App',
 };
 
 export function loadConfig(path?: string): Config {
   var config = structuredClone(defaultConfig);
   if (path && fs.existsSync(path)) {
-    var jsonString = fs.readFileSync(path, "utf8");
+    var jsonString = fs.readFileSync(path, 'utf8');
     var fileConfig = JSON.parse(jsonString);
     config = { ...config, ...fileConfig };
   }

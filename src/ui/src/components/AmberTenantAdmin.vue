@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { AmberClient, type UserWithRoles, type Tenant, type TenantDetails } from "amber-client";
-import { copy, generatePassword, uiHelper } from "@/common";
-import JsonEdit from "./shared/JsonEdit.vue";
-import AmberCollectionAdmin from "./AmberCollectionsAdmin.vue";
-import AmberChannelsAdmin from "./AmberChannelsAdmin.vue";
+import { ref, onMounted } from 'vue';
+import { AmberClient, type UserWithRoles, type Tenant, type TenantDetails } from 'amber-client';
+import { copy, generatePassword, uiHelper } from '@/common';
+import JsonEdit from './shared/JsonEdit.vue';
+import AmberCollectionAdmin from './AmberCollectionsAdmin.vue';
+import AmberChannelsAdmin from './AmberChannelsAdmin.vue';
 var props = defineProps<{
   amberClient: AmberClient;
   tenant: string;
@@ -12,27 +12,27 @@ var props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: "tenantChanged", tenantName: string): void;
+  (e: 'tenantChanged', tenantName: string): void;
 }>();
 
 const users = ref<UserWithRoles[]>([]);
 const loadingUsers = ref(false);
 const loadingInvitation = ref(false);
-const createdInvitationLink = ref("");
+const createdInvitationLink = ref('');
 
-const createdPasswordResetLink = ref("");
+const createdPasswordResetLink = ref('');
 
 const newUserRoles = ref<string[]>([]);
 const pwDialogOpen = ref(false);
-const newPassword = ref("");
+const newPassword = ref('');
 const showPassword = ref(false);
 const focussedUser = ref<UserWithRoles | null>(null);
-const tab = ref<"users" | "settings" | "data">("users");
-const tenantName = ref<string>("");
-const tenantData = ref<string>("{}");
+const tab = ref<'users' | 'settings' | 'data'>('users');
+const tenantName = ref<string>('');
+const tenantData = ref<string>('{}');
 
-const editTenantName = ref<string>("");
-const editTenantData = ref<string>("{}");
+const editTenantName = ref<string>('');
+const editTenantData = ref<string>('{}');
 
 var adminApi = props.amberClient.getAdminApi()!;
 onMounted(async () => {
@@ -50,7 +50,7 @@ var refreshUsers = async () => {
     });
     users.value = usersFetched;
   } catch (e) {
-    console.error("Error loading users", e);
+    console.error('Error loading users', e);
   }
   loadingUsers.value = false;
 };
@@ -63,7 +63,7 @@ var refreshTenantInfo = async () => {
     editTenantName.value = tenant.name;
     editTenantData.value = tenant.data;
   } catch (e) {
-    console.error("Error loading tenant info", e);
+    console.error('Error loading tenant info', e);
   }
 };
 
@@ -71,7 +71,7 @@ var removeUser = async (user: UserWithRoles) => {
   try {
     if (
       !(await uiHelper.confirmDialog(
-        "Are you sure you want to remove the user " + user.name + " (" + user.email + ")?",
+        'Are you sure you want to remove the user ' + user.name + ' (' + user.email + ')?',
       ))
     ) {
       return;
@@ -79,54 +79,48 @@ var removeUser = async (user: UserWithRoles) => {
 
     await adminApi.deleteUser(user.id);
     await refreshUsers();
-    uiHelper.showSuccess("User removed successfully");
+    uiHelper.showSuccess('User removed successfully');
   } catch (e) {
-    uiHelper.showError("Error removing user: " + e);
+    uiHelper.showError('Error removing user: ' + e);
   }
 };
 
 var createInvitation = async (roles: string[]) => {
-  createdInvitationLink.value = "";
+  createdInvitationLink.value = '';
   loadingInvitation.value = true;
   try {
     var invitationToken = await adminApi.createInvitation({ expiresInDays: 14, roles: roles });
 
     var loc = window.location.pathname;
-    var dir = loc.substring(0, loc.lastIndexOf("/"));
+    var dir = loc.substring(0, loc.lastIndexOf('/'));
     createdInvitationLink.value =
       window.location.protocol +
-      "//" +
+      '//' +
       window.location.host +
       dir +
-      "/invitation" +
-      "?tenant=" +
+      '/invitation' +
+      '?tenant=' +
       props.tenant +
-      "&invitation=" +
+      '&invitation=' +
       invitationToken;
-    uiHelper.showSuccess("Invitation created successfully: " + createdInvitationLink.value);
+    uiHelper.showSuccess('Invitation created successfully: ' + createdInvitationLink.value);
   } catch (e) {
-    uiHelper.showError("Error creating invitation: " + e);
+    uiHelper.showError('Error creating invitation: ' + e);
   }
   loadingInvitation.value = false;
 };
 
 var createUserPasswordResetLink = async (user: UserWithRoles) => {
-  createdPasswordResetLink.value = "";
+  createdPasswordResetLink.value = '';
   try {
     var passwordResetToken = await adminApi.createPasswordResetTokenOfSingleTenantUser(user.id);
 
     var loc = window.location.pathname;
-    var dir = loc.substring(0, loc.lastIndexOf("/"));
+    var dir = loc.substring(0, loc.lastIndexOf('/'));
     createdPasswordResetLink.value =
-      window.location.protocol +
-      "//" +
-      window.location.host +
-      dir +
-      "/resetpassword" +
-      "?token=" +
-      passwordResetToken;
+      window.location.protocol + '//' + window.location.host + dir + '/resetpassword' + '?token=' + passwordResetToken;
   } catch (e) {
-    uiHelper.showError("Error creating password reset link: " + e);
+    uiHelper.showError('Error creating password reset link: ' + e);
   }
 };
 
@@ -135,9 +129,9 @@ var onRemoveRole = async (user: UserWithRoles, role: string) => {
   try {
     await adminApi.setRolesOfUser(user.id, roles);
     await refreshUsers();
-    uiHelper.showSuccess("Removed role " + role + " from user " + user.name);
+    uiHelper.showSuccess('Removed role ' + role + ' from user ' + user.name);
   } catch (e) {
-    uiHelper.showError("Error removing role " + role + " from user " + user.name + ": " + e);
+    uiHelper.showError('Error removing role ' + role + ' from user ' + user.name + ': ' + e);
   }
 };
 
@@ -147,9 +141,9 @@ var onAddRole = async (user: UserWithRoles, role: string) => {
   try {
     await adminApi.setRolesOfUser(user.id, roles);
     await refreshUsers();
-    uiHelper.showSuccess("Added role " + role + " to user " + user.name);
+    uiHelper.showSuccess('Added role ' + role + ' to user ' + user.name);
   } catch (e) {
-    uiHelper.showError("Error adding role " + role + " to user " + user.name + ": " + e);
+    uiHelper.showError('Error adding role ' + role + ' to user ' + user.name + ': ' + e);
   }
 };
 
@@ -166,9 +160,9 @@ const doChangePassword = async () => {
   if (!focussedUser.value) return;
   try {
     await adminApi.changePasswordOfSingleTenantUser(focussedUser.value.id, newPassword.value);
-    uiHelper.showSuccess("Password changed successfully");
+    uiHelper.showSuccess('Password changed successfully');
   } catch (e) {
-    uiHelper.showError("Error changing password: " + e);
+    uiHelper.showError('Error changing password: ' + e);
   }
 };
 
@@ -181,10 +175,10 @@ const updateTenant = async () => {
     await adminApi.updateTenant(tenant);
     tenantName.value = tenant.name;
     tenantData.value = tenant.data;
-    emit("tenantChanged", tenant.name);
-    uiHelper.showSuccess("Tenant updated successfully");
+    emit('tenantChanged', tenant.name);
+    uiHelper.showSuccess('Tenant updated successfully');
   } catch (e) {
-    uiHelper.showError("Error updating tenant: " + e);
+    uiHelper.showError('Error updating tenant: ' + e);
   }
 };
 </script>
@@ -266,20 +260,13 @@ const updateTenant = async () => {
 
                       <v-list>
                         <template v-for="role in props.roles" :key="role">
-                          <v-list-item
-                            @click="onAddRole(user, role)"
-                            v-if="!user.roles.find((r) => r == role)"
-                          >
+                          <v-list-item @click="onAddRole(user, role)" v-if="!user.roles.find((r) => r == role)">
                             <v-list-item-title>{{ role }}</v-list-item-title>
                           </v-list-item>
                         </template>
                       </v-list>
                     </v-menu>
-                    <v-btn
-                      icon="mdi-delete-outline"
-                      @click="removeUser(user)"
-                      title="Remove"
-                    ></v-btn>
+                    <v-btn icon="mdi-delete-outline" @click="removeUser(user)" title="Remove"></v-btn>
                     <v-btn
                       icon="mdi-key-variant"
                       v-if="user.singleTenant"
@@ -300,11 +287,7 @@ const updateTenant = async () => {
             <v-card-text>
               <v-form>
                 <v-text-field v-model="editTenantName" label="Tenant Name"></v-text-field>
-                <json-edit
-                  v-model="editTenantData"
-                  label="Tenant Data (JSON)"
-                  :rows="10"
-                ></json-edit>
+                <json-edit v-model="editTenantData" label="Tenant Data (JSON)" :rows="10"></json-edit>
                 <v-btn
                   :disabled="editTenantData == tenantData && editTenantName == tenantName"
                   @click="updateTenant()"
@@ -329,9 +312,7 @@ const updateTenant = async () => {
     <v-card>
       <v-card-title class="headline">Reset User Password</v-card-title>
       <v-card-subtitle class="headline"
-        >Reset the password of {{ focussedUser?.name }} ({{
-          focussedUser?.email
-        }}).</v-card-subtitle
+        >Reset the password of {{ focussedUser?.name }} ({{ focussedUser?.email }}).</v-card-subtitle
       >
       <v-card-text>
         This is only possible since he/she is only member of {{ tenantName }} and no other tenant.
@@ -359,11 +340,9 @@ const updateTenant = async () => {
       </v-card-text>
       <v-card-text>
         <div v-if="!!createdPasswordResetLink">
-          You can also use a link and send it to the user so that he/she can set the password
-          themselves (valid for 7 days): <br />
-          <span style="font-size: 10pt; font-family: monospace"
-            >{{ createdPasswordResetLink }}
-          </span>
+          You can also use a link and send it to the user so that he/she can set the password themselves (valid for 7
+          days): <br />
+          <span style="font-size: 10pt; font-family: monospace">{{ createdPasswordResetLink }} </span>
         </div>
       </v-card-text>
       <v-card-actions>

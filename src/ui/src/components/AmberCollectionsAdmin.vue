@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { AmberClient, type UserInfo } from "amber-client";
-import AmberCollectionEditor from "./AmberCollectionEditor.vue";
+import { ref, onMounted } from 'vue';
+import { AmberClient, type UserInfo } from 'amber-client';
+import AmberCollectionEditor from './AmberCollectionEditor.vue';
 var props = defineProps<{
   amberClient: AmberClient;
   tenant: string;
@@ -16,7 +16,7 @@ interface Collection {
   name: string;
   hasAccessTags: boolean;
   hasTags: boolean;
-  accessRightsMethod: "roles" | "code" | "none";
+  accessRightsMethod: 'roles' | 'code' | 'none';
 }
 
 const collections = ref<Collection[]>([]);
@@ -52,9 +52,7 @@ onMounted(async () => {
     <v-row>
       <v-col cols="12">
         <v-tabs v-model="selectedCollectionName" bg-color="amber">
-          <v-tab v-for="collection of collections" :value="collection.name">{{
-            collection.name
-          }}</v-tab>
+          <v-tab v-for="collection of collections" :value="collection.name">{{ collection.name }}</v-tab>
         </v-tabs>
       </v-col>
     </v-row>

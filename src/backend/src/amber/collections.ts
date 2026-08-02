@@ -17,10 +17,10 @@ import {
   success,
   UnsubscribeCollectionMessage,
   UpdateDocument,
-} from "./../../../client/src/shared/dtos.js";
-import { AmberAuth, tenantAdminRole } from "./auth.js";
-import { Config } from "./config.js";
-import { AmberRepo, DocumentWithTags } from "./db/repo.js";
+} from './../../../client/src/shared/dtos.js';
+import { AmberAuth, tenantAdminRole } from './auth.js';
+import { Config } from './config.js';
+import { AmberRepo, DocumentWithTags } from './db/repo.js';
 import {
   ActiveConnection,
   AmberConnectionManager,
@@ -29,20 +29,20 @@ import {
   sendToClient,
   successResponse,
   UserContext,
-} from "./connection.js";
-import { amberStats, Stats, StatsProvider } from "./stats.js";
-import * as express from "express";
-import { errorMessage, isString } from "./helper.js";
-export const CollectionActionCreate = "create";
-export const CollectionActionSubscribe = "subscribe";
-export const CollectionActionUpdate = "update";
-export const CollectionActionDelete = "delete";
-export type CollectionAccessAction = "create" | "subscribe" | "update" | "delete";
-export const CollectionErrorInvalidDocumentId = "invalid-document-id";
-export const CollectionErrorDuplicateDocumentId = "duplicate-document-id";
+} from './connection.js';
+import { amberStats, Stats, StatsProvider } from './stats.js';
+import * as express from 'express';
+import { errorMessage, isString } from './helper.js';
+export const CollectionActionCreate = 'create';
+export const CollectionActionSubscribe = 'subscribe';
+export const CollectionActionUpdate = 'update';
+export const CollectionActionDelete = 'delete';
+export type CollectionAccessAction = 'create' | 'subscribe' | 'update' | 'delete';
+export const CollectionErrorInvalidDocumentId = 'invalid-document-id';
+export const CollectionErrorDuplicateDocumentId = 'duplicate-document-id';
 
 function collectionItem(collection: string): string {
-  return "collection." + collection;
+  return 'collection.' + collection;
 }
 
 export interface CollectionSettings<T> {
@@ -132,7 +132,7 @@ export interface AmberCollection<T> {
     userId: string | undefined,
     data: T,
     documentId?: string,
-  ): Promise<{ id?: string; error?: "invalid-id" | "duplicate-id" | "internal-error" }>;
+  ): Promise<{ id?: string; error?: 'invalid-id' | 'duplicate-id' | 'internal-error' }>;
 
   /**
    * Delete a document from the collection.
@@ -175,11 +175,7 @@ export interface AmberCollection<T> {
   ): Promise<boolean>;
 
   // allDocuments(tenant: string, callback?:(id:string, data:T)=>Promise<void>): Promise<void>; // we actually don't want to expose this to the server side app, because it is an expensive operation since it steams all documents into the servers process
-  allDocumentsByTags(
-    tenant: string,
-    tags: string[],
-    callback?: (id: string, data: T) => Promise<void>,
-  ): Promise<void>; // Stream all documents that contain all the given tags as "data_tags" created by the dataTagsFromDocument setting of the collection.
+  allDocumentsByTags(tenant: string, tags: string[], callback?: (id: string, data: T) => Promise<void>): Promise<void>; // Stream all documents that contain all the given tags as "data_tags" created by the dataTagsFromDocument setting of the collection.
 }
 
 export interface AmberCollections {
@@ -189,9 +185,7 @@ export interface AmberCollections {
 /**
  * @ignore
  */
-export class CollectionsService
-  implements AmberConnectionMessageHandler, AmberCollections, StatsProvider
-{
+export class CollectionsService implements AmberConnectionMessageHandler, AmberCollections, StatsProvider {
   config: Config;
   repo: AmberRepo;
   collectionSettings: Map<string, CollectionSettings<any>>;
@@ -237,14 +231,14 @@ export class CollectionsService
     };
 
     // Get all collections metadata
-    app.get("/tenant/:tenant/collections", async (req: express.Request, res: express.Response) => {
+    app.get('/tenant/:tenant/collections', async (req: express.Request, res: express.Response) => {
       if (!this.authService.getSessionToken(req)) return;
       res.send(
         nu<CollectionInfo[]>(
           Array.from(this.collectionSettings.entries()).map(([name, settings]) => {
-            var accessRightsMethod: "code" | "roles" | "none" = "none";
+            var accessRightsMethod: 'code' | 'roles' | 'none' = 'none';
             if (settings.accessRights) {
-              accessRightsMethod = typeof settings.accessRights === "function" ? "code" : "roles";
+              accessRightsMethod = typeof settings.accessRights === 'function' ? 'code' : 'roles';
             }
             return {
               name: name,
@@ -260,75 +254,66 @@ export class CollectionsService
     // Check a document for validity and get the access tags and tags that would be created for it.
     // Supports impersonation of a user by providing the userId query parameter, an old document via the oldId parameter to check an update operation.
     // The body must contain the document to check.
-    app.post(
-      "/tenant/:tenant/collection/:collection/check",
-      async (req: express.Request, res: express.Response) => {
-        if (!this.authService.checkAdmin(req, res)) return;
-        let tenant = req.params.tenant as string;
-        var oldId = req.body.documentId as string | null;
-        let collection = req.params.collection as string;
-        let user = await getUserFromRequest(req);
+    app.post('/tenant/:tenant/collection/:collection/check', async (req: express.Request, res: express.Response) => {
+      if (!this.authService.checkAdmin(req, res)) return;
+      let tenant = req.params.tenant as string;
+      var oldId = req.body.documentId as string | null;
+      let collection = req.params.collection as string;
+      let user = await getUserFromRequest(req);
 
-        var doc = req.body;
-        let collectionSettings = this.collectionSettings.get(collection);
-        if (!collectionSettings) {
-          res
-            .status(404)
-            .send(
-              nu<ActionResult>({ success: false, error: `Collection ${collection} not found` }),
-            );
+      var doc = req.body;
+      let collectionSettings = this.collectionSettings.get(collection);
+      if (!collectionSettings) {
+        res.status(404).send(nu<ActionResult>({ success: false, error: `Collection ${collection} not found` }));
+        return;
+      }
+
+      var oldDocContent = null;
+      if (oldId) {
+        let oldDoc = await this.repo.getDocument(tenant, collection, oldId);
+        if (!oldDoc) {
+          res.status(404).send(
+            nu<ActionResult>({
+              success: false,
+              error: `Old document with id ${oldId} not found in collection ${collection}`,
+            }),
+          );
           return;
         }
-
-        var oldDocContent = null;
-        if (oldId) {
-          let oldDoc = await this.repo.getDocument(tenant, collection, oldId);
-          if (!oldDoc) {
-            res.status(404).send(
-              nu<ActionResult>({
-                success: false,
-                error: `Old document with id ${oldId} not found in collection ${collection}`,
-              }),
-            );
-            return;
-          }
-          oldDocContent = JSON.parse(oldDoc.data ?? "null");
-        }
-        try {
-          let [isValid, validationError] = executeValidator(
-            collectionSettings.validator,
-            user!,
-            oldDocContent,
-            doc,
-            oldId ? CollectionActionUpdate : CollectionActionCreate,
-          );
-          let isAuthorized = this.checkAccessRight(
-            user!,
-            collectionSettings,
-            oldId ? CollectionActionUpdate : CollectionActionCreate,
-            doc,
-          );
-          var result: CollectionDocumentCheckResult = {
-            isValid: isValid,
-            error: validationError,
-            createdAccessTags: collectionSettings.accessTagsFromDocument
-              ? collectionSettings.accessTagsFromDocument(doc)
-              : [],
-            createdTags: collectionSettings.tagsFromDocument
-              ? collectionSettings.tagsFromDocument(doc)
-              : [],
-            authorized: isAuthorized,
-          };
-          res.send(nu<CollectionDocumentCheckResult>(result));
-        } catch (e) {
-          res.status(500).send(error(`Error during validation: ${errorMessage(e)}`));
-        }
-      },
-    );
+        oldDocContent = JSON.parse(oldDoc.data ?? 'null');
+      }
+      try {
+        let [isValid, validationError] = executeValidator(
+          collectionSettings.validator,
+          user!,
+          oldDocContent,
+          doc,
+          oldId ? CollectionActionUpdate : CollectionActionCreate,
+        );
+        let isAuthorized = this.checkAccessRight(
+          user!,
+          collectionSettings,
+          oldId ? CollectionActionUpdate : CollectionActionCreate,
+          doc,
+        );
+        var result: CollectionDocumentCheckResult = {
+          isValid: isValid,
+          error: validationError,
+          createdAccessTags: collectionSettings.accessTagsFromDocument
+            ? collectionSettings.accessTagsFromDocument(doc)
+            : [],
+          createdTags: collectionSettings.tagsFromDocument ? collectionSettings.tagsFromDocument(doc) : [],
+          authorized: isAuthorized,
+        };
+        res.send(nu<CollectionDocumentCheckResult>(result));
+      } catch (e) {
+        res.status(500).send(error(`Error during validation: ${errorMessage(e)}`));
+      }
+    });
 
     // Get a document meta data with access tags and data tags from a collection
     app.get(
-      "/tenant/:tenant/collection/:collection/document/:id/info",
+      '/tenant/:tenant/collection/:collection/document/:id/info',
       async (req: express.Request, res: express.Response) => {
         if (!this.authService.checkAdmin(req, res)) return;
         let tenant = req.params.tenant as string;
@@ -346,7 +331,7 @@ export class CollectionsService
           };
           res.send(nu<CollectionDocumentInfo>(result));
         } else {
-          res.status(404).send(error("Document not found"));
+          res.status(404).send(error('Document not found'));
         }
       },
     );
@@ -356,64 +341,57 @@ export class CollectionsService
     // If the document id exists the document will be updated, otherwise created.
     // If the document id is not provided or whitespace a new id will be generated.
     // The body must contain the document .
-    app.post(
-      "/tenant/:tenant/collection/:collection/document",
-      async (req: express.Request, res: express.Response) => {
-        if (!this.authService.checkAdmin(req, res)) return;
-        let tenant = req.params.tenant as string;
-        let docId = (req.query.docId as string) || undefined;
-        let collectionId = req.params.collection as string;
-        let user = await getUserFromRequest(req);
-        if (docId) {
-          docId = docId.trim();
-          if (docId.length === 0) {
-            docId = undefined;
-          }
+    app.post('/tenant/:tenant/collection/:collection/document', async (req: express.Request, res: express.Response) => {
+      if (!this.authService.checkAdmin(req, res)) return;
+      let tenant = req.params.tenant as string;
+      let docId = (req.query.docId as string) || undefined;
+      let collectionId = req.params.collection as string;
+      let user = await getUserFromRequest(req);
+      if (docId) {
+        docId = docId.trim();
+        if (docId.length === 0) {
+          docId = undefined;
         }
-        var doc = req.body;
-        let collection = this.getCollection(collectionId);
-        if (!collection) {
-          res
-            .status(404)
-            .send(
-              nu<ActionResult>({ success: false, error: `Collection ${collection} not found` }),
-            );
+      }
+      var doc = req.body;
+      let collection = this.getCollection(collectionId);
+      if (!collection) {
+        res.status(404).send(nu<ActionResult>({ success: false, error: `Collection ${collection} not found` }));
+        return;
+      }
+
+      if (docId) {
+        // let's see if the document exists
+        let existingDoc = await this.repo.getDocument(tenant, collectionId, docId);
+        if (existingDoc) {
+          try {
+            var result = await collection.updateDocument(tenant, docId, user!.userId, doc);
+            if (result) {
+              res.send(success(docId));
+            } else {
+              res.send(error('Error updating the document'));
+            }
+          } catch (e) {
+            res.status(500).send(error(`Error during update: ${errorMessage(e)}`));
+          }
           return;
         }
-
-        if (docId) {
-          // let's see if the document exists
-          let existingDoc = await this.repo.getDocument(tenant, collectionId, docId);
-          if (existingDoc) {
-            try {
-              var result = await collection.updateDocument(tenant, docId, user!.userId, doc);
-              if (result) {
-                res.send(success(docId));
-              } else {
-                res.send(error("Error updating the document"));
-              }
-            } catch (e) {
-              res.status(500).send(error(`Error during update: ${errorMessage(e)}`));
-            }
-            return;
-          }
+      }
+      try {
+        var createResult = await collection.createDocument(tenant, user!.userId, doc, docId);
+        if (createResult.error) {
+          res.send(error(createResult.error));
+        } else {
+          res.send(success(createResult.id));
         }
-        try {
-          var createResult = await collection.createDocument(tenant, user!.userId, doc, docId);
-          if (createResult.error) {
-            res.send(error(createResult.error));
-          } else {
-            res.send(success(createResult.id));
-          }
-        } catch (e) {
-          res.status(500).send(error(`Error during creation: ${errorMessage(e)}`));
-        }
-      },
-    );
+      } catch (e) {
+        res.status(500).send(error(`Error during creation: ${errorMessage(e)}`));
+      }
+    });
 
     // Get a the user access tags for a collection
     app.get(
-      "/tenant/:tenant/collection/:collection/user-access/:userId",
+      '/tenant/:tenant/collection/:collection/user-access/:userId',
       async (req: express.Request, res: express.Response) => {
         if (!this.authService.checkAdmin(req, res)) return;
 
@@ -422,13 +400,13 @@ export class CollectionsService
         let userId = req.params.userId as string;
         var collectionSettings = this.collectionSettings.get(collection);
         if (!collectionSettings) {
-          res.status(404).send(error("Collection not found"));
+          res.status(404).send(error('Collection not found'));
           return;
         }
         var roles = await this.authService.getUserRoles(userId, tenant);
 
         if (!roles) {
-          res.status(404).send(error("User not found or not in tenant"));
+          res.status(404).send(error('User not found or not in tenant'));
           return;
         }
 
@@ -437,10 +415,7 @@ export class CollectionsService
             ? collectionSettings.accessTagsFromUser({ userId, roles })
             : [];
           var accessRightsInfo: string[] | undefined;
-          if (
-            collectionSettings.accessRights &&
-            typeof collectionSettings.accessRights === "object"
-          ) {
+          if (collectionSettings.accessRights && typeof collectionSettings.accessRights === 'object') {
             var accessRightsSet = new Set<string>();
             for (const role of roles) {
               if (collectionSettings.accessRights[role]) {
@@ -452,9 +427,7 @@ export class CollectionsService
             accessRightsInfo = Array.from(accessRightsSet);
           }
 
-          res.send(
-            nu<CollectionAccessInfo>({ accessTags: accessTags, accessRights: accessRightsInfo }),
-          );
+          res.send(nu<CollectionAccessInfo>({ accessTags: accessTags, accessRights: accessRightsInfo }));
         } catch (e) {
           res.status(500).send(error(`Error getting access tags: ${errorMessage(e)}`));
         }
@@ -478,35 +451,15 @@ export class CollectionsService
         userId: string | undefined,
         data: T,
         expectedChangeNumber: number | undefined,
-      ) =>
-        this.updateDocument(
-          tenant,
-          collection,
-          collectionSettings,
-          documentId,
-          userId,
-          data,
-          expectedChangeNumber,
-        ),
+      ) => this.updateDocument(tenant, collection, collectionSettings, documentId, userId, data, expectedChangeNumber),
       updateDocumentWithCallback: (
         tenant: string,
         documentId: string,
         userId: string | undefined,
         change: (oldDoc: T) => T | null,
-      ) =>
-        this.updateDocumentWithCallback(
-          tenant,
-          collection,
-          collectionSettings,
-          documentId,
-          userId,
-          change,
-        ),
-      allDocumentsByTags: (
-        tenant: string,
-        tags: string[],
-        callback?: (id: string, data: T) => Promise<void>,
-      ) => this.allDocumentsByTags(tenant, collection, collectionSettings, tags, callback),
+      ) => this.updateDocumentWithCallback(tenant, collection, collectionSettings, documentId, userId, change),
+      allDocumentsByTags: (tenant: string, tags: string[], callback?: (id: string, data: T) => Promise<void>) =>
+        this.allDocumentsByTags(tenant, collection, collectionSettings, tags, callback),
       getDocument: (tenant: string, documentId: string) =>
         this.getDocument(tenant, collection, collectionSettings, documentId),
     };
@@ -525,7 +478,7 @@ export class CollectionsService
       return false; // document not found
     }
 
-    let newData = change(JSON.parse(oldDocument.data ?? "null"));
+    let newData = change(JSON.parse(oldDocument.data ?? 'null'));
     if (newData === null) {
       return true; // no change
     }
@@ -548,18 +501,11 @@ export class CollectionsService
     tags: string[],
     callback?: (id: string, data: any) => Promise<void>,
   ): Promise<void> {
-    return this.repo.streamAllDocuments(
-      tenant,
-      collection,
-      0,
-      undefined,
-      tags,
-      async (document) => {
-        if (callback) {
-          await callback(document.id, JSON.parse(document.data ?? "null"));
-        }
-      },
-    );
+    return this.repo.streamAllDocuments(tenant, collection, 0, undefined, tags, async (document) => {
+      if (callback) {
+        await callback(document.id, JSON.parse(document.data ?? 'null'));
+      }
+    });
   }
 
   async getDocument(
@@ -570,20 +516,19 @@ export class CollectionsService
   ): Promise<any | undefined> {
     var doc = await this.repo.getDocument(tenant, collection, documentId);
     if (doc) {
-      return JSON.parse(doc.data ?? "null");
+      return JSON.parse(doc.data ?? 'null');
     }
     return undefined; // document not found
   }
 
   async stats(): Promise<Stats> {
-    var collectionSubscriptionsPerTenant =
-      this.connectionManager.countActiveConnectionsGroupedByTenant(
-        (items) => items.filter((item) => item.startsWith("collection.")).length,
-      );
+    var collectionSubscriptionsPerTenant = this.connectionManager.countActiveConnectionsGroupedByTenant(
+      (items) => items.filter((item) => item.startsWith('collection.')).length,
+    );
     var docsPerTenant = await this.repo.getDocumentCountPerTenant();
     return {
-      "col-sub": collectionSubscriptionsPerTenant,
-      "col-docs": docsPerTenant,
+      'col-sub': collectionSubscriptionsPerTenant,
+      'col-docs': docsPerTenant,
     };
   }
 
@@ -598,35 +543,23 @@ export class CollectionsService
 
     let collectionSettings = this.collectionSettings.get(collectionMessage.collection);
     if (!collectionSettings) {
-      return errorResponse(
-        message,
-        "not-found",
-        `Collection ${collectionMessage.collection} not found`,
-      );
+      return errorResponse(message, 'not-found', `Collection ${collectionMessage.collection} not found`);
     }
 
-    if (message.action === "subscribe-collection") {
-      return await this.handleSubscribe(
-        connection,
-        message as SubscribeCollectionMessage,
-        collectionSettings,
-      );
+    if (message.action === 'subscribe-collection') {
+      return await this.handleSubscribe(connection, message as SubscribeCollectionMessage, collectionSettings);
     }
 
-    if (message.action === "unsubscribe-collection") {
-      return await this.handleUnsubscribe(
-        connection,
-        message as UnsubscribeCollectionMessage,
-        collectionSettings,
-      );
+    if (message.action === 'unsubscribe-collection') {
+      return await this.handleUnsubscribe(connection, message as UnsubscribeCollectionMessage, collectionSettings);
     }
-    if (message.action === "create-doc") {
+    if (message.action === 'create-doc') {
       return await this.handleCreate(connection, message as CreateDocument, collectionSettings);
     }
-    if (message.action === "delete-doc") {
+    if (message.action === 'delete-doc') {
       return await this.handleDelete(connection, message as DeleteDocument, collectionSettings);
     }
-    if (message.action === "update-doc") {
+    if (message.action === 'update-doc') {
       return await this.handleUpdate(connection, message as UpdateDocument, collectionSettings);
     }
   }
@@ -641,19 +574,16 @@ export class CollectionsService
       return true; // tenant admins always have access
     }
 
-    if (collectionSettings.accessRights && typeof collectionSettings.accessRights === "object") {
+    if (collectionSettings.accessRights && typeof collectionSettings.accessRights === 'object') {
       let hasAccess = false;
       for (const role of user.roles) {
-        if (
-          collectionSettings.accessRights[role] &&
-          collectionSettings.accessRights[role].includes(action)
-        ) {
+        if (collectionSettings.accessRights[role] && collectionSettings.accessRights[role].includes(action)) {
           hasAccess = true;
           break;
         }
       }
       return hasAccess;
-    } else if (typeof collectionSettings.accessRights === "function") {
+    } else if (typeof collectionSettings.accessRights === 'function') {
       return collectionSettings.accessRights(user, doc, action);
     }
     return true; // no access rights defined, so we assume access is granted
@@ -667,17 +597,13 @@ export class CollectionsService
     var isAdmin = connection.roles.includes(tenantAdminRole);
     // check if the user has read access to the collection
     if (connection.items.has(collectionItem(message.collection))) {
-      return errorResponse(
-        message,
-        "conflict",
-        `Already subscribed to the collection ${message.collection}`,
-      );
+      return errorResponse(message, 'conflict', `Already subscribed to the collection ${message.collection}`);
     }
 
     if (!this.checkAccessRight(connection, collectionSettings, CollectionActionSubscribe, null)) {
       return errorResponse(
         message,
-        "unauthorized",
+        'unauthorized',
         `You don't have subscribe access to the collection ${message.collection}`,
       );
     }
@@ -709,7 +635,7 @@ export class CollectionsService
           documentIdsSend.add(document.id);
           sendToClient<ServerSyncDocument>(connection, {
             collection: message.collection,
-            type: "sync-document",
+            type: 'sync-document',
             document: {
               id: document.id,
               change_number: changeNumber,
@@ -724,30 +650,14 @@ export class CollectionsService
 
     if (message.start > 0) {
       // send the last removed documents
-      this.repo.streamAllSyncActions(
-        connection.tenant,
-        message.collection,
-        message.start,
-        accessTags,
-        (syncAction) => {
-          if (!syncAction.deleted) {
-            var stillHasAccess = documentIdsSend.has(syncAction.id); // it was sent just now, so the access is still there
-            if (!stillHasAccess) {
-              // the user HAD access but does not have anymore. So we need to send a remove message
-              sendToClient<ServerSyncDocument>(connection, {
-                collection: message.collection,
-                type: "sync-document",
-                document: {
-                  id: syncAction.id,
-                  change_number: syncAction.change_number,
-                  removed: true,
-                },
-              });
-            }
-          } else if (syncAction.deleted) {
+      this.repo.streamAllSyncActions(connection.tenant, message.collection, message.start, accessTags, (syncAction) => {
+        if (!syncAction.deleted) {
+          var stillHasAccess = documentIdsSend.has(syncAction.id); // it was sent just now, so the access is still there
+          if (!stillHasAccess) {
+            // the user HAD access but does not have anymore. So we need to send a remove message
             sendToClient<ServerSyncDocument>(connection, {
               collection: message.collection,
-              type: "sync-document",
+              type: 'sync-document',
               document: {
                 id: syncAction.id,
                 change_number: syncAction.change_number,
@@ -755,8 +665,18 @@ export class CollectionsService
               },
             });
           }
-        },
-      );
+        } else if (syncAction.deleted) {
+          sendToClient<ServerSyncDocument>(connection, {
+            collection: message.collection,
+            type: 'sync-document',
+            document: {
+              id: syncAction.id,
+              change_number: syncAction.change_number,
+              removed: true,
+            },
+          });
+        }
+      });
     }
 
     return successResponse(message);
@@ -768,11 +688,7 @@ export class CollectionsService
     _collectionSettings: CollectionSettings<any>,
   ): Promise<AmberServerResponseMessage> {
     if (!connection.items.has(collectionItem(message.collection))) {
-      return errorResponse(
-        message,
-        "conflict",
-        `Not subscribed to the collection ${message.collection}`,
-      );
+      return errorResponse(message, 'conflict', `Not subscribed to the collection ${message.collection}`);
     }
     connection.items.delete(collectionItem(message.collection));
     return successResponse(message);
@@ -786,7 +702,7 @@ export class CollectionsService
     if (!this.checkAccessRight(connection, collectionSettings, CollectionActionCreate, null)) {
       return errorResponse(
         message,
-        "unauthorized",
+        'unauthorized',
         `You don't have create access to the collection ${message.collection}`,
       );
     }
@@ -802,7 +718,7 @@ export class CollectionsService
     if (!isValid) {
       return errorResponse(
         message,
-        "validation-failed",
+        'validation-failed',
         `Document creation validation failed for the collection ${message.collection} with error: ${validationError}`,
       );
     }
@@ -818,28 +734,20 @@ export class CollectionsService
 
     if (result.id) {
       var successMessage: ServerSuccessWithDocument = {
-        type: "success-document",
+        type: 'success-document',
         responseTo: message.requestId,
         documentId: result.id,
       };
       return successMessage;
     } else {
-      if (result.error === "invalid-id") {
-        return errorResponse(
-          message,
-          "bad-request",
-          `Invalid document id for the collection ${message.collection}`,
-        );
-      } else if (result.error === "duplicate-id") {
-        return errorResponse(
-          message,
-          "duplicate-id",
-          `Duplicate document id for the collection ${message.collection}`,
-        );
+      if (result.error === 'invalid-id') {
+        return errorResponse(message, 'bad-request', `Invalid document id for the collection ${message.collection}`);
+      } else if (result.error === 'duplicate-id') {
+        return errorResponse(message, 'duplicate-id', `Duplicate document id for the collection ${message.collection}`);
       } else
         return errorResponse(
           message,
-          "internal-error",
+          'internal-error',
           `Failed to create document in collection ${message.collection}`,
         );
     }
@@ -852,24 +760,20 @@ export class CollectionsService
     userId: string | undefined,
     data: any,
     documentId?: string,
-  ): Promise<{ id?: string; error?: "invalid-id" | "duplicate-id" | "internal-error" }> {
+  ): Promise<{ id?: string; error?: 'invalid-id' | 'duplicate-id' | 'internal-error' }> {
     if (documentId) {
       // validate the document id
       if (!this.validDocumentIdRegex.test(documentId)) {
-        return { error: "invalid-id" };
+        return { error: 'invalid-id' };
       }
       // check if the document already exists
       let existingDoc = await this.repo.getDocument(tenant, collection, documentId);
       if (existingDoc) {
-        return { error: "duplicate-id" }; // document already exists
+        return { error: 'duplicate-id' }; // document already exists
       }
     }
-    var accessTags = collectionSettings.accessTagsFromDocument
-      ? collectionSettings.accessTagsFromDocument(data)
-      : [];
-    var dataTags = collectionSettings.tagsFromDocument
-      ? collectionSettings.tagsFromDocument(data)
-      : [];
+    var accessTags = collectionSettings.accessTagsFromDocument ? collectionSettings.accessTagsFromDocument(data) : [];
+    var dataTags = collectionSettings.tagsFromDocument ? collectionSettings.tagsFromDocument(data) : [];
 
     let document = await this.repo.createDocument(
       tenant,
@@ -880,7 +784,7 @@ export class CollectionsService
       dataTags,
       documentId,
     );
-    amberStats.trackMetric("col-crt", 1, tenant);
+    amberStats.trackMetric('col-crt', 1, tenant);
     if (document) {
       for (const connection of this.connectionManager.activeConnectionsForTenant(tenant)) {
         if (connection.items.has(collectionItem(collection))) {
@@ -909,7 +813,7 @@ export class CollectionsService
 
           sendToClient<ServerSyncDocument>(connection, {
             collection: collection,
-            type: "sync-document",
+            type: 'sync-document',
             document: {
               id: document.id,
               change_number: document.change_number,
@@ -937,7 +841,7 @@ export class CollectionsService
       }
       return { id: document.id };
     } else {
-      return { error: "internal-error" };
+      return { error: 'internal-error' };
     }
   }
 
@@ -946,18 +850,10 @@ export class CollectionsService
     message: DeleteDocument,
     collectionSettings: CollectionSettings<any>,
   ): Promise<AmberServerResponseMessage> {
-    let oldDocument = await this.repo.getDocument(
-      connection.tenant,
-      message.collection,
-      message.documentId,
-    );
+    let oldDocument = await this.repo.getDocument(connection.tenant, message.collection, message.documentId);
 
     if (!oldDocument) {
-      return errorResponse(
-        message,
-        "not-found",
-        `Document not found in collection ${message.collection}`,
-      );
+      return errorResponse(message, 'not-found', `Document not found in collection ${message.collection}`);
     }
 
     if (
@@ -965,12 +861,12 @@ export class CollectionsService
         connection,
         collectionSettings,
         CollectionActionDelete,
-        JSON.parse(oldDocument.data ?? "null"),
+        JSON.parse(oldDocument.data ?? 'null'),
       )
     ) {
       return errorResponse(
         message,
-        "unauthorized",
+        'unauthorized',
         `You don't have delete access to the collection ${message.collection}`,
       );
     }
@@ -985,7 +881,7 @@ export class CollectionsService
     if (!isValid) {
       return errorResponse(
         message,
-        "validation-failed",
+        'validation-failed',
         `Document deletion validation failed for the collection ${message.collection} with error: ${validationError}`,
       );
     }
@@ -1001,11 +897,7 @@ export class CollectionsService
     if (success) {
       return successResponse(message);
     } else {
-      return errorResponse(
-        message,
-        "internal-error",
-        `Failed to delete document in collection ${message.collection}`,
-      );
+      return errorResponse(message, 'internal-error', `Failed to delete document in collection ${message.collection}`);
     }
   }
 
@@ -1021,7 +913,7 @@ export class CollectionsService
 
     let changeNumber = await this.repo.deleteDocument(tenant, collection, documentId);
 
-    amberStats.trackMetric("col-del", 1, tenant);
+    amberStats.trackMetric('col-del', 1, tenant);
 
     if (changeNumber) {
       for (const connection of this.connectionManager.activeConnectionsForTenant(tenant)) {
@@ -1031,7 +923,7 @@ export class CollectionsService
           // But this would be more complex.
           sendToClient<ServerSyncDocument>(connection, {
             collection: collection,
-            type: "sync-document",
+            type: 'sync-document',
             document: {
               id: documentId,
               change_number: changeNumber,
@@ -1048,7 +940,7 @@ export class CollectionsService
           tenant,
           userId ?? null,
           documentId,
-          JSON.parse(oldDocument.data ?? "null"),
+          JSON.parse(oldDocument.data ?? 'null'),
           null,
           CollectionActionDelete,
           this,
@@ -1066,25 +958,17 @@ export class CollectionsService
     message: UpdateDocument,
     collectionSettings: CollectionSettings<any>,
   ): Promise<AmberServerResponseMessage> {
-    var oldDocument = await this.repo.getDocument(
-      connection.tenant,
-      message.collection,
-      message.documentId,
-    );
+    var oldDocument = await this.repo.getDocument(connection.tenant, message.collection, message.documentId);
 
     if (!oldDocument) {
-      return errorResponse(
-        message,
-        "not-found",
-        `Document not found in collection ${message.collection}`,
-      );
+      return errorResponse(message, 'not-found', `Document not found in collection ${message.collection}`);
     }
 
     // check if the document is already updated by another client
     if (message.expectedChangeNumber !== oldDocument.change_number) {
       return errorResponse(
         message,
-        "conflict",
+        'conflict',
         `Document change number mismatch in collection ${message.collection}. Concurrent update?`,
       );
     }
@@ -1094,12 +978,12 @@ export class CollectionsService
         connection,
         collectionSettings,
         CollectionActionUpdate,
-        JSON.parse(oldDocument.data ?? "null"),
+        JSON.parse(oldDocument.data ?? 'null'),
       )
     ) {
       return errorResponse(
         message,
-        "unauthorized",
+        'unauthorized',
         `You don't have update access to the collection ${message.collection}`,
       );
     }
@@ -1107,14 +991,14 @@ export class CollectionsService
     let [isValid, validationError] = executeValidator(
       collectionSettings.validator,
       connection,
-      JSON.parse(oldDocument.data ?? "null"),
+      JSON.parse(oldDocument.data ?? 'null'),
       message.content,
       CollectionActionUpdate,
     );
     if (!isValid) {
       return errorResponse(
         message,
-        "validation-failed",
+        'validation-failed',
         `Document update validation failed for the collection ${message.collection} with error: ${validationError}`,
       );
     }
@@ -1131,11 +1015,7 @@ export class CollectionsService
     if (success) {
       return successResponse(message);
     } else {
-      return errorResponse(
-        message,
-        "internal-error",
-        `Failed to update document in collection ${message.collection}`,
-      );
+      return errorResponse(message, 'internal-error', `Failed to update document in collection ${message.collection}`);
     }
   }
 
@@ -1185,12 +1065,8 @@ export class CollectionsService
     data: any | undefined,
     oldDoc: DocumentWithTags,
   ): Promise<boolean> {
-    let accessTags = collectionSettings.accessTagsFromDocument
-      ? collectionSettings.accessTagsFromDocument(data)
-      : [];
-    let dataTags = collectionSettings.tagsFromDocument
-      ? collectionSettings.tagsFromDocument(data)
-      : [];
+    let accessTags = collectionSettings.accessTagsFromDocument ? collectionSettings.accessTagsFromDocument(data) : [];
+    let dataTags = collectionSettings.tagsFromDocument ? collectionSettings.tagsFromDocument(data) : [];
     let oldAccessTags = oldDoc.access_tags ?? [];
     let changeNumber = await this.repo.updateDocument(
       tenant,
@@ -1203,7 +1079,7 @@ export class CollectionsService
       oldDoc,
     );
 
-    amberStats.trackMetric("col-upd", 1, tenant);
+    amberStats.trackMetric('col-upd', 1, tenant);
 
     if (changeNumber) {
       for (const connection of this.connectionManager.activeConnectionsForTenant(tenant)) {
@@ -1239,7 +1115,7 @@ export class CollectionsService
                 // send a delete message for the old document since it is not accessible anymore
                 sendToClient<ServerSyncDocument>(connection, {
                   collection: collection,
-                  type: "sync-document",
+                  type: 'sync-document',
                   document: {
                     id: documentId,
                     change_number: changeNumber,
@@ -1252,11 +1128,11 @@ export class CollectionsService
           }
           sendToClient<ServerSyncDocument>(connection, {
             collection: collection,
-            type: "sync-document",
+            type: 'sync-document',
             document: {
               id: documentId,
               change_number: changeNumber,
-              change_user: userId || "",
+              change_user: userId || '',
               change_time: new Date(),
               data: data,
             },
@@ -1271,7 +1147,7 @@ export class CollectionsService
           tenant,
           userId ?? null,
           documentId,
-          JSON.parse(oldDoc.data ?? "null"),
+          JSON.parse(oldDoc.data ?? 'null'),
           data,
           CollectionActionUpdate,
           this,
@@ -1286,12 +1162,7 @@ export class CollectionsService
 
 function executeValidator(
   validator:
-    | ((
-        user: UserContext,
-        oldDocument: any,
-        newDocument: any,
-        action: CollectionAccessAction,
-      ) => boolean | string)
+    | ((user: UserContext, oldDocument: any, newDocument: any, action: CollectionAccessAction) => boolean | string)
     | undefined,
   user: UserContext,
   oldDocContent: any,
@@ -1308,7 +1179,7 @@ function executeValidator(
       ? undefined
       : isString(validationResult)
         ? (validationResult as string)
-        : "Invalid document";
+        : 'Invalid document';
     return [isValid, errorMessage];
   } catch (e) {
     return [false, `Validator exception: ${errorMessage(e)}`];

@@ -6,11 +6,11 @@ import {
   AmberClientWsMessage,
   ServerErrorCode,
   nu,
-} from "./shared/dtos.js";
+} from './shared/dtos.js';
 
 export interface ServerErrorResponse {
   error?: string;
-  errorCode: ServerErrorCode | "timeout";
+  errorCode: ServerErrorCode | 'timeout';
 }
 
 export interface ConnectionHandler {
@@ -24,7 +24,7 @@ export class AmberConnectionsClient {
   sessionToken: () => Promise<string | null>;
 
   ws: WebSocket | null = null;
-  websocketPrefix: string = "wss://";
+  websocketPrefix: string = 'wss://';
 
   requestId: number = 0;
 
@@ -57,9 +57,7 @@ export class AmberConnectionsClient {
   }
 
   offConnectionChanged(callback: (connected: boolean) => void) {
-    this.connectionChangeHandlers = this.connectionChangeHandlers.filter(
-      (handler) => handler !== callback,
-    );
+    this.connectionChangeHandlers = this.connectionChangeHandlers.filter((handler) => handler !== callback);
   }
 
   isConnected(): boolean {
@@ -76,8 +74,8 @@ export class AmberConnectionsClient {
     this.apiPrefix = apiPrefix;
     this.tenant = tenant;
     this.sessionToken = sessionToken;
-    if (location.protocol === "http:") {
-      this.websocketPrefix = "ws://";
+    if (location.protocol === 'http:') {
+      this.websocketPrefix = 'ws://';
     }
   }
 
@@ -89,9 +87,7 @@ export class AmberConnectionsClient {
     return false;
   }
 
-  sendAndReceive<T extends AmberClientWsMessage, R extends AmberServerResponseMessage>(
-    message: T,
-  ): Promise<R> {
+  sendAndReceive<T extends AmberClientWsMessage, R extends AmberServerResponseMessage>(message: T): Promise<R> {
     var received = false;
     return new Promise<R>((resolve, reject) => {
       setTimeout(() => {
@@ -99,8 +95,8 @@ export class AmberConnectionsClient {
           this.inflightRequests.delete(message.requestId);
           reject(
             nu<ServerErrorResponse>({
-              error: "Timeout waiting for response",
-              errorCode: "timeout",
+              error: 'Timeout waiting for response',
+              errorCode: 'timeout',
             }),
           );
         }
@@ -108,12 +104,12 @@ export class AmberConnectionsClient {
 
       this.inflightRequests.set(message.requestId, (response: AmberServerResponseMessage) => {
         received = true;
-        if (response.type === "error") {
+        if (response.type === 'error') {
           var errorResponse = response as ServerError;
           reject(
             nu<ServerErrorResponse>({
               error: errorResponse.error,
-              errorCode: errorResponse.errorCode || "unknown-error",
+              errorCode: errorResponse.errorCode || 'unknown-error',
             }),
           );
         } else {
@@ -145,7 +141,7 @@ export class AmberConnectionsClient {
     return new Promise((resolve, _reject) => {
       const url = `${this.websocketPrefix}${location.host}${this.apiPrefix}/ws/amber/${this.tenant}`;
 
-      this.ws = new WebSocket(url, [AmberSessionProtocolPrefix + token, "amber"]);
+      this.ws = new WebSocket(url, [AmberSessionProtocolPrefix + token, 'amber']);
 
       this.ws.onopen = () => {
         resolve();

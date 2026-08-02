@@ -1,24 +1,18 @@
-import {
-  Config,
-  ConfigOptions,
-  defaultConfig,
-  defaultUiConfig,
-  UiConfigOptions,
-} from "./config.js";
-import { WebsocketHandler } from "./websocket/websocket.js";
-import * as http from "http";
-import { simpleWebsockets } from "./websocket/websocket.js";
-import { AmberRepo } from "./db/repo.js";
-import { AmberAuth, auth } from "./auth.js";
-import { enableAdminApi } from "./admin.js";
-import { AmberCollections, CollectionSettings, CollectionsService } from "./collections.js";
-import { AmberConnectionManager } from "./connection.js";
-import { AmberChannels, ChannelService, ChannelSettings } from "./channels.js";
-import { amberStats, enableStatsApis } from "./stats.js";
-import express from "express";
-import cookieParser from "cookie-parser";
-import { enableUi } from "./ui.js";
-import { AmberUiConfig } from "../../../shared/src/ui/model.js";
+import { Config, ConfigOptions, defaultConfig, defaultUiConfig, UiConfigOptions } from './config.js';
+import { WebsocketHandler } from './websocket/websocket.js';
+import * as http from 'http';
+import { simpleWebsockets } from './websocket/websocket.js';
+import { AmberRepo } from './db/repo.js';
+import { AmberAuth, auth } from './auth.js';
+import { enableAdminApi } from './admin.js';
+import { AmberCollections, CollectionSettings, CollectionsService } from './collections.js';
+import { AmberConnectionManager } from './connection.js';
+import { AmberChannels, ChannelService, ChannelSettings } from './channels.js';
+import { amberStats, enableStatsApis } from './stats.js';
+import express from 'express';
+import cookieParser from 'cookie-parser';
+import { enableUi } from './ui.js';
+import { AmberUiConfig } from '../../../shared/src/ui/model.js';
 
 /**
  * The startingpoint to initialize an amber application. It takes an express app and returns an AmberInit instance.
@@ -121,7 +115,7 @@ export class AmberInit {
   withUi(config?: ((c: AmberUiConfig) => void) | UiConfigOptions | undefined): AmberInit {
     var c = structuredClone(defaultUiConfig);
     if (config) {
-      if (typeof config === "function") {
+      if (typeof config === 'function') {
         config(c);
       } else {
         c = { ...c, ...config };
@@ -276,15 +270,8 @@ export class Amber {
    * @param pw An initial password for the user, please take it from a secure place
    * @param roles Roles to be added additional to "admin" which is the build in role for the admin user.
    */
-  async addAdminIfNotExists(
-    email: string,
-    name: string,
-    pw: string,
-    roles?: string[],
-  ): Promise<string> {
-    return await this.auth.addUserToTenant(email, name, pw, "*", [
-      ...new Set(["admin", ...(roles || [])]),
-    ]);
+  async addAdminIfNotExists(email: string, name: string, pw: string, roles?: string[]): Promise<string> {
+    return await this.auth.addUserToTenant(email, name, pw, '*', [...new Set(['admin', ...(roles || [])])]);
   }
 
   /**
@@ -293,10 +280,7 @@ export class Amber {
    * @param host The host to listen on. Default is "localhost".
    * @returns The server instance.
    */
-  listen(
-    port?: number,
-    host?: string,
-  ): http.Server<typeof http.IncomingMessage, typeof http.ServerResponse> {
+  listen(port?: number, host?: string): http.Server<typeof http.IncomingMessage, typeof http.ServerResponse> {
     return http.createServer(this.express).listen(port, host);
   }
 }

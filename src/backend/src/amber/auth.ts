@@ -1,6 +1,6 @@
-import { Express, Request, Response } from "express";
-import { Config } from "./config.js";
-import { AmberRepo, Invitation, User, UserWithCredential } from "./db/repo.js";
+import { Express, Request, Response } from 'express';
+import { Config } from './config.js';
+import { AmberRepo, Invitation, User, UserWithCredential } from './db/repo.js';
 import {
   ActionResult,
   LoginRequest,
@@ -19,28 +19,24 @@ import {
   ChangeUserProfileRequest,
   ResetUserPasswordRequest,
   TenantDetails,
-} from "./../../../client/src/shared/dtos.js";
-import * as crypto from "node:crypto";
-import { BruteProtection } from "./helper.js";
+} from './../../../client/src/shared/dtos.js';
+import * as crypto from 'node:crypto';
+import { BruteProtection } from './helper.js';
 
-export const tenantAdminRole = "admin";
-export const allTenantsId = "*";
-export const sessionHeader = "AmberSession";
+export const tenantAdminRole = 'admin';
+export const allTenantsId = '*';
+export const sessionHeader = 'AmberSession';
 var loginBruteProtection = new BruteProtection();
 var changePasswordBruteProtection = new BruteProtection();
-export async function auth(
-  app: Express,
-  config: Config,
-  repo: AmberRepo,
-): Promise<AmberAuthService> {
+export async function auth(app: Express, config: Config, repo: AmberRepo): Promise<AmberAuthService> {
   var authService = new AmberAuthService(config, repo);
   await authService.init();
 
   // This is the endpoint for a login with credentials that will set a cookie with a user token
-  app.post("/login", async (req, res) => {
+  app.post('/login', async (req, res) => {
     // this is where we need to protect against brute force attacks
     if (!(await loginBruteProtection.check())) {
-      res.status(429).send(error("Too many parallel logins"));
+      res.status(429).send(error('Too many parallel logins'));
       return;
     }
 
@@ -50,42 +46,40 @@ export async function auth(
 
     var user = await authService.validateUserPassword(email, password);
     if (!user) {
-      res.status(401).send(error("Invalid credentials"));
+      res.status(401).send(error('Invalid credentials'));
       return;
     }
     var token = authService.createUserToken(user.id, 60 * 24 * 7 * 4 * 12);
-    res.cookie("auth", token, {
+    res.cookie('auth', token, {
       httpOnly: true,
-      sameSite: "strict",
-      expires: request.stayLoggedIn
-        ? new Date(Date.now() + 60 * 24 * 7 * 4 * 12 * 60_000)
-        : undefined,
+      sameSite: 'strict',
+      expires: request.stayLoggedIn ? new Date(Date.now() + 60 * 24 * 7 * 4 * 12 * 60_000) : undefined,
     });
 
     res.send(nu<ActionResult>({ success: true }));
   });
 
   // This is the endpoint for a login with an existing token that will set a cookie with a refreshed user token
-  app.post("/loginWithToken", async (req, res) => {
+  app.post('/loginWithToken', async (req, res) => {
     var stayLoggedIn = req.query.stayLoggedIn;
     var oldToken = req.cookies?.auth;
     var userToken = authService.validateUserToken(oldToken);
     if (!userToken) {
-      res.status(401).send(error("Invalid user token, better get a new one"));
+      res.status(401).send(error('Invalid user token, better get a new one'));
       return;
     }
 
     var user = await repo.getUserById(userToken.userId);
 
     if (user === undefined) {
-      res.status(401).send(error("Unknown user"));
+      res.status(401).send(error('Unknown user'));
       return;
     }
 
     var token = authService.createUserToken(user.id, 60 * 24 * 7 * 4 * 12);
-    res.cookie("auth", token, {
+    res.cookie('auth', token, {
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: 'strict',
       expires: stayLoggedIn ? new Date(Date.now() + 60 * 24 * 7 * 4 * 12 * 60_000) : undefined,
     });
 
@@ -93,27 +87,27 @@ export async function auth(
   });
 
   // This is the endpoint for a logout that will clear the cookie
-  app.post("/logout", async (req, res) => {
-    var token = "";
-    res.cookie("auth", token, { httpOnly: true, sameSite: "strict" });
+  app.post('/logout', async (req, res) => {
+    var token = '';
+    res.cookie('auth', token, { httpOnly: true, sameSite: 'strict' });
     res.send(nu<ActionResult>({ success: true }));
   });
 
   // This is the endpoint for a session token that can be used during this session.
   // It uses the `auth` cookie from a earlier login. It is not stored in a cookie but meant to be used by the frontend library in later calls via the header value "AmberSession"
-  app.get("/token/:tenant", async (req, res) => {
+  app.get('/token/:tenant', async (req, res) => {
     var token = req.cookies.auth;
     var userToken = authService.validateUserToken(token);
-    var includeAdmin = req.query.includeAdmin === "true";
+    var includeAdmin = req.query.includeAdmin === 'true';
     if (!userToken) {
-      res.status(401).send(error("Invalid user token, better get a new one"));
+      res.status(401).send(error('Invalid user token, better get a new one'));
       return;
     }
 
     var user = await repo.getUserById(userToken.userId);
 
     if (user === undefined) {
-      res.status(401).send(error("Unknown user"));
+      res.status(401).send(error('Unknown user'));
       return;
     }
 
@@ -125,7 +119,7 @@ export async function auth(
 
     // if we don't have any roles in this tenant, we can't issue a session token
     if (user === undefined || !roles || roles.length === 0) {
-      res.status(401).send(error("No access to tenant"));
+      res.status(401).send(error('No access to tenant'));
       return;
     }
 
@@ -140,7 +134,7 @@ export async function auth(
     res.send(result);
   });
 
-  app.post("/register", async (req, res) => {
+  app.post('/register', async (req, res) => {
     var request: RegisterRequest = req.body;
     var validInvitation: Invitation | null = null;
     if (request.invitation) {
@@ -151,7 +145,7 @@ export async function auth(
     }
 
     if (config.inviteOnly && !validInvitation) {
-      res.status(401).send(error("No valid invitation provided"));
+      res.status(401).send(error('No valid invitation provided'));
       return;
     }
     var userId: string | undefined = undefined;
@@ -159,7 +153,7 @@ export async function auth(
     userId = await authService.createUser(request.username, request.email, request.password);
 
     if (!userId) {
-      res.status(401).send(error("Unable to create user. Duplicate email?"));
+      res.status(401).send(error('Unable to create user. Duplicate email?'));
       return;
     } else {
       if (validInvitation != null) {
@@ -171,19 +165,19 @@ export async function auth(
     }
   });
 
-  app.post("/accept-invitation", async (req, res) => {
+  app.post('/accept-invitation', async (req, res) => {
     var request: AcceptInvitationRequest = req.body;
     var token = req.cookies.auth;
     var userToken = authService.validateUserToken(token);
 
     if (!userToken) {
-      res.status(401).send(error("Invalid user token, better get a new one"));
+      res.status(401).send(error('Invalid user token, better get a new one'));
       return;
     }
 
     var invitation = await repo.getInvitation(request.invitation);
     if (!invitation || new Date(invitation.valid_until) < new Date() || invitation.accepted) {
-      res.status(401).send(error("Invalid invitation"));
+      res.status(401).send(error('Invalid invitation'));
       return;
     }
 
@@ -191,10 +185,10 @@ export async function auth(
     await authService.addRolesToUser(userToken.userId, invitation.tenant, invitation.roles);
   });
 
-  app.get("/invitation/:invitation", async (req, res) => {
+  app.get('/invitation/:invitation', async (req, res) => {
     var invitation = await repo.getInvitation(req.params.invitation);
     if (!invitation) {
-      res.status(404).send(error("Invitation not found"));
+      res.status(404).send(error('Invitation not found'));
       return;
     }
     res.send(
@@ -204,15 +198,13 @@ export async function auth(
         expires: invitation.valid_until.getTime(),
         isStillValid: new Date() < invitation.valid_until && !invitation.accepted,
         tenantName:
-          invitation.tenant == "*"
-            ? "GLOBAL"
-            : ((await repo.getTenant(invitation.tenant))?.name ?? invitation.tenant),
+          invitation.tenant == '*' ? 'GLOBAL' : ((await repo.getTenant(invitation.tenant))?.name ?? invitation.tenant),
       }),
     );
   });
 
   // get the current users details
-  app.get("/user", async (req, res) => {
+  app.get('/user', async (req, res) => {
     var userId: string | null = null;
     var token = req.cookies?.auth;
     if (token) {
@@ -232,13 +224,13 @@ export async function auth(
     }
 
     if (!userId) {
-      res.status(401).send(error("Invalid user and session token, better get a new one"));
+      res.status(401).send(error('Invalid user and session token, better get a new one'));
       return;
     }
 
     var user = await repo.getUserDetails(userId);
     if (user === undefined) {
-      res.status(401).send(error("Unknown user"));
+      res.status(401).send(error('Unknown user'));
       return;
     }
     res.send(nu<UserDetails>(user));
@@ -247,28 +239,22 @@ export async function auth(
   /**
    * Change the password of a user from the user him/herself
    */
-  app.post("/user/password", async (req, res) => {
+  app.post('/user/password', async (req, res) => {
     var request: ChangeUserPasswordRequest = req.body;
     if (!request.currentPassword || !request.newPassword) {
-      res.status(400).send(error("Missing old or new password"));
+      res.status(400).send(error('Missing old or new password'));
       return;
     }
 
     if (!(await changePasswordBruteProtection.check())) {
-      res.status(429).send(error("Too many parallel password changes"));
+      res.status(429).send(error('Too many parallel password changes'));
       return;
     }
 
-    if (
-      await authService.changeUserPassword(
-        request.userId,
-        request.currentPassword,
-        request.newPassword,
-      )
-    ) {
+    if (await authService.changeUserPassword(request.userId, request.currentPassword, request.newPassword)) {
       res.send(nu<ActionResult>({ success: true }));
     } else {
-      res.status(400).send(error("Missmatch old password or user not found"));
+      res.status(400).send(error('Missmatch old password or user not found'));
       return;
     }
   });
@@ -276,29 +262,22 @@ export async function auth(
   /**
    * Change the password of a user from the user him/herself
    */
-  app.post("/user/passwordReset", async (req, res) => {
+  app.post('/user/passwordReset', async (req, res) => {
     var request: ResetUserPasswordRequest = req.body;
     if (!request) {
-      res.status(400).send(error("Missing password reset token"));
+      res.status(400).send(error('Missing password reset token'));
       return;
     }
 
     if (!(await changePasswordBruteProtection.check())) {
-      res.status(429).send(error("Too many parallel password changes"));
+      res.status(429).send(error('Too many parallel password changes'));
       return;
     }
 
-    if (
-      await authService.changeUserPasswordWithResetToken(
-        request.passwordResetToken,
-        request.newPassword,
-      )
-    ) {
+    if (await authService.changeUserPasswordWithResetToken(request.passwordResetToken, request.newPassword)) {
       res.send(nu<ActionResult>({ success: true }));
     } else {
-      res
-        .status(400)
-        .send(error("Missmatch the reset token is not valid (maybe expired or already used)"));
+      res.status(400).send(error('Missmatch the reset token is not valid (maybe expired or already used)'));
       return;
     }
   });
@@ -306,7 +285,7 @@ export async function auth(
   /**
    * Update user details from the user him/herself
    */
-  app.post("/user", async (req, res) => {
+  app.post('/user', async (req, res) => {
     var request: ChangeUserProfileRequest = req.body;
     var userId: string | null = null;
     var token = req.cookies?.auth;
@@ -318,23 +297,23 @@ export async function auth(
     }
 
     if (!userId) {
-      res.status(401).send(error("Invalid user token"));
+      res.status(401).send(error('Invalid user token'));
       return;
     }
 
     if (!request.userName) {
-      res.status(400).send(error("Missing new username"));
+      res.status(400).send(error('Missing new username'));
       return;
     }
     if (await authService.changeUser(userId, request.userName)) {
       res.send(nu<ActionResult>({ success: true }));
     } else {
-      res.send(nu<ActionResult>({ success: false, error: "Unable to change user" }));
+      res.send(nu<ActionResult>({ success: false, error: 'Unable to change user' }));
     }
   });
 
   // This is the endpoint to discover the tenants of a user, authenticated as a user with a valid user token
-  app.get("/user/tenants", async (req, res) => {
+  app.get('/user/tenants', async (req, res) => {
     var userId: string | null = null;
     var token = req.cookies?.auth;
     if (token) {
@@ -345,7 +324,7 @@ export async function auth(
     }
 
     if (!userId) {
-      res.status(401).send(error("Invalid user token, better get a new one"));
+      res.status(401).send(error('Invalid user token, better get a new one'));
       return;
     }
 
@@ -355,11 +334,11 @@ export async function auth(
   });
 
   //get all users for a tenant (allowed for users of the tenant). Will contain global users as well
-  app.get("/tenant/:tenant/users", async (req, res) => {
+  app.get('/tenant/:tenant/users', async (req, res) => {
     var sessionToken = req.header(sessionHeader);
     var session = authService.validateSessionToken(sessionToken);
     if (!session || session.tenant !== req.params.tenant) {
-      res.status(401).send(error("Not authorized"));
+      res.status(401).send(error('Not authorized'));
       return;
     }
 
@@ -368,24 +347,24 @@ export async function auth(
   });
 
   //get the tenant data (allowed for users of the tenant).
-  app.get("/tenant/:tenant/info", async (req, res) => {
+  app.get('/tenant/:tenant/info', async (req, res) => {
     var sessionToken = req.header(sessionHeader);
     var session = authService.validateSessionToken(sessionToken);
     if (!session || (session.tenant !== req.params.tenant && session.tenant !== allTenantsId)) {
-      res.status(401).send(error("Not authorized"));
+      res.status(401).send(error('Not authorized'));
       return;
     }
 
     var tenant = await repo.getTenant(req.params.tenant);
     if (!tenant) {
-      res.status(404).send(error("Tenant not found"));
+      res.status(404).send(error('Tenant not found'));
       return;
     }
     res.send(nu<TenantDetails>(tenant));
   });
 
   // admin functionality for tenant admin user management
-  app.get("/tenant/:tenant/admin/users", async (req, res) => {
+  app.get('/tenant/:tenant/admin/users', async (req, res) => {
     if (!authService.checkAdmin(req, res)) return;
     var users = await repo.getUsersWithRoles(req.params.tenant);
     var results: UserWithRolesDto[] = users.map((u) => ({
@@ -407,20 +386,20 @@ export async function auth(
     res.send(nu<UserWithRolesDto[]>(results));
   });
 
-  app.delete("/tenant/:tenant/admin/user/:userid", async (req, res) => {
+  app.delete('/tenant/:tenant/admin/user/:userid', async (req, res) => {
     if (!authService.checkAdmin(req, res)) return;
     repo.storeUserRoles(req.params.userid, req.params.tenant, []);
     res.send(nu<ActionResult>({ success: true }));
   });
 
-  app.post("/tenant/:tenant/admin/user/:userid/roles", async (req, res) => {
+  app.post('/tenant/:tenant/admin/user/:userid/roles', async (req, res) => {
     if (!authService.checkAdmin(req, res)) return;
     var roles = req.body;
     repo.storeUserRoles(req.params.userid, req.params.tenant, roles);
     res.send(nu<ActionResult>({ success: true }));
   });
 
-  app.post("/tenant/:tenant/admin/invitation", async (req, res) => {
+  app.post('/tenant/:tenant/admin/invitation', async (req, res) => {
     if (!authService.checkAdmin(req, res)) return;
     var request: CreateInvitationRequest = req.body;
     var invitation = await repo.storeInvitation(
@@ -431,13 +410,13 @@ export async function auth(
     res.send(nu<string>(invitation));
   });
 
-  app.post("/tenant/:tenant/admin/user/:userid/password", async (req, res) => {
+  app.post('/tenant/:tenant/admin/user/:userid/password', async (req, res) => {
     if (!authService.checkAdmin(req, res)) return;
     var newPassword = req.body;
     var userId = req.params.userid;
     var user = await repo.getUserDetails(userId);
     if (!user) {
-      res.status(401).send(error("User not found"));
+      res.status(401).send(error('User not found'));
       return;
     }
     if (user.tenants[req.params.tenant] && Object.keys(user.tenants).length === 1) {
@@ -448,12 +427,12 @@ export async function auth(
     }
   });
 
-  app.post("/tenant/:tenant/admin/user/:userid/passwordResetToken", async (req, res) => {
+  app.post('/tenant/:tenant/admin/user/:userid/passwordResetToken', async (req, res) => {
     if (!authService.checkAdmin(req, res)) return;
     var userId = req.params.userid;
     var user = await repo.getUserDetails(userId);
     if (!user) {
-      res.status(401).send(error("User not found"));
+      res.status(401).send(error('User not found'));
       return;
     }
     if (user.tenants[req.params.tenant] && Object.keys(user.tenants).length === 1) {
@@ -463,7 +442,7 @@ export async function auth(
       return;
     }
 
-    res.status(401).send(error("User is not only member of this tenant"));
+    res.status(401).send(error('User is not only member of this tenant'));
     return;
   });
 
@@ -576,13 +555,7 @@ export interface AmberAuth {
    * @param tenant The tenant to add the user to
    * @param roles The roles to add to the user in the tenant
    */
-  addUserToTenant(
-    email: string,
-    name: string,
-    pw: string,
-    tenant: string,
-    roles: string[],
-  ): Promise<string>;
+  addUserToTenant(email: string, name: string, pw: string, tenant: string, roles: string[]): Promise<string>;
 
   /**
    * Get the roles of a user in a tenant.
@@ -624,22 +597,18 @@ export class AmberAuthService implements AmberAuth {
    */
   async init() {
     this.primarySecret = Buffer.from(
-      await this.repo.getOrCreateSystemSetting("primary_secret", () =>
-        crypto.randomBytes(32).toString("hex"),
-      ),
-      "hex",
+      await this.repo.getOrCreateSystemSetting('primary_secret', () => crypto.randomBytes(32).toString('hex')),
+      'hex',
     );
     this.secondarySecret = Buffer.from(
-      await this.repo.getOrCreateSystemSetting("secondary_secret", () =>
-        crypto.randomBytes(32).toString("hex"),
-      ),
-      "hex",
+      await this.repo.getOrCreateSystemSetting('secondary_secret', () => crypto.randomBytes(32).toString('hex')),
+      'hex',
     );
   }
 
   checkAdmin(req: Request, res: Response, onlyAllowGlobal?: boolean | undefined): boolean {
     var tenantToCheck = onlyAllowGlobal ? allTenantsId : req.params.tenant || allTenantsId;
-    var sessionToken = req.header("AmberSession");
+    var sessionToken = req.header('AmberSession');
     if (sessionToken) {
       var session = this.validateSessionToken(sessionToken);
       if (
@@ -650,7 +619,7 @@ export class AmberAuthService implements AmberAuth {
         return true;
       }
     }
-    res.status(401).send(error("Not authorized"));
+    res.status(401).send(error('Not authorized'));
     return false;
   }
 
@@ -658,11 +627,7 @@ export class AmberAuthService implements AmberAuth {
     var sessionToken = req.header(sessionHeader);
     if (!sessionToken) return undefined;
     var session = this.validateSessionToken(sessionToken);
-    if (
-      req.params.tenant &&
-      session?.tenant !== req.params.tenant &&
-      session?.tenant !== allTenantsId
-    )
+    if (req.params.tenant && session?.tenant !== req.params.tenant && session?.tenant !== allTenantsId)
       return undefined;
     return session;
   }
@@ -672,12 +637,7 @@ export class AmberAuthService implements AmberAuth {
    * @ignore
    */
   // our session tokens are only used for internal communication, so we don't need to worry about JWT standards
-  createSessionToken(
-    userId: string,
-    tenant: string,
-    roles: string[],
-    validityMinutes: number,
-  ): string {
+  createSessionToken(userId: string, tenant: string, roles: string[], validityMinutes: number): string {
     var token = {
       userId: userId,
       tenant: tenant,
@@ -685,11 +645,11 @@ export class AmberAuthService implements AmberAuth {
       expires: new Date(Date.now() + validityMinutes * 60_000).toISOString(),
     };
 
-    var tokenPayload = Buffer.from(JSON.stringify(token)).toString("base64url");
-    var hmac = crypto.createHmac("sha256", this.primarySecret);
+    var tokenPayload = Buffer.from(JSON.stringify(token)).toString('base64url');
+    var hmac = crypto.createHmac('sha256', this.primarySecret);
     hmac.update(tokenPayload);
-    var signature = hmac.digest("base64url");
-    return tokenPayload + "." + signature;
+    var signature = hmac.digest('base64url');
+    return tokenPayload + '.' + signature;
   }
 
   /**
@@ -701,21 +661,21 @@ export class AmberAuthService implements AmberAuth {
     if (!token) {
       return undefined;
     }
-    var [tokenPayload, signature] = token.split(".");
+    var [tokenPayload, signature] = token.split('.');
 
-    var hmac = crypto.createHmac("sha256", this.primarySecret);
+    var hmac = crypto.createHmac('sha256', this.primarySecret);
     hmac.update(tokenPayload);
-    var calculatedSignature = hmac.digest("base64url");
+    var calculatedSignature = hmac.digest('base64url');
     if (calculatedSignature !== signature) {
       // second try. Maybe we are in a secret rollover
-      hmac = crypto.createHmac("sha256", this.secondarySecret);
+      hmac = crypto.createHmac('sha256', this.secondarySecret);
       hmac.update(tokenPayload);
-      calculatedSignature = hmac.digest("base64url");
+      calculatedSignature = hmac.digest('base64url');
       if (calculatedSignature !== signature) {
         return undefined;
       }
     }
-    var tokenString = Buffer.from(tokenPayload, "base64url").toString();
+    var tokenString = Buffer.from(tokenPayload, 'base64url').toString();
     var t = JSON.parse(tokenString);
     if (new Date(t.expires) < new Date()) return undefined;
     return t;
@@ -730,11 +690,11 @@ export class AmberAuthService implements AmberAuth {
       expires: new Date(Date.now() + validityMinutes * 60_000).toISOString(),
     };
 
-    var tokenPayload = Buffer.from(JSON.stringify(token)).toString("base64url");
-    var hmac = crypto.createHmac("sha256", this.primarySecret);
+    var tokenPayload = Buffer.from(JSON.stringify(token)).toString('base64url');
+    var hmac = crypto.createHmac('sha256', this.primarySecret);
     hmac.update(tokenPayload);
-    var signature = hmac.digest("base64url");
-    return tokenPayload + "." + signature;
+    var signature = hmac.digest('base64url');
+    return tokenPayload + '.' + signature;
   }
 
   /**
@@ -744,21 +704,21 @@ export class AmberAuthService implements AmberAuth {
    */
   validateUserToken(token: string | undefined | null): UserToken | undefined {
     if (!token) return undefined;
-    var [tokenPayload, signature] = token.split(".");
+    var [tokenPayload, signature] = token.split('.');
 
-    var hmac = crypto.createHmac("sha256", this.primarySecret);
+    var hmac = crypto.createHmac('sha256', this.primarySecret);
     hmac.update(tokenPayload);
-    var calculatedSignature = hmac.digest("base64url");
+    var calculatedSignature = hmac.digest('base64url');
     if (calculatedSignature !== signature) {
       // second try. Maybe we are in a secret rollover
-      hmac = crypto.createHmac("sha256", this.secondarySecret);
+      hmac = crypto.createHmac('sha256', this.secondarySecret);
       hmac.update(tokenPayload);
-      calculatedSignature = hmac.digest("base64url");
+      calculatedSignature = hmac.digest('base64url');
       if (calculatedSignature !== signature) {
         return undefined;
       }
     }
-    var tokenString = Buffer.from(tokenPayload, "base64url").toString();
+    var tokenString = Buffer.from(tokenPayload, 'base64url').toString();
     var t = JSON.parse(tokenString);
     if (new Date(t.expires) < new Date()) return undefined;
     return t;
@@ -774,11 +734,11 @@ export class AmberAuthService implements AmberAuth {
     var user = await this.repo.getUserByEmail(email);
 
     if (!user || !user.credential_hash) return undefined;
-    var [salt, hash] = user.credential_hash.split(".");
+    var [salt, hash] = user.credential_hash.split('.');
 
-    var hashAlgo = crypto.createHash("sha256");
+    var hashAlgo = crypto.createHash('sha256');
     hashAlgo.update(salt + password);
-    var calculatedHash = hashAlgo.digest("hex");
+    var calculatedHash = hashAlgo.digest('hex');
     if (crypto.timingSafeEqual(Buffer.from(calculatedHash), Buffer.from(hash))) return user;
     return undefined;
   }
@@ -794,11 +754,11 @@ export class AmberAuthService implements AmberAuth {
     var user = await this.repo.getUserById(id);
     if (!user || !user.credential_hash) return false;
 
-    var [salt, hash] = user.credential_hash.split(".");
+    var [salt, hash] = user.credential_hash.split('.');
 
-    var hashAlgo = crypto.createHash("sha256");
+    var hashAlgo = crypto.createHash('sha256');
     hashAlgo.update(salt + oldpassword);
-    var calculatedHash = hashAlgo.digest("hex");
+    var calculatedHash = hashAlgo.digest('hex');
     if (!crypto.timingSafeEqual(Buffer.from(calculatedHash), Buffer.from(hash))) return false;
 
     var passwordHash = this.createPasswordHash(newPassword);
@@ -813,37 +773,37 @@ export class AmberAuthService implements AmberAuth {
 
   async createPasswordResetToken(userId: string, validityHours: number): Promise<string> {
     var user = await this.repo.getUserById(userId);
-    if (!user) throw new Error("User not found");
+    if (!user) throw new Error('User not found');
 
     var token = {
       userId: userId,
       expires: new Date(Date.now() + validityHours * 60 * 60_000).toISOString(),
     };
 
-    var tokenPayload = Buffer.from(JSON.stringify(token)).toString("base64url");
-    var hmac = crypto.createHmac("sha256", this.primarySecret);
-    hmac.update(tokenPayload + "." + user.credential_hash); // include the current password hash in the token, so that changing the password will invalidate the token
-    var signature = hmac.digest("base64url");
-    return tokenPayload + "." + signature;
+    var tokenPayload = Buffer.from(JSON.stringify(token)).toString('base64url');
+    var hmac = crypto.createHmac('sha256', this.primarySecret);
+    hmac.update(tokenPayload + '.' + user.credential_hash); // include the current password hash in the token, so that changing the password will invalidate the token
+    var signature = hmac.digest('base64url');
+    return tokenPayload + '.' + signature;
   }
 
   async validatePasswordResetToken(resetToken: string): Promise<UserWithCredential | null> {
-    var [tokenPayload, signature] = resetToken.split(".");
+    var [tokenPayload, signature] = resetToken.split('.');
 
-    var tokenString = Buffer.from(tokenPayload, "base64url").toString();
+    var tokenString = Buffer.from(tokenPayload, 'base64url').toString();
     var t = JSON.parse(tokenString) as { userId: string; expires: string };
 
     var user = await this.repo.getUserById(t.userId);
     if (!user) return null;
 
-    var hmac = crypto.createHmac("sha256", this.primarySecret);
-    hmac.update(tokenPayload + "." + user.credential_hash); // include the current password hash in the token, so that changing the password will invalidate the token
-    var calculatedSignature = hmac.digest("base64url");
+    var hmac = crypto.createHmac('sha256', this.primarySecret);
+    hmac.update(tokenPayload + '.' + user.credential_hash); // include the current password hash in the token, so that changing the password will invalidate the token
+    var calculatedSignature = hmac.digest('base64url');
     if (calculatedSignature !== signature) {
       // second try. Maybe we are in a secret rollover
-      hmac = crypto.createHmac("sha256", this.secondarySecret);
-      hmac.update(tokenPayload + "." + user.credential_hash); // include the current password hash in the token, so that changing the password will invalidate the token
-      calculatedSignature = hmac.digest("base64url");
+      hmac = crypto.createHmac('sha256', this.secondarySecret);
+      hmac.update(tokenPayload + '.' + user.credential_hash); // include the current password hash in the token, so that changing the password will invalidate the token
+      calculatedSignature = hmac.digest('base64url');
       if (calculatedSignature !== signature) {
         return null;
       }
@@ -853,10 +813,7 @@ export class AmberAuthService implements AmberAuth {
     return user;
   }
 
-  async changeUserPasswordWithResetToken(
-    resetToken: string,
-    newPassword: string,
-  ): Promise<boolean> {
+  async changeUserPasswordWithResetToken(resetToken: string, newPassword: string): Promise<boolean> {
     var user = await this.validatePasswordResetToken(resetToken);
     if (!user) return false;
     var passwordHash = this.createPasswordHash(newPassword);
@@ -914,11 +871,11 @@ export class AmberAuthService implements AmberAuth {
    * @ignore
    */
   createPasswordHash(password: string): string {
-    var salt = crypto.randomBytes(16).toString("hex");
-    var hashAlgo = crypto.createHash("sha256");
+    var salt = crypto.randomBytes(16).toString('hex');
+    var hashAlgo = crypto.createHash('sha256');
     hashAlgo.update(salt + password);
-    var hash = hashAlgo.digest("hex");
-    return salt + "." + hash;
+    var hash = hashAlgo.digest('hex');
+    return salt + '.' + hash;
   }
 
   async createUser(name: string, email: string, password: string): Promise<string | undefined> {
@@ -946,13 +903,7 @@ export class AmberAuthService implements AmberAuth {
     await this.repo.storeUserRoles(userId, tenant, existingRoles);
   }
 
-  async addUserToTenant(
-    email: string,
-    name: string,
-    pw: string,
-    tenant: string,
-    roles: string[],
-  ): Promise<string> {
+  async addUserToTenant(email: string, name: string, pw: string, tenant: string, roles: string[]): Promise<string> {
     var user = await this.repo.getUserByEmail(email);
     var id: string | undefined;
     if (!user) {

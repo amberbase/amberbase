@@ -1,4 +1,4 @@
-import type { AmberUiConfig, AmberUiContext } from "../../shared/src";
+import type { AmberUiConfig, AmberUiContext } from '../../shared/src';
 export var state: {
   defaultView: string;
   amberTenant: string;
@@ -6,16 +6,16 @@ export var state: {
   uiConfig: AmberUiConfig;
   uiContext: AmberUiContext;
 } = {
-  defaultView: "",
-  amberTenant: "*",
-  amberInvitation: "",
+  defaultView: '',
+  amberTenant: '*',
+  amberInvitation: '',
   uiConfig: {
-    theme: "dark",
+    theme: 'dark',
     availableRoles: [],
-    title: "Amberbase App",
+    title: 'Amberbase App',
   },
   uiContext: {
-    view: "login",
+    view: 'login',
   },
 };
 
@@ -34,16 +34,16 @@ export var uiHelper = {
 export async function copy(text: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(text);
-    uiHelper.showSuccess("Copied to clipboard");
+    uiHelper.showSuccess('Copied to clipboard');
   } catch (e) {
-    uiHelper.showError("Error copying to clipboard: " + e);
+    uiHelper.showError('Error copying to clipboard: ' + e);
   }
 }
 
 export function generatePassword(): string {
   var length = 8,
-    charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-    retVal = "";
+    charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+    retVal = '';
   for (var i = 0, n = charset.length; i < length; ++i) {
     retVal += charset.charAt(Math.floor(Math.random() * n));
   }
@@ -51,7 +51,7 @@ export function generatePassword(): string {
 }
 
 export function renderRelativeTime(time: number | Date | undefined | null): string {
-  if (!time) return "N/A";
+  if (!time) return 'N/A';
   var d = new Date(time);
   var now = new Date();
   var diff = now.getTime() - d.getTime();
@@ -59,14 +59,14 @@ export function renderRelativeTime(time: number | Date | undefined | null): stri
   var minutes = Math.floor(seconds / 60);
   var hours = Math.floor(minutes / 60);
   var days = Math.floor(hours / 24);
-  if (days > 0) return days + " day(s) ago";
-  if (hours > 0) return hours + " hour(s) ago";
-  if (minutes > 0) return minutes + " minute(s) ago";
-  return seconds + " second(s) ago";
+  if (days > 0) return days + ' day(s) ago';
+  if (hours > 0) return hours + ' hour(s) ago';
+  if (minutes > 0) return minutes + ' minute(s) ago';
+  return seconds + ' second(s) ago';
 }
 
 export function renderIsoTime(time: number | Date | undefined | null): string {
-  if (!time) return "N/A";
+  if (!time) return 'N/A';
   var d = new Date(time);
   return d.toISOString();
 }

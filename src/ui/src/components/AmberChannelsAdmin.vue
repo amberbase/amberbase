@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, shallowRef, watch, computed } from "vue";
-import { AmberClient, type UserInfo } from "amber-client";
-import { uiHelper } from "@/common";
-import JsonEdit from "./shared/JsonEdit.vue";
-import RelativeTime from "./shared/RelativeTime.vue";
+import { ref, onMounted, shallowRef, watch, computed } from 'vue';
+import { AmberClient, type UserInfo } from 'amber-client';
+import { uiHelper } from '@/common';
+import JsonEdit from './shared/JsonEdit.vue';
+import RelativeTime from './shared/RelativeTime.vue';
 var props = defineProps<{
   amberClient: AmberClient;
   tenant: string;
@@ -33,7 +33,7 @@ interface ChannelItem {
 
 interface Channel extends ChannelItem {
   subchannels: Subchannel[] | null;
-  accessRightsMethod: "code" | "roles" | "none";
+  accessRightsMethod: 'code' | 'roles' | 'none';
 }
 
 interface Subchannel extends ChannelItem {}
@@ -48,12 +48,12 @@ const messages = ref<Message[]>([]);
 const selectedMessage = ref<Message | undefined>(undefined);
 const channels = ref<Channel[]>([]);
 const selectedChannel = shallowRef<ChannelItem | null>(null);
-const newSubchannelName = ref<string>("");
+const newSubchannelName = ref<string>('');
 
-const newMessageText = ref<string>("{}");
+const newMessageText = ref<string>('{}');
 const showNewMessage = ref<boolean>(false);
 const newMessageValid = ref<boolean>(true);
-const newMessageErrors = ref<string>("");
+const newMessageErrors = ref<string>('');
 const newMessageAuthSend = ref<boolean>(false);
 const newMessageAuthSubscribe = ref<boolean>(false);
 const messageInfoBusy = ref<boolean>(false);
@@ -74,11 +74,11 @@ let selectChannel = (c: ChannelItem) => {
     return;
   }
   selectedChannel.value = c;
-  newSubchannelName.value = "";
+  newSubchannelName.value = '';
 };
 
 let onMessage = (message: any, channelName: string) => {
-  console.log("received message for channel " + channelName);
+  console.log('received message for channel ' + channelName);
   var channelNameParsed = parseChannelName(channelName);
   messages.value.push({
     channelName: channelNameParsed,
@@ -100,18 +100,17 @@ const pinChannel = (q: QualifiedChannel) => {
   if (channelIsPinned(q)) return;
   let main = parentChannel(q);
   if (!main) return;
-  main.subchannels?.push({ name: q.sub || "", subscriptionScope: q });
+  main.subchannels?.push({ name: q.sub || '', subscriptionScope: q });
 };
 
-const parentChannel = (q: QualifiedChannel) =>
-  channels.value.find((c) => c.subscriptionScope.main == q.main);
+const parentChannel = (q: QualifiedChannel) => channels.value.find((c) => c.subscriptionScope.main == q.main);
 
 const parseChannelName = (s: string) => {
-  let parts = s.split("/");
+  let parts = s.split('/');
   return { main: parts[0], sub: parts.length < 2 ? undefined : parts[1] };
 };
 
-const subscriptionTrackingKey = (c: QualifiedChannel) => c.main + (c.sub ? "/" + c.sub : "");
+const subscriptionTrackingKey = (c: QualifiedChannel) => c.main + (c.sub ? '/' + c.sub : '');
 
 const isSubscribed = (c: ChannelItem) => {
   return (
@@ -141,7 +140,7 @@ function unsubscribe(c: ChannelItem) {
 }
 
 function addSubchannel(c: Channel) {
-  if (newSubchannelName.value === "") return;
+  if (newSubchannelName.value === '') return;
   if (c.subchannels == null) return;
   if (c.subchannels?.find((s) => s.name == newSubchannelName.value)) return;
   c.subchannels?.unshift({
@@ -149,7 +148,7 @@ function addSubchannel(c: Channel) {
     subscriptionScope: { main: c.name, sub: newSubchannelName.value },
   });
   subscribe(c.subchannels[0]);
-  newSubchannelName.value = "";
+  newSubchannelName.value = '';
 }
 
 function selectMessage(m: Message) {
@@ -168,20 +167,20 @@ async function sendMessage() {
   );
   try {
     await channel.send(JSON.parse(newMessageText.value));
-    uiHelper.showSuccess("Message sent");
+    uiHelper.showSuccess('Message sent');
     showNewMessage.value = false;
   } catch (e) {
-    uiHelper.showError("Failed sending message: " + e);
+    uiHelper.showError('Failed sending message: ' + e);
   }
 }
 
 async function openNewMessageDialog(channelItem: ChannelItem) {
   newMessageChannel.value = channelItem;
-  newMessageText.value = "{}";
+  newMessageText.value = '{}';
   showNewMessage.value = true;
   newMessageAuthSend.value = false;
   newMessageAuthSubscribe.value = false;
-  newMessageErrors.value = "Waiting for validation";
+  newMessageErrors.value = 'Waiting for validation';
   newMessageValid.value = false;
   await validateNewMessage();
 }
@@ -208,13 +207,13 @@ onMounted(async () => {
 });
 
 async function validateNewMessage() {
-  newMessageErrors.value = "";
+  newMessageErrors.value = '';
   newMessageValid.value = false;
   newMessageAuthSend.value = false;
   newMessageAuthSubscribe.value = false;
 
   if (!newMessageChannel.value) {
-    newMessageErrors.value = "No channel selected";
+    newMessageErrors.value = 'No channel selected';
     return;
   }
   try {
@@ -224,12 +223,12 @@ async function validateNewMessage() {
       newMessageChannel.value.subscriptionScope.sub,
       currentUser()?.id,
     );
-    newMessageErrors.value = result.error || "";
+    newMessageErrors.value = result.error || '';
     newMessageValid.value = result.isValid;
     newMessageAuthSend.value = result.publishAuthorized;
     newMessageAuthSubscribe.value = result.subscribeAuthorized;
   } catch (e) {
-    newMessageErrors.value = "Unable to validate message: " + e;
+    newMessageErrors.value = 'Unable to validate message: ' + e;
   }
 }
 
@@ -439,10 +438,7 @@ const subscribeAll = () => {
                     </span>
                   </div>
                 </div>
-                <v-progress-linear
-                  indeterminate
-                  v-if="isSubscribed(subchannel)"
-                ></v-progress-linear>
+                <v-progress-linear indeterminate v-if="isSubscribed(subchannel)"></v-progress-linear>
               </div>
             </div>
           </template>
@@ -472,9 +468,7 @@ const subscribeAll = () => {
           >
             <div class="message-header">
               <span class="message-channel">{{ m.channelName.main }}</span>
-              <span v-if="m.channelName.sub" class="message-subchannel"
-                >/{{ m.channelName.sub }}</span
-              >
+              <span v-if="m.channelName.sub" class="message-subchannel">/{{ m.channelName.sub }}</span>
               <span v-if="m.channelName.sub && !channelIsPinned(m.channelName)"
                 >&nbsp;<v-btn
                   density="compact"
@@ -483,9 +477,7 @@ const subscribeAll = () => {
                   @click="pinChannel(m.channelName)"
                 ></v-btn
               ></span>
-              <span class="message-time"
-                >&nbsp;<RelativeTime :date="m.time" precision="seconds"></RelativeTime
-              ></span>
+              <span class="message-time">&nbsp;<RelativeTime :date="m.time" precision="seconds"></RelativeTime></span>
             </div>
             <div v-if="m == selectedMessage" class="message-content">
               {{ JSON.stringify(m.message, null, 2) }}
@@ -519,9 +511,7 @@ const subscribeAll = () => {
         </template>
       </v-card-title>
       <v-card-subtitle>
-        <div
-          v-if="parentChannel(newMessageChannel.subscriptionScope)?.accessRightsMethod == 'roles'"
-        >
+        <div v-if="parentChannel(newMessageChannel.subscriptionScope)?.accessRightsMethod == 'roles'">
           User Channel Roles:
           <v-chip v-for="tag in currentUserAccess" :key="tag" outlined>{{ tag }}</v-chip>
         </div>
@@ -552,10 +542,7 @@ const subscribeAll = () => {
 
         <v-alert type="warning" v-if="!newMessageAuthSubscribe">
           <div>
-            <strong
-              >The selected user would not be authorized subscribe to messages in this
-              channel</strong
-            >
+            <strong>The selected user would not be authorized subscribe to messages in this channel</strong>
           </div>
         </v-alert>
       </v-card-item>

@@ -321,7 +321,7 @@ export interface InvitationDetails {
 /**
  * "Header" prefix to be used as a protocol in the websocket handshake. Yes that sucks but it is a best practice (weird one, but nevertheless)
  */
-export const AmberSessionProtocolPrefix = "ambersession.";
+export const AmberSessionProtocolPrefix = 'ambersession.';
 
 // Collection Admin DTOs
 
@@ -332,7 +332,7 @@ export interface CollectionInfo {
   name: string;
   hasAccessTags: boolean;
   hasTags: boolean;
-  accessRightsMethod: "code" | "roles" | "none";
+  accessRightsMethod: 'code' | 'roles' | 'none';
 }
 
 /**
@@ -372,7 +372,7 @@ export interface CollectionAccessInfo {
  */
 export interface ChannelInfo {
   name: string;
-  accessRightsMethod: "code" | "roles" | "none";
+  accessRightsMethod: 'code' | 'roles' | 'none';
   hasSubchannels: boolean;
 }
 
@@ -391,11 +391,7 @@ export interface ChannelDocumentCheckResult {
  * All server messages
  */
 export type AmberServerWsMessage =
-  | ServerError
-  | ServerSuccess
-  | ServerSyncDocument
-  | ServerChannelMessage
-  | ServerSuccessWithDocument;
+  ServerError | ServerSuccess | ServerSyncDocument | ServerChannelMessage | ServerSuccessWithDocument;
 
 /**
  * All client messages
@@ -406,29 +402,18 @@ export type AmberClientWsMessage = CollectionClientWsMessage | ChannelClientWsMe
  * Collection specific client messages
  */
 export type CollectionClientWsMessage =
-  | SubscribeCollectionMessage
-  | UnsubscribeCollectionMessage
-  | DeleteDocument
-  | CreateDocument
-  | UpdateDocument;
+  SubscribeCollectionMessage | UnsubscribeCollectionMessage | DeleteDocument | CreateDocument | UpdateDocument;
 
 /**
  * Channel specific client messages (not implemented yet)
  */
-export type ChannelClientWsMessage =
-  SubscribeChannelMessage | UnsubscribeChannelMessage | SendToChannelMessage;
+export type ChannelClientWsMessage = SubscribeChannelMessage | UnsubscribeChannelMessage | SendToChannelMessage;
 
 export interface AmberServerMessage {
   /**
    * Identifier for server messages. We use it to discriminate between different messages.
    */
-  type:
-    | "error"
-    | "success"
-    | "sync-document"
-    | "success-document"
-    | "sync-delete-document"
-    | "channel-message";
+  type: 'error' | 'success' | 'sync-document' | 'success-document' | 'sync-delete-document' | 'channel-message';
 }
 
 /**
@@ -442,20 +427,20 @@ export interface AmberServerResponseMessage extends AmberServerMessage {
 }
 
 export type ServerErrorCode =
-  | "bad-request"
-  | "conflict"
-  | "duplicate-id"
-  | "unauthorized"
-  | "validation-failed"
-  | "not-found"
-  | "internal-error"
-  | "unknown-error";
+  | 'bad-request'
+  | 'conflict'
+  | 'duplicate-id'
+  | 'unauthorized'
+  | 'validation-failed'
+  | 'not-found'
+  | 'internal-error'
+  | 'unknown-error';
 
 /**
  * Common error message
  */
 export interface ServerError extends AmberServerResponseMessage {
-  type: "error";
+  type: 'error';
   /**
    * Error code. This is a short string that identifies the error type. It should be used to identify the error in the client code.
    */
@@ -467,14 +452,14 @@ export interface ServerError extends AmberServerResponseMessage {
  * Common success message
  */
 export interface ServerSuccess extends AmberServerResponseMessage {
-  type: "success";
+  type: 'success';
 }
 
 /**
  * Success message with a document id
  */
 export interface ServerSuccessWithDocument extends AmberServerResponseMessage {
-  type: "success-document";
+  type: 'success-document';
   documentId: string;
 }
 
@@ -520,7 +505,7 @@ export interface DeletedCollectionDocument {
  * Sync message for a document. This is sent when the client subscribes to a collection and the server sends all documents in the collection and further updates.
  */
 export interface ServerSyncDocument extends AmberServerMessage {
-  type: "sync-document";
+  type: 'sync-document';
 
   /**
    * The collection the document belongs to
@@ -537,7 +522,7 @@ export interface ServerSyncDocument extends AmberServerMessage {
  * Channel message from the server to broadcast to clients
  */
 export interface ServerChannelMessage extends AmberServerMessage {
-  type: "channel-message";
+  type: 'channel-message';
 
   /**
    * The channel the message belongs to. Can be a subchannel in the form of "channel/subchannel".
@@ -557,15 +542,15 @@ export interface ServerChannelMessage extends AmberServerMessage {
  */
 export interface AmberClientMessage {
   action:
-    | "subscribe-collection"
-    | "unsubscribe-collection"
-    | "delete-doc"
-    | "create-doc"
-    | "update-doc"
-    | "update-doc-access-tags"
-    | "subscribe-channel"
-    | "unsubscribe-channel"
-    | "send-to-channel";
+    | 'subscribe-collection'
+    | 'unsubscribe-collection'
+    | 'delete-doc'
+    | 'create-doc'
+    | 'update-doc'
+    | 'update-doc-access-tags'
+    | 'subscribe-channel'
+    | 'unsubscribe-channel'
+    | 'send-to-channel';
   /**
    * Request ID of the client message. This is used to match requests and responses. Should be managed by the client to be kept unique per call (just do a static increment)
    */
@@ -583,7 +568,7 @@ export interface AmberCollectionClientMessage extends AmberClientMessage {
  * Subscribe to a collection
  */
 export interface SubscribeCollectionMessage extends AmberCollectionClientMessage {
-  action: "subscribe-collection";
+  action: 'subscribe-collection';
   /**
    * Highest change number of the document that is already in the client. The server will only send documents with a higher change numbers.
    */
@@ -594,14 +579,14 @@ export interface SubscribeCollectionMessage extends AmberCollectionClientMessage
  * Unsubscribe from a collection
  */
 export interface UnsubscribeCollectionMessage extends AmberCollectionClientMessage {
-  action: "unsubscribe-collection";
+  action: 'unsubscribe-collection';
 }
 
 /**
  * Delete a document from a collection. The server will send a sync message to all clients that are subscribed to the collection.
  */
 export interface DeleteDocument extends AmberCollectionClientMessage {
-  action: "delete-doc";
+  action: 'delete-doc';
   /**
    * Document to delete
    */
@@ -612,7 +597,7 @@ export interface DeleteDocument extends AmberCollectionClientMessage {
  * Create a new document in a collection. The server will send a sync message to all clients that are subscribed to the collection and afterwards respond with a success message containing the document id.
  */
 export interface CreateDocument extends AmberCollectionClientMessage {
-  action: "create-doc";
+  action: 'create-doc';
   /**
    * Document content
    */
@@ -628,7 +613,7 @@ export interface CreateDocument extends AmberCollectionClientMessage {
  * Update a document in a collection. The server will send a sync message to all clients that are subscribed to the collection and afterwards respond with a success message.
  */
 export interface UpdateDocument extends AmberCollectionClientMessage {
-  action: "update-doc";
+  action: 'update-doc';
   /**
    * Document to change
    */
@@ -649,7 +634,7 @@ export interface UpdateDocument extends AmberCollectionClientMessage {
  * Subscribe to a channel to receive server side push messages
  */
 export interface SubscribeChannelMessage extends AmberClientMessage {
-  action: "subscribe-channel";
+  action: 'subscribe-channel';
 
   /**
    * The channel to subscribe to. This is a string that identifies the channel. It is up to the application to define the channels.
@@ -661,7 +646,7 @@ export interface SubscribeChannelMessage extends AmberClientMessage {
  * Unsubscribe from a channel
  */
 export interface UnsubscribeChannelMessage extends AmberClientMessage {
-  action: "unsubscribe-channel";
+  action: 'unsubscribe-channel';
   /**
    * The channel to unsubscribe from. This is a string that identifies the channel. It is up to the application to define the channels.
    */
@@ -672,7 +657,7 @@ export interface UnsubscribeChannelMessage extends AmberClientMessage {
  * Send a message to a channel and to all the clients
  */
 export interface SendToChannelMessage extends AmberClientMessage {
-  action: "send-to-channel";
+  action: 'send-to-channel';
 
   /**
    * The channel to send the message to. Can be a subchannel in the form of "channel/subchannel".
@@ -684,16 +669,14 @@ export interface SendToChannelMessage extends AmberClientMessage {
   message: any;
 }
 
-export function splitChannelName(
-  channel: string,
-): { channel: string; subchannel: string | null } | null {
-  if (!channel || typeof channel !== "string") {
+export function splitChannelName(channel: string): { channel: string; subchannel: string | null } | null {
+  if (!channel || typeof channel !== 'string') {
     return null;
   }
-  var splitChannel = channel.split("/");
+  var splitChannel = channel.split('/');
 
   if (splitChannel.length >= 2) {
-    return { channel: splitChannel[0], subchannel: splitChannel.slice(1).join("/") };
+    return { channel: splitChannel[0], subchannel: splitChannel.slice(1).join('/') };
   } else {
     return { channel: splitChannel[0], subchannel: null };
   }
@@ -707,15 +690,15 @@ export function joinChannelName(channel: string, subchannel: string | null | und
 }
 
 export type AmberMetricName =
-  | "col-crt"
-  | "col-upd"
-  | "col-del"
-  | "col-sub"
-  | "col-docs"
-  | "chan-sub"
-  | "chan-send"
-  | "login-token"
-  | "login-register";
+  | 'col-crt'
+  | 'col-upd'
+  | 'col-del'
+  | 'col-sub'
+  | 'col-docs'
+  | 'chan-sub'
+  | 'chan-send'
+  | 'login-token'
+  | 'login-register';
 
 export interface MetricValue {
   min: number;

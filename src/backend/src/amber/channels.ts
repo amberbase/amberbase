@@ -13,8 +13,8 @@ import {
   splitChannelName,
   SubscribeChannelMessage,
   UnsubscribeChannelMessage,
-} from "./../../../client/src/shared/dtos.js";
-import { AmberAuth, tenantAdminRole } from "./auth.js";
+} from './../../../client/src/shared/dtos.js';
+import { AmberAuth, tenantAdminRole } from './auth.js';
 import {
   ActiveConnection,
   AmberConnectionManager,
@@ -23,12 +23,12 @@ import {
   sendToClient,
   successResponse,
   UserContext,
-} from "./connection.js";
-import { amberStats, Stats, StatsProvider } from "./stats.js";
-import * as express from "express";
-import { errorMessage, isString } from "./helper.js";
+} from './connection.js';
+import { amberStats, Stats, StatsProvider } from './stats.js';
+import * as express from 'express';
+import { errorMessage, isString } from './helper.js';
 
-export type ChannelAccessAction = "subscribe" | "publish";
+export type ChannelAccessAction = 'subscribe' | 'publish';
 
 export interface ChannelSettings<T> {
   /**
@@ -44,12 +44,7 @@ export interface ChannelSettings<T> {
    */
   accessRights?:
     | { [role: string]: ChannelAccessAction[] }
-    | ((
-        user: UserContext,
-        channel: string,
-        subchannel: string | null,
-        action: ChannelAccessAction,
-      ) => boolean);
+    | ((user: UserContext, channel: string, subchannel: string | null, action: ChannelAccessAction) => boolean);
 
   /**
    * Validate a message before it is send to the channel. This is NOT checked for server send messages.
@@ -59,12 +54,7 @@ export interface ChannelSettings<T> {
    * @param message The message
    * @returns True indicating that the message is valid (and will be delivered) or either an error message or 'false' both signaling a failed validation .
    */
-  validator?: (
-    user: UserContext,
-    channel: string,
-    subchannel: string | null,
-    message: T,
-  ) => boolean | string;
+  validator?: (user: UserContext, channel: string, subchannel: string | null, message: T) => boolean | string;
 
   // ToDo: onMessage to implement server side processing
 }
@@ -115,14 +105,14 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
     };
 
     // Get all channels metadata
-    app.get("/tenant/:tenant/channels", async (req: express.Request, res: express.Response) => {
+    app.get('/tenant/:tenant/channels', async (req: express.Request, res: express.Response) => {
       if (!this.authService.getSessionToken(req)) return;
       res.send(
         nu<ChannelInfo[]>(
           Array.from(this.channels.entries()).map(([name, settings]) => {
-            var accessRightsMethod: "code" | "roles" | "none" = "none";
+            var accessRightsMethod: 'code' | 'roles' | 'none' = 'none';
             if (settings.accessRights) {
-              accessRightsMethod = typeof settings.accessRights === "function" ? "code" : "roles";
+              accessRightsMethod = typeof settings.accessRights === 'function' ? 'code' : 'roles';
             }
             return {
               name: name,
@@ -137,66 +127,48 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
     // Check a document for validity and get the potential authorization results.
     // Supports impersonation of a user by providing the userId query parameter. The subchannel needs to be given as a query parameter "subchannel"
     // The body must contain the document to check.
-    app.post(
-      "/tenant/:tenant/channel/:channel/check",
-      async (req: express.Request, res: express.Response) => {
-        if (!this.authService.checkAdmin(req, res)) return;
-        let channelName = req.params.channel as string;
-        let subchannel = req.query.subchannel as string | null;
-        let user = await getUserFromRequest(req);
+    app.post('/tenant/:tenant/channel/:channel/check', async (req: express.Request, res: express.Response) => {
+      if (!this.authService.checkAdmin(req, res)) return;
+      let channelName = req.params.channel as string;
+      let subchannel = req.query.subchannel as string | null;
+      let user = await getUserFromRequest(req);
 
-        var message = req.body;
-        let channelSettings = this.channels.get(channelName);
-        if (!channelSettings) {
-          res
-            .status(404)
-            .send(nu<ActionResult>({ success: false, error: `Channel ${channelName} not found` }));
-          return;
-        }
+      var message = req.body;
+      let channelSettings = this.channels.get(channelName);
+      if (!channelSettings) {
+        res.status(404).send(nu<ActionResult>({ success: false, error: `Channel ${channelName} not found` }));
+        return;
+      }
 
-        try {
-          let [isValid, validationError] = executeValidator(
-            channelSettings.validator,
-            user!,
-            channelName,
-            subchannel,
-            message,
-          );
-          let authorizedPublish = this.checkAccessRights(
-            user!,
-            channelSettings,
-            channelName,
-            subchannel,
-            "publish",
-          );
-          let authorizedSubscribe = this.checkAccessRights(
-            user!,
-            channelSettings,
-            channelName,
-            subchannel,
-            "subscribe",
-          );
-          var result: ChannelDocumentCheckResult = {
-            isValid: isValid,
-            error: validationError,
-            publishAuthorized: authorizedPublish,
-            subscribeAuthorized: authorizedSubscribe,
-          };
-          res.send(nu<ChannelDocumentCheckResult>(result));
-        } catch (e) {
-          res.status(500).send(error(`Error during validation: ${errorMessage(e)}`));
-        }
-      },
-    );
+      try {
+        let [isValid, validationError] = executeValidator(
+          channelSettings.validator,
+          user!,
+          channelName,
+          subchannel,
+          message,
+        );
+        let authorizedPublish = this.checkAccessRights(user!, channelSettings, channelName, subchannel, 'publish');
+        let authorizedSubscribe = this.checkAccessRights(user!, channelSettings, channelName, subchannel, 'subscribe');
+        var result: ChannelDocumentCheckResult = {
+          isValid: isValid,
+          error: validationError,
+          publishAuthorized: authorizedPublish,
+          subscribeAuthorized: authorizedSubscribe,
+        };
+        res.send(nu<ChannelDocumentCheckResult>(result));
+      } catch (e) {
+        res.status(500).send(error(`Error during validation: ${errorMessage(e)}`));
+      }
+    });
   }
 
   async stats(): Promise<Stats> {
-    var channelSubscriptionsPerTenant =
-      this.connectionManager.countActiveConnectionsGroupedByTenant(
-        (items) => items.filter((item) => item.startsWith("channel.")).length,
-      );
+    var channelSubscriptionsPerTenant = this.connectionManager.countActiveConnectionsGroupedByTenant(
+      (items) => items.filter((item) => item.startsWith('channel.')).length,
+    );
     return {
-      "chan-sub": channelSubscriptionsPerTenant,
+      'chan-sub': channelSubscriptionsPerTenant,
     };
   }
 
@@ -205,14 +177,14 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
     message: AmberClientMessage,
   ): Promise<AmberServerResponseMessage | undefined> {
     var channelMessage = message as ChannelClientWsMessage;
-    if (channelMessage.action == "subscribe-channel") {
+    if (channelMessage.action == 'subscribe-channel') {
       return await this.handleSubscribeChannel(connection, channelMessage);
     }
-    if (channelMessage.action == "unsubscribe-channel") {
+    if (channelMessage.action == 'unsubscribe-channel') {
       return await this.handleUnsubscribeChannel(connection, channelMessage);
     }
 
-    if (channelMessage.action == "send-to-channel") {
+    if (channelMessage.action == 'send-to-channel') {
       return await this.handleSendToChannel(connection, channelMessage);
     }
   }
@@ -227,39 +199,29 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
     var isAdmin = connection.roles.includes(tenantAdminRole);
 
     if (channelName == null) {
-      return errorResponse(message, "bad-request", "Channel name is required");
+      return errorResponse(message, 'bad-request', 'Channel name is required');
     }
 
     var channelSettings = this.channels.get(channelName.channel);
 
     if (!channelSettings) {
-      return errorResponse(message, "not-found", `Channel ${channel} not found`);
+      return errorResponse(message, 'not-found', `Channel ${channel} not found`);
     }
     if (channelSettings.subchannels && !channelName.subchannel && !isAdmin) {
       // tenant admins can subscribe to the top level channel
-      return errorResponse(message, "bad-request", `Channel ${channel} requires a subchannel`);
+      return errorResponse(message, 'bad-request', `Channel ${channel} requires a subchannel`);
     }
 
     if (!channelSettings.subchannels && channelName.subchannel) {
-      return errorResponse(
-        message,
-        "bad-request",
-        `Channel ${channel} does not support subchannels`,
-      );
+      return errorResponse(message, 'bad-request', `Channel ${channel} does not support subchannels`);
     }
 
     if (
       !isAdmin &&
-      !this.checkAccessRights(
-        connection,
-        channelSettings,
-        channelName.channel,
-        channelName.subchannel,
-        "subscribe",
-      )
+      !this.checkAccessRights(connection, channelSettings, channelName.channel, channelName.subchannel, 'subscribe')
     ) {
       // tenant admins always have access
-      return errorResponse(message, "unauthorized", `Access denied to channel ${channel}`);
+      return errorResponse(message, 'unauthorized', `Access denied to channel ${channel}`);
     }
 
     connection.items.set(`channel.${channel}`, true); // mark the connection as subscribed to the channel
@@ -274,7 +236,7 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
     action: ChannelAccessAction,
   ): boolean {
     if (channelSettings.accessRights) {
-      if (typeof channelSettings.accessRights == "function") {
+      if (typeof channelSettings.accessRights == 'function') {
         return channelSettings.accessRights(user, channel, subchannel, action);
       } else {
         var rights = channelSettings.accessRights as { [role: string]: ChannelAccessAction[] };
@@ -292,21 +254,17 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
     var channelName = splitChannelName(channel);
 
     if (channelName == null) {
-      return errorResponse(message, "bad-request", "Channel name is required");
+      return errorResponse(message, 'bad-request', 'Channel name is required');
     }
 
     var channelSettings = this.channels.get(channelName.channel);
 
     if (!channelSettings) {
-      return errorResponse(message, "not-found", `Channel ${channel} not found`);
+      return errorResponse(message, 'not-found', `Channel ${channel} not found`);
     }
 
     if (!channelSettings.subchannels && channelName.subchannel) {
-      return errorResponse(
-        message,
-        "bad-request",
-        `Channel ${channel} does not support subchannels`,
-      );
+      return errorResponse(message, 'bad-request', `Channel ${channel} does not support subchannels`);
     }
 
     connection.items.delete(`channel.${channel}`); // remove the subscription
@@ -322,78 +280,47 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
     var isAdmin = connection.roles.includes(tenantAdminRole);
 
     if (channelName == null) {
-      return errorResponse(message, "bad-request", "Channel name is required");
+      return errorResponse(message, 'bad-request', 'Channel name is required');
     }
     var channelSettings = this.channels.get(channelName.channel);
     if (!channelSettings) {
-      return errorResponse(message, "bad-request", `Channel ${message.channel} not found`);
+      return errorResponse(message, 'bad-request', `Channel ${message.channel} not found`);
     }
     if (channelSettings.validator) {
-      if (
-        !channelSettings.validator(
-          connection,
-          channelName.channel,
-          channelName.subchannel,
-          message.message,
-        )
-      ) {
-        return errorResponse(
-          message,
-          "validation-failed",
-          `Invalid message for channel ${message.channel}`,
-        );
+      if (!channelSettings.validator(connection, channelName.channel, channelName.subchannel, message.message)) {
+        return errorResponse(message, 'validation-failed', `Invalid message for channel ${message.channel}`);
       }
     }
 
     if (
       !isAdmin &&
-      !this.checkAccessRights(
-        connection,
-        channelSettings,
-        channelName.channel,
-        channelName.subchannel,
-        "publish",
-      )
+      !this.checkAccessRights(connection, channelSettings, channelName.channel, channelName.subchannel, 'publish')
     ) {
-      return errorResponse(message, "unauthorized", `Access denied to channel ${message.channel}`);
+      return errorResponse(message, 'unauthorized', `Access denied to channel ${message.channel}`);
     }
-    this.publishMessage(
-      connection.tenant,
-      channelName.channel,
-      channelName.subchannel,
-      message.message,
-    );
+    this.publishMessage(connection.tenant, channelName.channel, channelName.subchannel, message.message);
     return successResponse(message);
   }
 
   publishMessage<T>(tenant: string, channel: string, subchannel: string | null, message: T) {
     var channelName = joinChannelName(channel, subchannel);
     for (const connection of this.connectionManager.activeConnectionsForTenant(tenant)) {
-      if (
-        connection.items.has(`channel.${channelName}`) ||
-        connection.items.has(`channel.${channel}`)
-      ) {
+      if (connection.items.has(`channel.${channelName}`) || connection.items.has(`channel.${channel}`)) {
         // admins can subscribe to the main channel without subchannel
         sendToClient<ServerChannelMessage>(connection, {
-          type: "channel-message",
+          type: 'channel-message',
           channel: channelName,
           message: message,
         });
       }
     }
-    amberStats.trackMetric("chan-send", 1, tenant);
+    amberStats.trackMetric('chan-send', 1, tenant);
   }
 }
 
 function executeValidator(
   validator:
-    | ((
-        user: UserContext,
-        channel: string,
-        subchannel: string | null,
-        message: any,
-      ) => boolean | string)
-    | undefined,
+    ((user: UserContext, channel: string, subchannel: string | null, message: any) => boolean | string) | undefined,
   user: UserContext,
   channel: string,
   subchannel: string | null,
@@ -409,7 +336,7 @@ function executeValidator(
       ? undefined
       : isString(validationResult)
         ? (validationResult as string)
-        : "Invalid message";
+        : 'Invalid message';
     return [isValid, errorMessage];
   } catch (e) {
     return [false, `Validator exception: ${errorMessage(e)}`];

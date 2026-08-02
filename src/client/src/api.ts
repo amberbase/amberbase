@@ -1,5 +1,5 @@
-import { AmberChannelAdmin } from "./channels.js";
-import { AmberLoginManager } from "./login.js";
+import { AmberChannelAdmin } from './channels.js';
+import { AmberLoginManager } from './login.js';
 import {
   nu,
   UserDetails,
@@ -25,7 +25,7 @@ import {
   CollectionAccessInfo,
   ChannelInfo,
   ChannelDocumentCheckResult,
-} from "./shared/dtos.js";
+} from './shared/dtos.js';
 
 /**
  * Internal class to wrap REST like api calls to the amber server for convenience
@@ -60,23 +60,19 @@ class ApiClient {
    * @param body Body to be send
    * @returns Parsed json response from the server. It will throw an error if the response is not 200 OK or if the json cannot be parsed.
    */
-  async fetch<T>(
-    method: "GET" | "DELETE" | "POST",
-    path: string,
-    body: any | undefined = undefined,
-  ): Promise<T> {
-    var p = this.tenant ? path.replace(":tenant", this.tenant) : path;
+  async fetch<T>(method: 'GET' | 'DELETE' | 'POST', path: string, body: any | undefined = undefined): Promise<T> {
+    var p = this.tenant ? path.replace(':tenant', this.tenant) : path;
     var token = this.tokenProvider ? await this.tokenProvider() : undefined;
     var headers: HeadersInit = {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     };
     if (token) {
-      headers["AmberSession"] = token;
+      headers['AmberSession'] = token;
     }
 
     var init: RequestInit = {
       method: method,
-      credentials: "include",
+      credentials: 'include',
       headers: headers,
     };
     if (body) {
@@ -85,12 +81,12 @@ class ApiClient {
     var response = await fetch(this.apiPrefix + p, init);
 
     if (response.status === 401) {
-      throw new Error("Not authorized");
+      throw new Error('Not authorized');
     }
 
     var result = await response.json();
     if (response.status !== 200) {
-      throw new Error(result.error || "HTTP Status indicates error: " + response.status);
+      throw new Error(result.error || 'HTTP Status indicates error: ' + response.status);
     }
     return result;
   }
@@ -102,23 +98,19 @@ class ApiClient {
    * @param body Body to be send
    * @returns Raw text value. It will throw an error if the response is not 200 OK.
    */
-  async fetchText(
-    method: "GET" | "DELETE" | "POST",
-    path: string,
-    body: any | undefined = undefined,
-  ): Promise<string> {
-    var p = this.tenant ? path.replace(":tenant", this.tenant) : path;
+  async fetchText(method: 'GET' | 'DELETE' | 'POST', path: string, body: any | undefined = undefined): Promise<string> {
+    var p = this.tenant ? path.replace(':tenant', this.tenant) : path;
     var token = this.tokenProvider ? await this.tokenProvider() : undefined;
     var headers: HeadersInit = {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     };
     if (token) {
-      headers["AmberSession"] = token;
+      headers['AmberSession'] = token;
     }
 
     var init: RequestInit = {
       method: method,
-      credentials: "include",
+      credentials: 'include',
       headers: headers,
     };
     if (body) {
@@ -127,12 +119,12 @@ class ApiClient {
     var response = await fetch(this.apiPrefix + p, init);
 
     if (response.status === 401) {
-      throw new Error("Not authorized");
+      throw new Error('Not authorized');
     }
 
     var result = await response.text();
     if (response.status !== 200) {
-      throw new Error("HTTP Status indicates error: " + response.status);
+      throw new Error('HTTP Status indicates error: ' + response.status);
     }
     return result;
   }
@@ -162,7 +154,7 @@ export class AmberAdminApi {
    * @returns A list of users in the tenant. The user object contains the roles of the user.
    */
   async getUsers(): Promise<UserWithRoles[]> {
-    return await this.apiClient.fetch<UserWithRoles[]>("GET", "/tenant/:tenant/admin/users");
+    return await this.apiClient.fetch<UserWithRoles[]>('GET', '/tenant/:tenant/admin/users');
   }
 
   /**
@@ -171,10 +163,7 @@ export class AmberAdminApi {
    * @returns Success result or error message
    */
   async deleteUser(userId: string): Promise<ActionResult> {
-    return await this.apiClient.fetch<ActionResult>(
-      "DELETE",
-      "/tenant/:tenant/admin/user/" + userId,
-    );
+    return await this.apiClient.fetch<ActionResult>('DELETE', '/tenant/:tenant/admin/user/' + userId);
   }
 
   /**
@@ -184,11 +173,7 @@ export class AmberAdminApi {
    * @returns Success result or error message
    */
   async setRolesOfUser(userId: string, roles: string[]): Promise<ActionResult> {
-    return await this.apiClient.fetch<ActionResult>(
-      "POST",
-      "/tenant/:tenant/admin/user/" + userId + "/roles",
-      roles,
-    );
+    return await this.apiClient.fetch<ActionResult>('POST', '/tenant/:tenant/admin/user/' + userId + '/roles', roles);
   }
 
   /**
@@ -197,7 +182,7 @@ export class AmberAdminApi {
    * @returns The invitation token to be used in the AmberUserApi.acceptInvitation.
    */
   async createInvitation(request: CreateInvitationRequest): Promise<string> {
-    return await this.apiClient.fetchText("POST", "/tenant/:tenant/admin/invitation", request);
+    return await this.apiClient.fetchText('POST', '/tenant/:tenant/admin/invitation', request);
   }
 
   /**
@@ -205,10 +190,7 @@ export class AmberAdminApi {
    * @return A list of metrics buckets with the metrics for the last hour. The buckets are grouped by minute.
    */
   async getMetricsByMinutes(): Promise<AmberMetricsBucket[]> {
-    return await this.apiClient.fetch<AmberMetricsBucket[]>(
-      "GET",
-      "/tenant/:tenant/metrics/minute",
-    );
+    return await this.apiClient.fetch<AmberMetricsBucket[]>('GET', '/tenant/:tenant/metrics/minute');
   }
 
   /**
@@ -216,7 +198,7 @@ export class AmberAdminApi {
    * @return A list of metrics buckets with the metrics for the last 60 hours. The buckets are grouped by hour.
    */
   async getMetricsByHour(): Promise<AmberMetricsBucket[]> {
-    return await this.apiClient.fetch<AmberMetricsBucket[]>("GET", "/tenant/:tenant/metrics/hour");
+    return await this.apiClient.fetch<AmberMetricsBucket[]>('GET', '/tenant/:tenant/metrics/hour');
   }
 
   /**
@@ -225,13 +207,10 @@ export class AmberAdminApi {
    * @param newPassword The new password for the user. It will be hashed and stored in the database. It is not possible to recover the password from the hash.
    * @returns Success result or error message
    */
-  async changePasswordOfSingleTenantUser(
-    userId: string,
-    newPassword: string,
-  ): Promise<ActionResult> {
+  async changePasswordOfSingleTenantUser(userId: string, newPassword: string): Promise<ActionResult> {
     return await this.apiClient.fetch<ActionResult>(
-      "POST",
-      "/tenant/:tenant/admin/user/" + userId + "/password",
+      'POST',
+      '/tenant/:tenant/admin/user/' + userId + '/password',
       newPassword,
     );
   }
@@ -243,10 +222,7 @@ export class AmberAdminApi {
    * @returns The password reset token that can be used to change the password.
    */
   async createPasswordResetTokenOfSingleTenantUser(userId: string): Promise<string> {
-    return await this.apiClient.fetchText(
-      "POST",
-      "/tenant/:tenant/admin/user/" + userId + "/passwordResetToken",
-    );
+    return await this.apiClient.fetchText('POST', '/tenant/:tenant/admin/user/' + userId + '/passwordResetToken');
   }
 
   /**
@@ -254,7 +230,7 @@ export class AmberAdminApi {
    * @returns Tenant details including id, name and data
    */
   async getTenantInfo(): Promise<TenantDetails> {
-    return await this.apiClient.fetch<TenantDetails>("GET", "/tenant/:tenant/info");
+    return await this.apiClient.fetch<TenantDetails>('GET', '/tenant/:tenant/info');
   }
 
   /**
@@ -263,7 +239,7 @@ export class AmberAdminApi {
    * @returns Action result with success or error message
    */
   async updateTenant(request: TenantDetails): Promise<ActionResult> {
-    return await this.apiClient.fetch<ActionResult>("POST", "/tenant/:tenant", request);
+    return await this.apiClient.fetch<ActionResult>('POST', '/tenant/:tenant', request);
   }
 }
 
@@ -279,7 +255,7 @@ export class AmberGlobalAdminApi {
    * @internal
    */
   constructor(prefix: string, tokenProvider: () => Promise<string>) {
-    this.apiClient = new ApiClient(prefix, "*", tokenProvider);
+    this.apiClient = new ApiClient(prefix, '*', tokenProvider);
   }
 
   /**
@@ -287,7 +263,7 @@ export class AmberGlobalAdminApi {
    * @returns List of tenants
    */
   async getTenants(): Promise<Tenant[]> {
-    return await this.apiClient.fetch<Tenant[]>("GET", "/tenants");
+    return await this.apiClient.fetch<Tenant[]>('GET', '/tenants');
   }
 
   /**
@@ -296,7 +272,7 @@ export class AmberGlobalAdminApi {
    * @returns Action result with success or error message
    */
   async deleteTenant(tenantId: string): Promise<ActionResult> {
-    return await this.apiClient.fetch<ActionResult>("DELETE", "/tenant/" + tenantId);
+    return await this.apiClient.fetch<ActionResult>('DELETE', '/tenant/' + tenantId);
   }
 
   /**
@@ -305,7 +281,7 @@ export class AmberGlobalAdminApi {
    * @returns Action result with success or error message
    */
   async createTenant(request: CreateTenantRequest): Promise<ActionResult> {
-    return await this.apiClient.fetch<ActionResult>("POST", "/tenants", request);
+    return await this.apiClient.fetch<ActionResult>('POST', '/tenants', request);
   }
 
   /**
@@ -315,7 +291,7 @@ export class AmberGlobalAdminApi {
    * @returns Action result with success or error message
    */
   async updateTenant(tenantId: string, request: TenantDetails): Promise<ActionResult> {
-    return await this.apiClient.fetch<ActionResult>("POST", "/tenant/" + tenantId, request);
+    return await this.apiClient.fetch<ActionResult>('POST', '/tenant/' + tenantId, request);
   }
 
   /**
@@ -324,7 +300,7 @@ export class AmberGlobalAdminApi {
    * @returns Tenant details including id, name and data
    */
   async getTenantInfo(tenantId: string): Promise<TenantDetails> {
-    return await this.apiClient.fetch<TenantDetails>("GET", "/tenant/" + tenantId + "/info");
+    return await this.apiClient.fetch<TenantDetails>('GET', '/tenant/' + tenantId + '/info');
   }
 
   /**
@@ -332,7 +308,7 @@ export class AmberGlobalAdminApi {
    * @returns Buckets of metrics for the last hour. The buckets are grouped by minute.
    */
   async getMetricsByMinutes(): Promise<AmberMetricsBucket[]> {
-    return await this.apiClient.fetch<AmberMetricsBucket[]>("GET", "/metrics/minute");
+    return await this.apiClient.fetch<AmberMetricsBucket[]>('GET', '/metrics/minute');
   }
 
   /**
@@ -340,7 +316,7 @@ export class AmberGlobalAdminApi {
    * @returns Buckets of metrics for the last 60 hours. The buckets are grouped by hour.
    */
   async getMetricsByHour(): Promise<AmberMetricsBucket[]> {
-    return await this.apiClient.fetch<AmberMetricsBucket[]>("GET", "/metrics/hour");
+    return await this.apiClient.fetch<AmberMetricsBucket[]>('GET', '/metrics/hour');
   }
 
   /**
@@ -348,7 +324,7 @@ export class AmberGlobalAdminApi {
    * @returns A list of users with their basic properties.
    */
   async getUsers(): Promise<UserInfo[]> {
-    return await this.apiClient.fetch<UserInfo[]>("GET", "/users");
+    return await this.apiClient.fetch<UserInfo[]>('GET', '/users');
   }
 
   /**
@@ -357,7 +333,7 @@ export class AmberGlobalAdminApi {
    * @returns User details with roles and tenant information
    */
   async getUserDetails(userId: string): Promise<UserDetails> {
-    return await this.apiClient.fetch<UserDetails>("GET", "/users/" + userId);
+    return await this.apiClient.fetch<UserDetails>('GET', '/users/' + userId);
   }
 
   /**
@@ -367,7 +343,7 @@ export class AmberGlobalAdminApi {
    * @returns Action result with success or error message
    */
   async updateUserDetails(userId: string, request: ChangeUserRequest): Promise<ActionResult> {
-    return await this.apiClient.fetch<ActionResult>("POST", "/users/" + userId, request);
+    return await this.apiClient.fetch<ActionResult>('POST', '/users/' + userId, request);
   }
 
   /**
@@ -377,7 +353,7 @@ export class AmberGlobalAdminApi {
    * @returns Action result with success or error message
    */
   async deleteUser(userId: string): Promise<ActionResult> {
-    return await this.apiClient.fetch<ActionResult>("DELETE", "/users/" + userId);
+    return await this.apiClient.fetch<ActionResult>('DELETE', '/users/' + userId);
   }
 
   /**
@@ -387,7 +363,7 @@ export class AmberGlobalAdminApi {
    * @returns The password reset token that can be used to change the password.
    */
   async createPasswordResetToken(userId: string): Promise<string> {
-    return await this.apiClient.fetchText("POST", "/users/" + userId + "/passwordResetToken");
+    return await this.apiClient.fetchText('POST', '/users/' + userId + '/passwordResetToken');
   }
 }
 
@@ -411,7 +387,7 @@ export class AmberApi {
    * @returns A list of users in the tenant including global users.
    */
   async getUsers(): Promise<UserInfo[]> {
-    return await this.apiClient.fetch<UserInfo[]>("GET", "/tenant/:tenant/users");
+    return await this.apiClient.fetch<UserInfo[]>('GET', '/tenant/:tenant/users');
   }
 
   /**
@@ -419,7 +395,7 @@ export class AmberApi {
    * @returns Tenant details including id, name and data
    */
   async getTenantInfo(): Promise<TenantDetails> {
-    return await this.apiClient.fetch<TenantDetails>("GET", "/tenant/:tenant/info");
+    return await this.apiClient.fetch<TenantDetails>('GET', '/tenant/:tenant/info');
   }
 }
 
@@ -449,7 +425,7 @@ export class AmberUserApi {
    * @returns
    */
   async getUserDetails(): Promise<UserDetails> {
-    return await this.apiClient.fetch<UserDetails>("GET", "/user");
+    return await this.apiClient.fetch<UserDetails>('GET', '/user');
   }
 
   /**
@@ -457,7 +433,7 @@ export class AmberUserApi {
    * @returns
    */
   async getUserTenants(): Promise<TenantWithRoles[]> {
-    return await this.apiClient.fetch<TenantWithRoles[]>("GET", "/user/tenants");
+    return await this.apiClient.fetch<TenantWithRoles[]>('GET', '/user/tenants');
   }
 
   /**
@@ -475,15 +451,10 @@ export class AmberUserApi {
    * @param invitation A potential invitation link to add the user to a tenant with some roles
    * @returns the user id
    */
-  async registerUser(
-    userName: string,
-    userEmail: string,
-    password: string,
-    invitation?: string,
-  ): Promise<string> {
+  async registerUser(userName: string, userEmail: string, password: string, invitation?: string): Promise<string> {
     return await this.apiClient.fetchText(
-      "POST",
-      "/register",
+      'POST',
+      '/register',
       nu<RegisterRequest>({ username: userName, email: userEmail, password, invitation }),
     );
   }
@@ -493,11 +464,7 @@ export class AmberUserApi {
    * @param invitation The invitation token created by the admin.
    */
   async acceptInvitation(invitation: string): Promise<void> {
-    await this.apiClient.fetchText(
-      "POST",
-      "/accept-invitation",
-      nu<AcceptInvitationRequest>({ invitation }),
-    );
+    await this.apiClient.fetchText('POST', '/accept-invitation', nu<AcceptInvitationRequest>({ invitation }));
   }
 
   /**
@@ -505,7 +472,7 @@ export class AmberUserApi {
    * @param invitation The invitation token created by the admin.
    */
   async getInvitationDetails(invitation: string): Promise<InvitationDetails> {
-    return await this.apiClient.fetch<InvitationDetails>("GET", "/invitation/" + invitation);
+    return await this.apiClient.fetch<InvitationDetails>('GET', '/invitation/' + invitation);
   }
 
   /**
@@ -515,19 +482,15 @@ export class AmberUserApi {
    * @param newPassword New password of the user
    * @returns Success result or error message
    */
-  async changePassword(
-    userId: string,
-    currentPassword: string,
-    newPassword: string,
-  ): Promise<ActionResult> {
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<ActionResult> {
     try {
       return await this.apiClient.fetch<ActionResult>(
-        "POST",
-        "/user/password",
+        'POST',
+        '/user/password',
         nu<ChangeUserPasswordRequest>({ userId, currentPassword, newPassword }),
       );
     } catch {
-      return nu<ActionResult>({ success: false, error: "Unable to update user password" });
+      return nu<ActionResult>({ success: false, error: 'Unable to update user password' });
     }
   }
 
@@ -540,8 +503,8 @@ export class AmberUserApi {
   async changePasswordWithToken(resetToken: string, newPassword: string): Promise<boolean> {
     try {
       var result = await this.apiClient.fetch<ActionResult>(
-        "POST",
-        "/user/passwordReset",
+        'POST',
+        '/user/passwordReset',
         nu<ResetUserPasswordRequest>({ passwordResetToken: resetToken, newPassword }),
       );
       return result.success;
@@ -558,12 +521,12 @@ export class AmberUserApi {
   async updateUserDetails(userName: string): Promise<ActionResult> {
     try {
       return await this.apiClient.fetch<ActionResult>(
-        "POST",
-        "/user",
+        'POST',
+        '/user',
         nu<ChangeUserProfileRequest>({ userName: userName }),
       );
     } catch {
-      return nu<ActionResult>({ success: false, error: "Unable to update user details" });
+      return nu<ActionResult>({ success: false, error: 'Unable to update user details' });
     }
   }
 }
@@ -576,8 +539,8 @@ export class AmberCollectionAdminApi {
 
   async getUserAccess(collection: string, userId: string): Promise<CollectionAccessInfo> {
     return await this.apiClient.fetch<CollectionAccessInfo>(
-      "GET",
-      "/tenant/:tenant/collection/" + collection + "/user-access/" + userId,
+      'GET',
+      '/tenant/:tenant/collection/' + collection + '/user-access/' + userId,
     );
   }
 
@@ -587,25 +550,25 @@ export class AmberCollectionAdminApi {
     documentId?: string,
     userId?: string,
   ): Promise<ActionResult> {
-    var path = "/tenant/:tenant/collection/" + collection + "/document";
+    var path = '/tenant/:tenant/collection/' + collection + '/document';
 
-    var queryParams = userId ? "?userId=" + encodeURIComponent(userId) : "";
+    var queryParams = userId ? '?userId=' + encodeURIComponent(userId) : '';
     if (documentId) {
-      if (queryParams != "") {
-        queryParams += "&";
+      if (queryParams != '') {
+        queryParams += '&';
       } else {
-        queryParams += "?";
+        queryParams += '?';
       }
-      queryParams += "docId=" + encodeURIComponent(documentId);
+      queryParams += 'docId=' + encodeURIComponent(documentId);
     }
 
-    return await this.apiClient.fetch<ActionResult>("POST", path + queryParams, doc);
+    return await this.apiClient.fetch<ActionResult>('POST', path + queryParams, doc);
   }
 
   async getDocumentInfo(collection: string, documentId: string): Promise<CollectionDocumentInfo> {
     return await this.apiClient.fetch<CollectionDocumentInfo>(
-      "GET",
-      "/tenant/:tenant/collection/" + collection + "/document/" + documentId + "/info",
+      'GET',
+      '/tenant/:tenant/collection/' + collection + '/document/' + documentId + '/info',
     );
   }
 
@@ -615,21 +578,20 @@ export class AmberCollectionAdminApi {
     userId?: string,
     documentId?: string,
   ): Promise<CollectionDocumentCheckResult> {
-    var path = "/tenant/:tenant/collection/" + collection + "/check";
-    var queryParams = "";
+    var path = '/tenant/:tenant/collection/' + collection + '/check';
+    var queryParams = '';
     if (userId) {
-      queryParams = "?userId=" + encodeURIComponent(userId);
+      queryParams = '?userId=' + encodeURIComponent(userId);
     }
     if (documentId) {
-      queryParams +=
-        (queryParams.length === 0 ? "?" : "&") + "documentId=" + encodeURIComponent(documentId);
+      queryParams += (queryParams.length === 0 ? '?' : '&') + 'documentId=' + encodeURIComponent(documentId);
     }
     path += queryParams;
-    return await this.apiClient.fetch<CollectionDocumentCheckResult>("POST", path, doc);
+    return await this.apiClient.fetch<CollectionDocumentCheckResult>('POST', path, doc);
   }
 
   async getCollectionsInfo(): Promise<CollectionInfo[]> {
-    return await this.apiClient.fetch<CollectionInfo[]>("GET", "/tenant/:tenant/collections");
+    return await this.apiClient.fetch<CollectionInfo[]>('GET', '/tenant/:tenant/collections');
   }
 }
 
@@ -645,21 +607,20 @@ export class AmberChannelAdminApi implements AmberChannelAdmin {
     subchannel?: string,
     userId?: string,
   ): Promise<ChannelDocumentCheckResult> {
-    var path = "/tenant/:tenant/channel/" + encodeURIComponent(channel) + "/check";
-    var queryParams = "";
+    var path = '/tenant/:tenant/channel/' + encodeURIComponent(channel) + '/check';
+    var queryParams = '';
     if (userId) {
-      queryParams = "?userId=" + encodeURIComponent(userId);
+      queryParams = '?userId=' + encodeURIComponent(userId);
     }
     if (subchannel) {
-      queryParams +=
-        (queryParams.length === 0 ? "?" : "&") + "subchannel=" + encodeURIComponent(subchannel);
+      queryParams += (queryParams.length === 0 ? '?' : '&') + 'subchannel=' + encodeURIComponent(subchannel);
     }
 
     path += queryParams;
-    return await this.apiClient.fetch<ChannelDocumentCheckResult>("POST", path, message);
+    return await this.apiClient.fetch<ChannelDocumentCheckResult>('POST', path, message);
   }
 
   async getChannels(): Promise<ChannelInfo[]> {
-    return await this.apiClient.fetch<ChannelInfo[]>("GET", "/tenant/:tenant/channels");
+    return await this.apiClient.fetch<ChannelInfo[]>('GET', '/tenant/:tenant/channels');
   }
 }

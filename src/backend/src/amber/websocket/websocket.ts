@@ -1,7 +1,7 @@
-import * as http from "http";
-import * as WebSocket from "ws";
-import { AmberAuthService, SessionToken } from "../auth.js";
-import { AmberSessionProtocolPrefix } from "./../../../../client/src/shared/dtos.js";
+import * as http from 'http';
+import * as WebSocket from 'ws';
+import { AmberAuthService, SessionToken } from '../auth.js';
+import { AmberSessionProtocolPrefix } from './../../../../client/src/shared/dtos.js';
 
 /**
  * A simple websocket interface that allows to send and receive JSON messages. It is used to simplify the websocket handling in the amber server.
@@ -58,25 +58,22 @@ export function simpleWebsockets(
   authService: AmberAuthService,
 ) {
   var wss = new WebSocket.WebSocketServer({ noServer: true });
-  server.on("upgrade", (request, socket, head) => {
-    console.log("Parsing session from websocket request");
+  server.on('upgrade', (request, socket, head) => {
+    console.log('Parsing session from websocket request');
     if (!request.url) {
       request.statusCode = 400;
       return;
     }
     var pathname = new URL(request.url, `http://${request.headers.host}`).pathname;
-    var protocolRaw = request.headers["sec-websocket-protocol"] ?? "";
+    var protocolRaw = request.headers['sec-websocket-protocol'] ?? '';
 
-    var protocols = protocolRaw.split(",").map((protocol) => protocol.trim());
+    var protocols = protocolRaw.split(',').map((protocol) => protocol.trim());
 
     // Check if the session token is encoded in the protocol header (yes, this is a bit odd but one of the potential solutions for the wacky decision to strip headers from the browsers websocket implementations)
-    var protocolEncodedSessionTokenRaw = protocols.find((protocol) =>
-      protocol.startsWith(AmberSessionProtocolPrefix),
-    );
+    var protocolEncodedSessionTokenRaw = protocols.find((protocol) => protocol.startsWith(AmberSessionProtocolPrefix));
 
     // The first protocol that does not start with amberSessionPrefix is the protocol we are processing
-    var protocol =
-      protocols.find((protocol) => !protocol.startsWith(AmberSessionProtocolPrefix)) ?? "";
+    var protocol = protocols.find((protocol) => !protocol.startsWith(AmberSessionProtocolPrefix)) ?? '';
 
     var sessionTokenRaw = protocolEncodedSessionTokenRaw
       ? protocolEncodedSessionTokenRaw.substring(AmberSessionProtocolPrefix.length)
@@ -96,11 +93,11 @@ export function simpleWebsockets(
     for (const handler of websocketHandlers) {
       var result = handler(pathname, protocol, sessionToken);
       if (result === undefined) continue;
-      if (typeof result === "object") {
+      if (typeof result === 'object') {
         socket.end(`HTTP/1.1 ${result.status} ${result.err}\r\n\r\n`);
         return;
       }
-      if (typeof result === "function") {
+      if (typeof result === 'function') {
         let socketHandler = result;
         wss.handleUpgrade(request, socket, head, (ws, _req) => {
           let closeHandler: () => void = () => {};
@@ -113,7 +110,7 @@ export function simpleWebsockets(
             close: () => ws.close(),
             sendJson: (message) => ws.send(JSON.stringify(message)),
             onMessage: (callback) =>
-              ws.on("message", (message) => {
+              ws.on('message', (message) => {
                 aliveTime = new Date().getTime();
                 callback(JSON.parse(message.toString()));
               }),
@@ -130,10 +127,10 @@ export function simpleWebsockets(
             }
           }, 1000);
 
-          ws.on("pong", () => {
+          ws.on('pong', () => {
             aliveTime = new Date().getTime();
           });
-          ws.on("close", () => {
+          ws.on('close', () => {
             clearInterval(pingProcess);
             closeHandler();
           });

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
-import { AmberClient, type AmberMetricsBucket, type AmberMetricName } from "amber-client";
-import { Line } from "vue-chartjs";
+import { ref, onMounted, onUnmounted } from 'vue';
+import { AmberClient, type AmberMetricsBucket, type AmberMetricName } from 'amber-client';
+import { Line } from 'vue-chartjs';
 import {
   Chart as ChartJS,
   Title,
@@ -13,19 +13,10 @@ import {
   PointElement,
   LineElement,
   type Color,
-} from "chart.js";
-import { globalTenant } from "../../../shared/src";
+} from 'chart.js';
+import { globalTenant } from '../../../shared/src';
 
-ChartJS.register(
-  Title,
-  Tooltip,
-  Legend,
-  BarElement,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-);
+ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineElement);
 
 var props = defineProps<{
   amberClient: AmberClient;
@@ -38,10 +29,7 @@ var buckets = ref<AmberMetricsBucket[]>([]);
 var adminApi: {
   getMetricsByMinutes(): Promise<AmberMetricsBucket[]>;
   getMetricsByHour(): Promise<AmberMetricsBucket[]>;
-} =
-  props.tenant == globalTenant
-    ? props.amberClient.getGlobalAdminApi()!
-    : props.amberClient.getAdminApi()!;
+} = props.tenant == globalTenant ? props.amberClient.getGlobalAdminApi()! : props.amberClient.getAdminApi()!;
 
 var byHour = ref(false);
 var zoomedIn = ref(false);
@@ -53,7 +41,7 @@ var setByHour = (value: boolean) => {
   refreshMetrics();
 };
 
-var color = ref<Color>("red");
+var color = ref<Color>('red');
 
 var labels = () => {
   var l = buckets.value.map((bucket) => {
@@ -75,11 +63,11 @@ var values = () => {
       return 0;
     }
     switch (selectedMetric.value) {
-      case "chan-sub":
+      case 'chan-sub':
         return metric.max;
-      case "col-docs":
+      case 'col-docs':
         return metric.max;
-      case "col-sub":
+      case 'col-sub':
         return metric.max;
       default:
         return metric.sum;
@@ -93,9 +81,7 @@ var values = () => {
 
 var refreshMetrics = async () => {
   try {
-    const response = byHour.value
-      ? await adminApi.getMetricsByHour()
-      : await adminApi.getMetricsByMinutes();
+    const response = byHour.value ? await adminApi.getMetricsByHour() : await adminApi.getMetricsByMinutes();
     buckets.value = response;
     var metricsCollected = new Set<AmberMetricName>();
     response.forEach((bucket) => {
@@ -105,7 +91,7 @@ var refreshMetrics = async () => {
     });
     metrics.value = Array.from(metricsCollected).sort((a, b) => a.localeCompare(b));
   } catch (error) {
-    console.error("Error fetching metrics:", error);
+    console.error('Error fetching metrics:', error);
   }
 };
 var registeredCallback: number | null = null;
@@ -127,11 +113,9 @@ onUnmounted(() => {
     </v-row>
     <v-row>
       <v-col cols="2">
-        <v-btn @click="setByHour(!byHour)">{{ byHour ? "By Hour" : "By Minute" }}</v-btn>
+        <v-btn @click="setByHour(!byHour)">{{ byHour ? 'By Hour' : 'By Minute' }}</v-btn>
         <v-btn @click="zoomedIn = !zoomedIn"
-          ><v-icon
-            :icon="zoomedIn ? 'mdi-magnify-minus-outline' : 'mdi-magnify-plus-outline'"
-          ></v-icon
+          ><v-icon :icon="zoomedIn ? 'mdi-magnify-minus-outline' : 'mdi-magnify-plus-outline'"></v-icon
         ></v-btn>
         <h3>Metrics</h3>
         <v-list>

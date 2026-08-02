@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, computed, getCurrentInstance, ref } from "vue";
+import { onMounted, onUnmounted, computed, getCurrentInstance, ref } from 'vue';
 
 export interface RelativeTimeProps {
   date: Date;
-  precision?: "day" | "hour" | "minute" | "tenSeconds" | "seconds";
+  precision?: 'day' | 'hour' | 'minute' | 'tenSeconds' | 'seconds';
 }
 const props = withDefaults(defineProps<RelativeTimeProps>(), {
-  precision: () => "tenSeconds",
+  precision: () => 'tenSeconds',
 });
 
 function renderRelativeTime(): string {
-  if (!props.date) return "N/A";
+  if (!props.date) return 'N/A';
   var d = new Date(props.date);
   var now = new Date();
   var diff = now.getTime() - d.getTime();
@@ -18,18 +18,18 @@ function renderRelativeTime(): string {
   var minutes = Math.floor(seconds / 60);
   var hours = Math.floor(minutes / 60);
   var days = Math.floor(hours / 24);
-  if (days > 0) return days + " day(s) ago";
-  if (props.precision == "day") return "today";
-  if (hours > 0) return hours + " hour(s) ago";
-  if (props.precision == "hour") return "in the last hour";
-  if (minutes > 0) return minutes + " minute(s) ago";
-  if (props.precision == "minute") return "just now";
+  if (days > 0) return days + ' day(s) ago';
+  if (props.precision == 'day') return 'today';
+  if (hours > 0) return hours + ' hour(s) ago';
+  if (props.precision == 'hour') return 'in the last hour';
+  if (minutes > 0) return minutes + ' minute(s) ago';
+  if (props.precision == 'minute') return 'just now';
   var tens = Math.floor(seconds / 10);
-  if (props.precision == "tenSeconds") {
-    if (tens > 0) return tens + "0 seconds ago";
-    return "just now";
+  if (props.precision == 'tenSeconds') {
+    if (tens > 0) return tens + '0 seconds ago';
+    return 'just now';
   }
-  return seconds > 1 ? seconds + " seconds ago" : "just now";
+  return seconds > 1 ? seconds + ' seconds ago' : 'just now';
 }
 
 const title = computed(() => {

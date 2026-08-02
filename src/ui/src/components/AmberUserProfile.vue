@@ -1,24 +1,24 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { AmberClient, type TenantWithRoles, type UserDetails } from "amber-client";
-import { uiHelper } from "@/common";
+import { ref, onMounted } from 'vue';
+import { AmberClient, type TenantWithRoles, type UserDetails } from 'amber-client';
+import { uiHelper } from '@/common';
 var props = defineProps<{ amberClient: AmberClient }>();
 var tenantsWithRoles = ref<TenantWithRoles[]>([]);
-var mode = ref<"changepw" | "changename" | "">("");
+var mode = ref<'changepw' | 'changename' | ''>('');
 var userApi = props.amberClient.getUserApi()!;
 var amberUser = ref<UserDetails>({} as UserDetails);
-var nameToChange = ref("");
-var changeUserPassword = ref("");
-var changeUserPasswordConfirm = ref("");
-var changeUserOldPassword = ref("");
+var nameToChange = ref('');
+var changeUserPassword = ref('');
+var changeUserPasswordConfirm = ref('');
+var changeUserOldPassword = ref('');
 var showPassword = ref(false);
 var validatePassword = (pw: string) => {
   if (pw.length < 8) {
-    return "Password must be at least 8 characters long";
+    return 'Password must be at least 8 characters long';
   }
 
   if (pw.trim() != pw) {
-    return "Password must not contain leading or trailing spaces";
+    return 'Password must not contain leading or trailing spaces';
   }
 
   return true;
@@ -26,16 +26,16 @@ var validatePassword = (pw: string) => {
 
 var validateName = (name: string) => {
   if (name.length < 3) {
-    return "Name must be at least 3 characters long";
+    return 'Name must be at least 3 characters long';
   }
   if (name.trim() != name) {
-    return "Name must not contain leading or trailing spaces";
+    return 'Name must not contain leading or trailing spaces';
   }
   return true;
 };
 var validatePasswordConfirm = (pwConfirm: string) => {
   if (pwConfirm != changeUserPassword.value) {
-    return "Passwords do not match";
+    return 'Passwords do not match';
   }
 
   return true;
@@ -51,37 +51,33 @@ var changeName = async () => {
   if (nameToChange.value !== amberUser.value.name) {
     var result = await userApi.updateUserDetails(nameToChange.value);
     if (result?.success !== true) {
-      uiHelper.showError("Error changing name: " + result.error);
+      uiHelper.showError('Error changing name: ' + result.error);
       return;
     } else {
       amberUser.value.name = nameToChange.value;
       props.amberClient.loginManager.refreshUser();
-      uiHelper.showSuccess("Name changed successfully");
+      uiHelper.showSuccess('Name changed successfully');
     }
   } else {
-    uiHelper.showMessage("Name is the same as before");
+    uiHelper.showMessage('Name is the same as before');
   }
 };
 
 var doChangePassword = async () => {
   if (changeUserPassword.value !== changeUserPasswordConfirm.value) {
-    uiHelper.showError("Passwords do not match");
+    uiHelper.showError('Passwords do not match');
     return;
   }
   if (changeUserPassword.value === changeUserOldPassword.value) {
-    uiHelper.showError("New password must be different from old password");
+    uiHelper.showError('New password must be different from old password');
     return;
   }
-  var result = await userApi.changePassword(
-    amberUser.value.id,
-    changeUserOldPassword.value,
-    changeUserPassword.value,
-  );
+  var result = await userApi.changePassword(amberUser.value.id, changeUserOldPassword.value, changeUserPassword.value);
   if (result?.success !== true) {
-    uiHelper.showError("Error changing password: " + result.error);
+    uiHelper.showError('Error changing password: ' + result.error);
     return;
   }
-  uiHelper.showSuccess("Password changed successfully");
+  uiHelper.showSuccess('Password changed successfully');
 };
 </script>
 <template>
@@ -101,9 +97,7 @@ var doChangePassword = async () => {
           autofocus
           :rules="[validateName]"
         ></v-text-field>
-        <v-btn @click="changeName()" :disabled="validateName(nameToChange) !== true"
-          >Change Name</v-btn
-        >
+        <v-btn @click="changeName()" :disabled="validateName(nameToChange) !== true">Change Name</v-btn>
       </v-card-text>
       <v-card-text v-if="mode === 'changepw'">
         <v-text-field
@@ -136,8 +130,7 @@ var doChangePassword = async () => {
         <v-btn
           @click="doChangePassword()"
           :disabled="
-            validatePassword(changeUserPassword) !== true ||
-            validatePasswordConfirm(changeUserPasswordConfirm) !== true
+            validatePassword(changeUserPassword) !== true || validatePasswordConfirm(changeUserPasswordConfirm) !== true
           "
           >Change Password</v-btn
         >

@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed, useTemplateRef } from "vue";
-import { AmberClient, type UserInfo } from "amber-client";
-import { uiHelper } from "@/common";
-import JsonEdit from "./shared/JsonEdit.vue";
-import type { CollectionAccessInfo, CollectionDocument } from "amber-client/dist/src/shared/dtos";
-import RelativeTime from "./shared/RelativeTime.vue";
+import { ref, onMounted, watch, computed, useTemplateRef } from 'vue';
+import { AmberClient, type UserInfo } from 'amber-client';
+import { uiHelper } from '@/common';
+import JsonEdit from './shared/JsonEdit.vue';
+import type { CollectionAccessInfo, CollectionDocument } from 'amber-client/dist/src/shared/dtos';
+import RelativeTime from './shared/RelativeTime.vue';
 var props = defineProps<{
   amberClient: AmberClient;
   tenant: string;
   collectionName: string;
   hasAccessTags: boolean;
   hasTags: boolean;
-  accessRightsMethod: "code" | "roles" | "none";
+  accessRightsMethod: 'code' | 'roles' | 'none';
   users: UserInfo[];
 }>();
 
@@ -42,9 +42,9 @@ const editEntityValid = ref<boolean>(false);
 const editEntityValidationErrors = ref<string>();
 const editEntityAuthorized = ref<boolean>(false);
 const entityInfoBusy = ref<boolean>(false);
-var viewEntityId = ref<string>("");
-var editJson = ref<string>("");
-var editEntityNewId = ref<string>("");
+var viewEntityId = ref<string>('');
+var editJson = ref<string>('');
+var editEntityNewId = ref<string>('');
 
 var receiveEntitySync = (msg: CollectionDocument<any>) => {
   lastChangeNumber.value = msg.change_number;
@@ -55,39 +55,38 @@ var receiveEntityRemoval = (msgId: string) => {
   data.value.delete(msgId);
 };
 
-type SearchOperator =
-  "equal" | "notEqual" | "similar" | "regex" | "largerOrEqual" | "smallerOrEqual" | "exists";
-const SearchScopeAll = "all";
-const SearchScopeId = "id";
-const SearchScopeUser = "user";
-const SearchScopeDate = "date";
-const SearchScopeData = ".";
+type SearchOperator = 'equal' | 'notEqual' | 'similar' | 'regex' | 'largerOrEqual' | 'smallerOrEqual' | 'exists';
+const SearchScopeAll = 'all';
+const SearchScopeId = 'id';
+const SearchScopeUser = 'user';
+const SearchScopeDate = 'date';
+const SearchScopeData = '.';
 
 const renderSearchScope = (searchScope: string): string => {
-  if (searchScope == SearchScopeAll) return "Any Property";
-  if (searchScope == SearchScopeId) return "Document ID";
-  if (searchScope == SearchScopeUser) return "Changed By User";
-  if (searchScope == SearchScopeDate) return "Change Time";
+  if (searchScope == SearchScopeAll) return 'Any Property';
+  if (searchScope == SearchScopeId) return 'Document ID';
+  if (searchScope == SearchScopeUser) return 'Changed By User';
+  if (searchScope == SearchScopeDate) return 'Change Time';
   if (searchScope.startsWith(SearchScopeData)) return `Data Path .${searchScope.substring(1)}.*`;
   return searchScope;
 };
 
 const renderSearchOperator = (operator: SearchOperator): string => {
   switch (operator) {
-    case "equal":
-      return "Equals";
-    case "notEqual":
-      return "Not Equals";
-    case "similar":
-      return "Contains";
-    case "regex":
-      return "Regular Expression";
-    case "largerOrEqual":
-      return "Larger or Equal";
-    case "smallerOrEqual":
-      return "Smaller or Equal";
-    case "exists":
-      return "Exists";
+    case 'equal':
+      return 'Equals';
+    case 'notEqual':
+      return 'Not Equals';
+    case 'similar':
+      return 'Contains';
+    case 'regex':
+      return 'Regular Expression';
+    case 'largerOrEqual':
+      return 'Larger or Equal';
+    case 'smallerOrEqual':
+      return 'Smaller or Equal';
+    case 'exists':
+      return 'Exists';
   }
   return operator;
 };
@@ -101,18 +100,16 @@ interface SearchCondition {
 const searchConditions = ref<SearchCondition[]>([]);
 
 const editSearchScope = ref<string>(SearchScopeAll);
-const editSearchScopeDataPath = ref<string>("");
-const editSearchOperator = ref<SearchOperator>("similar");
-const editSearchValue = ref<string>("");
+const editSearchScopeDataPath = ref<string>('');
+const editSearchOperator = ref<SearchOperator>('similar');
+const editSearchValue = ref<string>('');
 const editSelectedConditionIndex = ref<number | null>(null);
 
 const addSearchCondition = () => {
   searchConditions.value.push({
-    scope:
-      editSearchScope.value +
-      (editSearchScope.value == SearchScopeData ? editSearchScopeDataPath.value : ""),
+    scope: editSearchScope.value + (editSearchScope.value == SearchScopeData ? editSearchScopeDataPath.value : ''),
     operator: editSearchOperator.value,
-    value: editSearchOperator.value != "exists" ? editSearchValue.value : "",
+    value: editSearchOperator.value != 'exists' ? editSearchValue.value : '',
   });
 };
 
@@ -122,10 +119,9 @@ const updateSearchCondition = () => {
   if (editSelectedConditionIndex.value == null) return;
   var condition = searchConditions.value[editSelectedConditionIndex.value];
   condition.scope =
-    editSearchScope.value +
-    (editSearchScope.value == SearchScopeData ? editSearchScopeDataPath.value : "");
+    editSearchScope.value + (editSearchScope.value == SearchScopeData ? editSearchScopeDataPath.value : '');
   condition.operator = editSearchOperator.value;
-  condition.value = editSearchOperator.value != "exists" ? editSearchValue.value : "";
+  condition.value = editSearchOperator.value != 'exists' ? editSearchValue.value : '';
 };
 
 const replaceSearchConditions = () => {
@@ -134,11 +130,9 @@ const replaceSearchConditions = () => {
   }
   searchConditions.value = [
     {
-      scope:
-        editSearchScope.value +
-        (editSearchScope.value == SearchScopeData ? editSearchScopeDataPath.value : ""),
+      scope: editSearchScope.value + (editSearchScope.value == SearchScopeData ? editSearchScopeDataPath.value : ''),
       operator: editSearchOperator.value,
-      value: editSearchOperator.value != "exists" ? editSearchValue.value : "",
+      value: editSearchOperator.value != 'exists' ? editSearchValue.value : '',
     },
   ];
   editSelectedConditionIndex.value = 0;
@@ -146,8 +140,8 @@ const replaceSearchConditions = () => {
 
 const newSearchCondition = () => {
   editSearchScope.value = SearchScopeAll;
-  editSearchOperator.value = "similar";
-  editSearchValue.value = "";
+  editSearchOperator.value = 'similar';
+  editSearchValue.value = '';
   editSelectedConditionIndex.value = null;
 };
 
@@ -158,7 +152,7 @@ const editSearchCondition = (index: number) => {
     editSearchScopeDataPath.value = condition.scope.substring(1);
   } else {
     editSearchScope.value = condition.scope;
-    editSearchScopeDataPath.value = "";
+    editSearchScopeDataPath.value = '';
   }
   editSearchScope.value = condition.scope;
   editSearchOperator.value = condition.operator;
@@ -178,7 +172,7 @@ var flattenValue = (value: any): string[] => {
     for (var v of value) {
       result.push(...flattenValue(v));
     }
-  } else if (typeof value == "object") {
+  } else if (typeof value == 'object') {
     for (var o of Object.values(value)) {
       result.push(...flattenValue(o));
     }
@@ -207,10 +201,10 @@ const match = (doc: CollectionDocument<any>, condition: SearchCondition): boolea
     targetValues.push(doc.change_time);
   } else if (scope.startsWith(SearchScopeData)) {
     var dataPath = scope.substring(1);
-    var paths = dataPath.split(".");
+    var paths = dataPath.split('.');
     var currentData: any = doc.data;
     for (var p of paths) {
-      if (p == "") continue;
+      if (p == '') continue;
       if (currentData && p in currentData) {
         currentData = currentData[p];
       } else {
@@ -224,16 +218,16 @@ const match = (doc: CollectionDocument<any>, condition: SearchCondition): boolea
 
   for (var targetValue of targetValues) {
     switch (operator) {
-      case "equal":
+      case 'equal':
         if (String(targetValue) == value) return true;
         break;
-      case "notEqual":
+      case 'notEqual':
         if (String(targetValue) != value) return true;
         break;
-      case "similar":
+      case 'similar':
         if (String(targetValue).toLowerCase().includes(value.toLowerCase())) return true;
         break;
-      case "regex":
+      case 'regex':
         try {
           var re = new RegExp(value);
           if (re.test(String(targetValue))) return true;
@@ -241,13 +235,13 @@ const match = (doc: CollectionDocument<any>, condition: SearchCondition): boolea
           console.error(`Invalid regex ${value}: ${e}`);
         }
         break;
-      case "largerOrEqual":
+      case 'largerOrEqual':
         if (String(targetValue) >= value) return true;
         break;
-      case "smallerOrEqual":
+      case 'smallerOrEqual':
         if (String(targetValue) <= value) return true;
         break;
-      case "exists":
+      case 'exists':
         if (targetValue != null) return true;
         break;
     }
@@ -265,7 +259,7 @@ const searchFilter = (doc: CollectionDocument<any>): boolean => {
   return true;
 };
 
-const searchfield = useTemplateRef<HTMLInputElement>("searchfield");
+const searchfield = useTemplateRef<HTMLInputElement>('searchfield');
 
 onMounted(async () => {
   var u = await props.amberClient.user();
@@ -282,10 +276,10 @@ onMounted(async () => {
 });
 
 const getUser = (userId: string | null) => {
-  if (!userId) return "No one";
+  if (!userId) return 'No one';
   var u = usersLookup.value.get(userId);
-  if (u) return u.name + " (" + u.email + ")";
-  return "Unknown User";
+  if (u) return u.name + ' (' + u.email + ')';
+  return 'Unknown User';
 };
 
 const updateUserCollectionDetails = async () => {
@@ -330,21 +324,17 @@ const validateEditEntity = async () => {
   if (showEditEntity.value == false) return;
   entityInfoBusy.value = true;
   try {
-    var checkInfo = await adminApi.checkDocument(
-      JSON.parse(editJson.value),
-      currentUser()?.id,
-      editEntity.value?.id,
-    );
+    var checkInfo = await adminApi.checkDocument(JSON.parse(editJson.value), currentUser()?.id, editEntity.value?.id);
     editEntityAccessTags.value = checkInfo.createdAccessTags || [];
     editEntityTags.value = checkInfo.createdTags || [];
     editEntityValid.value = checkInfo.isValid;
-    editEntityValidationErrors.value = checkInfo.error || "";
+    editEntityValidationErrors.value = checkInfo.error || '';
     editEntityAuthorized.value = checkInfo.authorized;
   } catch (e) {
     editEntityAccessTags.value = [];
     editEntityTags.value = [];
     editEntityValid.value = false;
-    editEntityValidationErrors.value = "Failed to validate document";
+    editEntityValidationErrors.value = 'Failed to validate document';
     editEntityAuthorized.value = true;
   } finally {
     entityInfoBusy.value = false;
@@ -356,12 +346,12 @@ const selectEditEntity = async (entity: CollectionDocument<any> | null) => {
   editEntityAccessTags.value = [];
   editEntityTags.value = [];
   editEntityValid.value = true;
-  editEntityValidationErrors.value = "";
+  editEntityValidationErrors.value = '';
   editEntityAuthorized.value = true;
   if (entity) {
     editJson.value = JSON.stringify(entity.data, null, 2);
   } else {
-    editJson.value = "";
+    editJson.value = '';
   }
   showEditEntity.value = true;
   await getEntityInfo();
@@ -375,7 +365,7 @@ const saveEditEntity = async () => {
     try {
       var updatedDoc = await adminApi.createOrUpdateDocument(
         JSON.parse(editJson.value),
-        editEntity.value?.id || (editEntityNewId.value != "" ? editEntityNewId.value : undefined),
+        editEntity.value?.id || (editEntityNewId.value != '' ? editEntityNewId.value : undefined),
         currentUser().id,
       );
       showEditEntity.value = false;
@@ -413,20 +403,20 @@ const deleteEditEntity = async () => {
 
 const newEditDocument = async () => {
   editEntity.value = null;
-  editJson.value = "{}";
+  editJson.value = '{}';
   selectedEntityTags.value = [];
   selectedEntityAccessTags.value = [];
   showEditEntity.value = true;
-  editEntityNewId.value = "";
+  editEntityNewId.value = '';
   await validateEditEntity();
 };
 
 const selectViewEntity = (entity: CollectionDocument<any> | null) => {
   if (!entity || viewEntityId.value == entity.id) {
-    viewEntityId.value = "";
+    viewEntityId.value = '';
     return;
   }
-  viewEntityId.value = entity?.id || "";
+  viewEntityId.value = entity?.id || '';
 };
 
 const visibleEntities = computed(() => {
@@ -456,14 +446,7 @@ watch(editJson, async (newVal) => {
       <v-col cols="12">
         <v-card prepend-icon="mdi-database">
           <template v-slot:title>
-            <v-badge
-              v-if="dataLoaded()"
-              floating
-              :offset-x="-10"
-              location="right"
-              color="primary"
-              :content="data.size"
-            >
+            <v-badge v-if="dataLoaded()" floating :offset-x="-10" location="right" color="primary" :content="data.size">
               {{ props.collectionName }}
             </v-badge>
             <span v-else>
@@ -491,20 +474,14 @@ watch(editJson, async (newVal) => {
             <v-icon small v-if="accessRightsMethod == 'roles'" title="Role based access control"
               >mdi-account-lock</v-icon
             >
-            <v-icon small v-if="accessRightsMethod == 'code'" title="Code based access control"
-              >mdi-shield-lock</v-icon
-            >
-            <v-icon small v-if="accessRightsMethod == 'none'" title="No access control"
-              >mdi-lock-open-variant</v-icon
-            >
+            <v-icon small v-if="accessRightsMethod == 'code'" title="Code based access control">mdi-shield-lock</v-icon>
+            <v-icon small v-if="accessRightsMethod == 'none'" title="No access control">mdi-lock-open-variant</v-icon>
             <v-icon small v-if="hasAccessTags" title="Access tags enabled">mdi-account-tag</v-icon>
             <v-icon small v-if="hasTags" title="Searchable tags enabled">mdi-tag-search</v-icon>
           </v-card-subtitle>
           <v-card-actions>
             <v-spacer></v-spacer>
-            <v-btn prepend-icon="mdi-plus" class="mt-2" color="primary" @click="newEditDocument()"
-              >New Document</v-btn
-            >
+            <v-btn prepend-icon="mdi-plus" class="mt-2" color="primary" @click="newEditDocument()">New Document</v-btn>
           </v-card-actions>
         </v-card>
       </v-col>
@@ -538,26 +515,14 @@ watch(editJson, async (newVal) => {
                   {{ renderSearchOperator(condition.operator) }}
                   <template v-if="condition.operator != 'exists'">"{{ condition.value }}"</template>
                 </span>
-                <v-icon
-                  small
-                  class="ml-2"
-                  @click="editSearchCondition(index)"
-                  title="Edit Condition"
+                <v-icon small class="ml-2" @click="editSearchCondition(index)" title="Edit Condition"
                   >mdi-pencil</v-icon
                 >
-                <v-icon
-                  small
-                  class="ml-2"
-                  @click="removeSearchCondition(index)"
-                  title="Remove Condition"
+                <v-icon small class="ml-2" @click="removeSearchCondition(index)" title="Remove Condition"
                   >mdi-close</v-icon
                 >
               </v-chip>
-              <v-chip
-                class="ma-1"
-                @click="newSearchCondition()"
-                v-if="editSelectedConditionIndex != null"
-              >
+              <v-chip class="ma-1" @click="newSearchCondition()" v-if="editSelectedConditionIndex != null">
                 <v-icon small class="ml-2" title="New Search Condition">mdi-plus</v-icon>
               </v-chip>
             </div>
@@ -565,23 +530,13 @@ watch(editJson, async (newVal) => {
               <v-col xl="6">
                 <h4>Scope</h4>
                 <div>
-                  <v-btn-toggle
-                    v-model="editSearchScope"
-                    color="primary"
-                    :border="true"
-                    mandatory
-                    rounded="0"
-                  >
+                  <v-btn-toggle v-model="editSearchScope" color="primary" :border="true" mandatory rounded="0">
                     <v-btn
                       icon="mdi-text-box-search-outline"
                       :value="SearchScopeAll"
                       title="search in all properties"
                     ></v-btn>
-                    <v-btn
-                      icon="mdi-identifier"
-                      :value="SearchScopeId"
-                      title="search in the document id"
-                    ></v-btn>
+                    <v-btn icon="mdi-identifier" :value="SearchScopeId" title="search in the document id"></v-btn>
                     <v-btn
                       icon="mdi-account-search"
                       :value="SearchScopeUser"
@@ -592,11 +547,7 @@ watch(editJson, async (newVal) => {
                       :value="SearchScopeDate"
                       title="search based on the sortable ISO time"
                     ></v-btn>
-                    <v-btn
-                      icon="mdi-file-tree"
-                      :value="SearchScopeData"
-                      title="search in the document data"
-                    ></v-btn>
+                    <v-btn icon="mdi-file-tree" :value="SearchScopeData" title="search in the document data"></v-btn>
                   </v-btn-toggle>
                 </div>
                 <div>
@@ -623,16 +574,8 @@ watch(editJson, async (newVal) => {
                   <v-btn icon="mdi-not-equal" value="notEqual" title="equals"></v-btn>
                   <v-btn icon="mdi-approximately-equal" value="similar" title="contains"></v-btn>
                   <v-btn icon="mdi-regex" value="regex" title="regular expression"></v-btn>
-                  <v-btn
-                    icon="mdi-greater-than-or-equal"
-                    value="largerOrEqual"
-                    title="larger or equal"
-                  ></v-btn>
-                  <v-btn
-                    icon="mdi-less-than-or-equal"
-                    value="smallerOrEqual"
-                    title="smaller or equal"
-                  ></v-btn>
+                  <v-btn icon="mdi-greater-than-or-equal" value="largerOrEqual" title="larger or equal"></v-btn>
+                  <v-btn icon="mdi-less-than-or-equal" value="smallerOrEqual" title="smaller or equal"></v-btn>
                   <v-btn
                     icon="mdi-checkbox-multiple-marked-outline"
                     value="exists"
@@ -650,9 +593,7 @@ watch(editJson, async (newVal) => {
                   prepend-icon="mdi-form-textbox"
                   class="mt-2"
                   @keyup.enter="
-                    editSelectedConditionIndex != null
-                      ? updateSearchCondition()
-                      : replaceSearchConditions()
+                    editSelectedConditionIndex != null ? updateSearchCondition() : replaceSearchConditions()
                   "
                   ref="searchfield"
                 >
@@ -756,18 +697,13 @@ watch(editJson, async (newVal) => {
         </template>
       </v-card-title>
       <v-card-subtitle v-if="editEntity == null">
-        <v-text-field
-          label="Document Id (leave empty to generate)"
-          v-model="editEntityNewId"
-        ></v-text-field>
+        <v-text-field label="Document Id (leave empty to generate)" v-model="editEntityNewId"></v-text-field>
         If a document with the same id exists, it will be overwritten
       </v-card-subtitle>
       <v-card-subtitle>
         <div v-if="accessRightsMethod == 'roles'">
           User Collection Roles:
-          <v-chip v-for="tag in currentUserAccess.accessRights" :key="tag" outlined>{{
-            tag
-          }}</v-chip>
+          <v-chip v-for="tag in currentUserAccess.accessRights" :key="tag" outlined>{{ tag }}</v-chip>
         </div>
         <div v-if="hasAccessTags">
           User Access Tags for Collection:
@@ -794,16 +730,10 @@ watch(editJson, async (newVal) => {
         </div>
         <v-alert
           type="warning"
-          v-if="
-            hasAccessTags &&
-            !editEntityAccessTags.some((tag) => currentUserAccess.accessTags.includes(tag))
-          "
+          v-if="hasAccessTags && !editEntityAccessTags.some((tag) => currentUserAccess.accessTags.includes(tag))"
         >
           <div>
-            <strong
-              >The selected user would not be able to see this since there is no overlapping access
-              tag</strong
-            >
+            <strong>The selected user would not be able to see this since there is no overlapping access tag</strong>
           </div>
         </v-alert>
         <div v-if="hasTags">

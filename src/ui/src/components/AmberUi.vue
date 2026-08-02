@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import { AmberClient } from "amber-client";
-import AmberGlobalAdmin from "./AmberGlobalAdmin.vue";
-import AmberLogin from "./AmberLogin.vue";
-import { state, uiHelper } from "@/common";
-import AmberTenantAdmin from "./AmberTenantAdmin.vue";
-import AmberTenantStats from "./AmberTenantStats.vue";
-import { adminRole, globalTenant } from "../../../shared/src";
-import AmberUserProfile from "./AmberUserProfile.vue";
-import AmberResetPassword from "./AmberResetPassword.vue";
+import { ref, watch } from 'vue';
+import { AmberClient } from 'amber-client';
+import AmberGlobalAdmin from './AmberGlobalAdmin.vue';
+import AmberLogin from './AmberLogin.vue';
+import { state, uiHelper } from '@/common';
+import AmberTenantAdmin from './AmberTenantAdmin.vue';
+import AmberTenantStats from './AmberTenantStats.vue';
+import { adminRole, globalTenant } from '../../../shared/src';
+import AmberUserProfile from './AmberUserProfile.vue';
+import AmberResetPassword from './AmberResetPassword.vue';
 
 interface AmberUserInTenantDetails {
   userId: string;
@@ -33,12 +33,12 @@ const tenant = ref(state.uiContext.tenant);
 const tenantName = ref(state.uiContext.tenantName);
 const invitation = ref(state.uiContext.invitation);
 const confirmDialogOpen = ref(false);
-const confirmDialogText = ref("");
+const confirmDialogText = ref('');
 var confirmDialogCallback: ((result: boolean) => void) | null = null;
 const showMessage = ref(false);
-const messageText = ref("");
-const messageBackgroundColor = ref("amber-darken-4");
-const messageForegroundColor = ref("white");
+const messageText = ref('');
+const messageBackgroundColor = ref('amber-darken-4');
+const messageForegroundColor = ref('white');
 const userIsGlobalAdmin = ref(false);
 
 var showMessageInternal = (text: string, backgroundColor: string, foregroundColor: string) => {
@@ -60,15 +60,15 @@ uiHelper.confirmDialog = (text: string): Promise<boolean> => {
 };
 
 uiHelper.showMessage = (text: string) => {
-  showMessageInternal(text, "amber-lighten-4", "black");
+  showMessageInternal(text, 'amber-lighten-4', 'black');
 };
 
 uiHelper.showError = (text: string) => {
-  showMessageInternal(text, "amber-darken-4", "white");
+  showMessageInternal(text, 'amber-darken-4', 'white');
 };
 
 uiHelper.showSuccess = (text: string) => {
-  showMessageInternal(text, "amber", "white");
+  showMessageInternal(text, 'amber', 'white');
 };
 
 var confirmDialogClose = (result: boolean) => {
@@ -140,8 +140,8 @@ var onUserLoggedInForApp = (
   } | null,
 ) => {
   if (details != null) {
-    var targetUrl = state.uiConfig.loginTargetUrl || "/";
-    targetUrl = targetUrl.replace("{tenant}", details.tenant);
+    var targetUrl = state.uiConfig.loginTargetUrl || '/';
+    targetUrl = targetUrl.replace('{tenant}', details.tenant);
     window.location.href = targetUrl;
   } else {
     amberUser.value = null;
@@ -153,7 +153,7 @@ var onUserLoggedInForApp = (
 <template>
   <v-app :theme="theme != 'light' ? 'amberDarkTheme' : 'amberLightTheme'">
     <v-app-bar>
-      <v-app-bar-title>{{ title }} {{ tenantName ? " - " + tenantName : "" }}</v-app-bar-title>
+      <v-app-bar-title>{{ title }} {{ tenantName ? ' - ' + tenantName : '' }}</v-app-bar-title>
       <v-spacer></v-spacer>
       <template v-if="amberUser"></template>
       {{ amberUser?.userName }}
@@ -297,10 +297,7 @@ var onUserLoggedInForApp = (
           ></AmberLogin>
         </v-row>
         <v-row v-else>
-          <AmberTenantStats
-            :amber-client="amberClient"
-            :tenant="amberUserInTenant.tenant"
-          ></AmberTenantStats>
+          <AmberTenantStats :amber-client="amberClient" :tenant="amberUserInTenant.tenant"></AmberTenantStats>
         </v-row>
       </v-container>
 
@@ -329,11 +326,7 @@ var onUserLoggedInForApp = (
 
       <v-container v-if="state.uiContext.view == 'user-profile'">
         <v-row>
-          <AmberLogin
-            @user-ready="onUserReady"
-            skipTenantSelection
-            :include-admin-role="false"
-          ></AmberLogin>
+          <AmberLogin @user-ready="onUserReady" skipTenantSelection :include-admin-role="false"></AmberLogin>
         </v-row>
         <v-row v-if="amberClient">
           <AmberUserProfile :amber-client="amberClient"></AmberUserProfile>
@@ -376,11 +369,7 @@ var onUserLoggedInForApp = (
         <img src="@/assets/logo.svg" alt="Amber Logo" width="50" height="50" />
         <br />
         Powered by Amberbase. Visit our
-        <v-btn
-          variant="text"
-          href="https://github.com/amberbase"
-          target="_blank"
-          prepend-icon="mdi-github"
+        <v-btn variant="text" href="https://github.com/amberbase" target="_blank" prepend-icon="mdi-github"
           >github</v-btn
         >
       </v-col>

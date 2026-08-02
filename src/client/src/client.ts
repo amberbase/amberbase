@@ -1,10 +1,10 @@
-import { AmberApi, AmberUserApi } from "./api.js";
-import { AmberChannels, AmberChannelsClient } from "./channels.js";
-import { AmberCollectionsClient, AmberCollections } from "./collections.js";
-import { AmberConnectionsClient } from "./connection.js";
-import { UserDetails } from "./shared/dtos.js";
-import { AmberLoginManager, UserInTenant } from "./login.js";
-import { AmberUiApi } from "./ui.js";
+import { AmberApi, AmberUserApi } from './api.js';
+import { AmberChannels, AmberChannelsClient } from './channels.js';
+import { AmberCollectionsClient, AmberCollections } from './collections.js';
+import { AmberConnectionsClient } from './connection.js';
+import { UserDetails } from './shared/dtos.js';
+import { AmberLoginManager, UserInTenant } from './login.js';
+import { AmberUiApi } from './ui.js';
 
 /**
  * Main entry point to create a new amberbase client. It provides a fluent API to configure the client. Make sure to call the `start()` method to create the actual client instance after completing the setup.
@@ -18,7 +18,7 @@ export class AmberClientInit {
   /**
    * @internal
    */
-  apiPrefix: string = "/amber";
+  apiPrefix: string = '/amber';
   /**
    * @internal
    */
@@ -30,15 +30,11 @@ export class AmberClientInit {
   /**
    * @internal
    */
-  credentialsProvider:
-    | ((failed: boolean) => Promise<{ email: string; pw: string; stayLoggedIn: boolean }>)
-    | undefined;
+  credentialsProvider: ((failed: boolean) => Promise<{ email: string; pw: string; stayLoggedIn: boolean }>) | undefined;
   /**
    * @internal
    */
-  tenantSelector:
-    | ((availableTenants: { id: string; name: string; roles: string[] }[]) => Promise<string>)
-    | undefined;
+  tenantSelector: ((availableTenants: { id: string; name: string; roles: string[] }[]) => Promise<string>) | undefined;
   /**
    * @internal
    */
@@ -50,8 +46,7 @@ export class AmberClientInit {
   /**
    * @internal
    */
-  rolesChanged:
-    ((tenant: string | null, roles: string[], user: UserDetails | null) => void) | undefined;
+  rolesChanged: ((tenant: string | null, roles: string[], user: UserDetails | null) => void) | undefined;
 
   /**
    * @internal
@@ -74,7 +69,7 @@ export class AmberClientInit {
    * @returns Continuation of the fluent API to configure the client.
    */
   forGlobal(): AmberClientInit {
-    this.tenant = "*";
+    this.tenant = '*';
     return this;
   }
 
@@ -135,20 +130,20 @@ export class AmberClientInit {
    */
   withAmberUiLogin(returnUrl?: string): AmberClientInit {
     this.credentialsProvider = async (_failed: boolean) => {
-      var loginPage = this.apiPrefix + "/ui/login";
+      var loginPage = this.apiPrefix + '/ui/login';
 
       if (this.tenant) {
-        loginPage += "?tenant=" + this.tenant;
+        loginPage += '?tenant=' + this.tenant;
       }
 
       if (returnUrl) {
-        loginPage += "#return=" + encodeURIComponent(returnUrl);
+        loginPage += '#return=' + encodeURIComponent(returnUrl);
       }
 
-      console.log("Redirect to login page: " + loginPage);
+      console.log('Redirect to login page: ' + loginPage);
       window.location.href = loginPage;
 
-      return { email: "", pw: "", stayLoggedIn: false }; // never reached
+      return { email: '', pw: '', stayLoggedIn: false }; // never reached
     };
 
     this.tenantSelector = async (availableTenants) => {
@@ -158,16 +153,16 @@ export class AmberClientInit {
       if (availableTenants.length == 1) {
         return availableTenants[0].id;
       }
-      var loginPage = this.apiPrefix + "/ui/login";
+      var loginPage = this.apiPrefix + '/ui/login';
 
       if (returnUrl) {
-        loginPage += "#return=" + encodeURIComponent(returnUrl);
+        loginPage += '#return=' + encodeURIComponent(returnUrl);
       }
 
-      console.log("Redirect to login page for tenant selection: " + loginPage);
+      console.log('Redirect to login page for tenant selection: ' + loginPage);
       window.location.href = loginPage;
 
-      return ""; // never reached
+      return ''; // never reached
     };
 
     return this;
@@ -179,9 +174,7 @@ export class AmberClientInit {
    * @returns
    */
   withTenantSelector(
-    selector: (
-      availableTenants: { id: string; name: string; roles: string[] }[],
-    ) => Promise<string>,
+    selector: (availableTenants: { id: string; name: string; roles: string[] }[]) => Promise<string>,
   ): AmberClientInit {
     this.tenantSelector = selector;
     return this;
@@ -224,7 +217,7 @@ export class AmberClientInit {
    */
   start(): AmberClient {
     if (!this.credentialsProvider) {
-      throw new Error("No credentials provider or credentials set");
+      throw new Error('No credentials provider or credentials set');
     }
 
     if (this.tenant) {
@@ -269,16 +262,13 @@ export class AmberClient {
    */
   constructor(
     apiPrefix: string | undefined,
-    credentialsProvider: (
-      failed: boolean,
-    ) => Promise<{ email: string; pw: string; stayLoggedIn: boolean }>,
+    credentialsProvider: (failed: boolean) => Promise<{ email: string; pw: string; stayLoggedIn: boolean }>,
     cleanUser: boolean = false,
     tenantSelector:
-      | ((availableTenants: { id: string; name: string; roles: string[] }[]) => Promise<string>)
-      | undefined,
+      ((availableTenants: { id: string; name: string; roles: string[] }[]) => Promise<string>) | undefined,
     includeAdminRole: boolean = false,
   ) {
-    this.apiPrefix = apiPrefix || "/amber";
+    this.apiPrefix = apiPrefix || '/amber';
     this.loginManager = new AmberLoginManager(
       this.apiPrefix,
       credentialsProvider,
@@ -297,7 +287,7 @@ export class AmberClient {
     if (this.loginManager) {
       return this.loginManager.getUser();
     }
-    return Promise.reject("No login manager");
+    return Promise.reject('No login manager');
   }
 
   /**
@@ -309,7 +299,7 @@ export class AmberClient {
     if (this.loginManager) {
       return this.loginManager.getUserInTenant();
     }
-    return Promise.reject("No login manager");
+    return Promise.reject('No login manager');
   }
 
   /**
@@ -370,7 +360,7 @@ export class AmberClient {
   getCollectionsApi(): AmberCollections {
     var tenant = this.loginManager.tenant;
     if (tenant == null) {
-      throw new Error("No tenant set in login manager yet");
+      throw new Error('No tenant set in login manager yet');
     }
 
     if (this.connectionsClient == null) {
@@ -379,11 +369,8 @@ export class AmberClient {
       );
     }
     if (this.collectionsClient == null) {
-      this.collectionsClient = new AmberCollectionsClient(
-        this.connectionsClient,
-        this.apiPrefix,
-        tenant,
-        () => this.loginManager.sessionToken(),
+      this.collectionsClient = new AmberCollectionsClient(this.connectionsClient, this.apiPrefix, tenant, () =>
+        this.loginManager.sessionToken(),
       );
     }
     return this.collectionsClient;
@@ -396,7 +383,7 @@ export class AmberClient {
   getChannelsApi(): AmberChannels {
     var tenant = this.loginManager.tenant;
     if (tenant == null) {
-      throw new Error("No tenant set in login manager yet");
+      throw new Error('No tenant set in login manager yet');
     }
 
     if (this.connectionsClient == null) {
@@ -407,11 +394,8 @@ export class AmberClient {
       );
     }
     if (this.channelsClient == null) {
-      this.channelsClient = new AmberChannelsClient(
-        this.connectionsClient,
-        this.apiPrefix,
-        tenant,
-        () => this.loginManager.sessionToken(),
+      this.channelsClient = new AmberChannelsClient(this.connectionsClient, this.apiPrefix, tenant, () =>
+        this.loginManager.sessionToken(),
       );
     }
     return this.channelsClient;
@@ -431,12 +415,12 @@ export class AmberClient {
    */
   async sessionHeader(): Promise<{ header: string; value: string }> {
     if (!this.loginManager) {
-      throw new Error("No login manager");
+      throw new Error('No login manager');
     }
     var token = await this.loginManager.sessionToken();
     if (!token) {
-      throw new Error("No session token available");
+      throw new Error('No session token available');
     }
-    return { header: "AmberSession", value: token };
+    return { header: 'AmberSession', value: token };
   }
 }
