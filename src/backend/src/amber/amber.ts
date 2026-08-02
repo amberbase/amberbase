@@ -281,6 +281,6 @@ export class Amber {
    * @returns The server instance.
    */
   listen(port?: number, host?: string): http.Server<typeof http.IncomingMessage, typeof http.ServerResponse> {
-    return http.createServer(this.express).listen(port, host);
+    return (this.express.listen as any)(port, host);
   }
 }
