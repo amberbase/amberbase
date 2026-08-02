@@ -206,8 +206,8 @@ export class AmberRepo {
   async getOrCreateSystemSetting(name: string, create: () => string): Promise<string> {
     var cached = this.cache.get(name);
     if (cached) return await cached;
-    var resolver: (value: string) => void;
-    var rejecter: (err: any) => void;
+    var resolver!: (value: string) => void;
+    var rejecter!: (err: any) => void;
     var promise = new Promise<string>((resolve, reject) => {
       resolver = resolve;
       rejecter = reject;
@@ -727,7 +727,7 @@ export class AmberRepo {
         collection: collection,
         id: id,
         change_number: changeNumber,
-        change_user: changeUser,
+        change_user: changeUser || "",
         change_time: changeTime,
         data: data,
       };
@@ -752,7 +752,7 @@ export class AmberRepo {
     collection: string,
     id: string,
     changeUser: string | undefined,
-    data: string,
+    data: string | undefined,
     accessTags: string[],
     tags: string[],
     oldDoc: DocumentWithTags,
@@ -789,7 +789,7 @@ export class AmberRepo {
 
       // if the access tags have changed, we need to add a sync action for that
       if (
-        oldDoc.access_tags !== undefined &&
+        oldDoc.access_tags !== null &&
         accessTags !== undefined &&
         !compareArraySets(oldDoc.access_tags, accessTags)
       ) {

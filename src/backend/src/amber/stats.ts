@@ -67,7 +67,7 @@ class AmberStatsService implements AmberStats {
     name: AmberMetricName,
     value: number,
     tenant?: string | undefined,
-    overwrite?: boolean | undefined,
+    overwrite: boolean = false,
   ): void {
     var minuteName = minuteBucketName(new Date());
     var hourName = hourBucketName(new Date());

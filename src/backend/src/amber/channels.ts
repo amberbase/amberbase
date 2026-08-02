@@ -110,7 +110,7 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
           roles: await this.authService.getUserRoles(userId, req.params.tenant as string),
         };
       } else {
-        return this.authService.getSessionToken(req);
+        return this.authService.getSessionToken(req) ?? null;
       }
     };
 
@@ -157,7 +157,7 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
         try {
           let [isValid, validationError] = executeValidator(
             channelSettings.validator,
-            user,
+            user!,
             channelName,
             subchannel,
             message,
@@ -386,12 +386,14 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
 }
 
 function executeValidator(
-  validator: (
-    user: UserContext,
-    channel: string,
-    subchannel: string | null,
-    message: any,
-  ) => boolean | string,
+  validator:
+    | ((
+        user: UserContext,
+        channel: string,
+        subchannel: string | null,
+        message: any,
+      ) => boolean | string)
+    | undefined,
   user: UserContext,
   channel: string,
   subchannel: string | null,

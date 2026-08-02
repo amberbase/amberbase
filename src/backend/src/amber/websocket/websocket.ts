@@ -76,7 +76,7 @@ export function simpleWebsockets(
 
     // The first protocol that does not start with amberSessionPrefix is the protocol we are processing
     var protocol =
-      protocols.find((protocol) => !protocol.startsWith(AmberSessionProtocolPrefix)) ?? null;
+      protocols.find((protocol) => !protocol.startsWith(AmberSessionProtocolPrefix)) ?? "";
 
     var sessionTokenRaw = protocolEncodedSessionTokenRaw
       ? protocolEncodedSessionTokenRaw.substring(AmberSessionProtocolPrefix.length)

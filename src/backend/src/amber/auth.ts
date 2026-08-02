@@ -195,6 +195,7 @@ export async function auth(
     var invitation = await repo.getInvitation(req.params.invitation);
     if (!invitation) {
       res.status(404).send(error("Invitation not found"));
+      return;
     }
     res.send(
       nu<InvitationDetails>({
@@ -203,7 +204,9 @@ export async function auth(
         expires: invitation.valid_until.getTime(),
         isStillValid: new Date() < invitation.valid_until && !invitation.accepted,
         tenantName:
-          invitation.tenant == "*" ? "GLOBAL" : (await repo.getTenant(invitation.tenant))?.name,
+          invitation.tenant == "*"
+            ? "GLOBAL"
+            : ((await repo.getTenant(invitation.tenant))?.name ?? invitation.tenant),
       }),
     );
   });
@@ -374,6 +377,10 @@ export async function auth(
     }
 
     var tenant = await repo.getTenant(req.params.tenant);
+    if (!tenant) {
+      res.status(404).send(error("Tenant not found"));
+      return;
+    }
     res.send(nu<TenantDetails>(tenant));
   });
 
@@ -636,10 +643,9 @@ export class AmberAuthService implements AmberAuth {
     if (sessionToken) {
       var session = this.validateSessionToken(sessionToken);
       if (
-        (session &&
-          session.roles.indexOf(tenantAdminRole) !== -1 &&
-          session.tenant === tenantToCheck) ||
-        session.tenant === allTenantsId
+        session &&
+        ((session.roles.indexOf(tenantAdminRole) !== -1 && session.tenant === tenantToCheck) ||
+          session.tenant === allTenantsId)
       ) {
         return true;
       }
@@ -767,7 +773,7 @@ export class AmberAuthService implements AmberAuth {
   async validateUserPassword(email: string, password: string): Promise<User | undefined> {
     var user = await this.repo.getUserByEmail(email);
 
-    if (!user) return undefined;
+    if (!user || !user.credential_hash) return undefined;
     var [salt, hash] = user.credential_hash.split(".");
 
     var hashAlgo = crypto.createHash("sha256");
@@ -786,7 +792,7 @@ export class AmberAuthService implements AmberAuth {
    */
   async changeUserPassword(id: string, oldpassword: string, newPassword: string): Promise<boolean> {
     var user = await this.repo.getUserById(id);
-    if (!user) return false;
+    if (!user || !user.credential_hash) return false;
 
     var [salt, hash] = user.credential_hash.split(".");
 
@@ -954,9 +960,10 @@ export class AmberAuthService implements AmberAuth {
     } else {
       id = user.id;
     }
-    if (id) {
-      await this.addRolesToUser(id, tenant, roles);
+    if (!id) {
+      throw new Error(`Failed to create or find user for ${email}`);
     }
+    await this.addRolesToUser(id, tenant, roles);
     return id;
   }
 

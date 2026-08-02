@@ -232,7 +232,7 @@ export class CollectionsService
           roles: await this.authService.getUserRoles(userId, req.params.tenant as string),
         };
       } else {
-        return this.authService.getSessionToken(req);
+        return this.authService.getSessionToken(req) ?? null;
       }
     };
 
@@ -292,12 +292,12 @@ export class CollectionsService
             );
             return;
           }
-          oldDocContent = JSON.parse(oldDoc.data);
+          oldDocContent = JSON.parse(oldDoc.data ?? "null");
         }
         try {
           let [isValid, validationError] = executeValidator(
             collectionSettings.validator,
-            user,
+            user!,
             oldDocContent,
             doc,
             oldId ? CollectionActionUpdate : CollectionActionCreate,
@@ -341,8 +341,8 @@ export class CollectionsService
             change_number: doc.change_number,
             change_time: doc.change_time,
             change_user: doc.change_user,
-            access_tags: doc.access_tags,
-            tags: doc.tags,
+            access_tags: doc.access_tags ?? [],
+            tags: doc.tags ?? [],
           };
           res.send(nu<CollectionDocumentInfo>(result));
         } else {
@@ -386,7 +386,7 @@ export class CollectionsService
           let existingDoc = await this.repo.getDocument(tenant, collectionId, docId);
           if (existingDoc) {
             try {
-              var result = await collection.updateDocument(tenant, docId, user.userId, doc);
+              var result = await collection.updateDocument(tenant, docId, user!.userId, doc);
               if (result) {
                 res.send(success(docId));
               } else {
@@ -399,7 +399,7 @@ export class CollectionsService
           }
         }
         try {
-          var createResult = await collection.createDocument(tenant, user.userId, doc, docId);
+          var createResult = await collection.createDocument(tenant, user!.userId, doc, docId);
           if (createResult.error) {
             res.send(error(createResult.error));
           } else {
@@ -423,11 +423,13 @@ export class CollectionsService
         var collectionSettings = this.collectionSettings.get(collection);
         if (!collectionSettings) {
           res.status(404).send(error("Collection not found"));
+          return;
         }
         var roles = await this.authService.getUserRoles(userId, tenant);
 
         if (!roles) {
           res.status(404).send(error("User not found or not in tenant"));
+          return;
         }
 
         try {
@@ -523,7 +525,7 @@ export class CollectionsService
       return false; // document not found
     }
 
-    let newData = change(JSON.parse(oldDocument.data));
+    let newData = change(JSON.parse(oldDocument.data ?? "null"));
     if (newData === null) {
       return true; // no change
     }
@@ -554,7 +556,7 @@ export class CollectionsService
       tags,
       async (document) => {
         if (callback) {
-          await callback(document.id, JSON.parse(document.data));
+          await callback(document.id, JSON.parse(document.data ?? "null"));
         }
       },
     );
@@ -568,7 +570,7 @@ export class CollectionsService
   ): Promise<any | undefined> {
     var doc = await this.repo.getDocument(tenant, collection, documentId);
     if (doc) {
-      return JSON.parse(doc.data);
+      return JSON.parse(doc.data ?? "null");
     }
     return undefined; // document not found
   }
@@ -847,7 +849,7 @@ export class CollectionsService
     tenant: string,
     collection: string,
     collectionSettings: CollectionSettings<any>,
-    userId: string,
+    userId: string | undefined,
     data: any,
     documentId?: string,
   ): Promise<{ id?: string; error?: "invalid-id" | "duplicate-id" | "internal-error" }> {
@@ -922,7 +924,7 @@ export class CollectionsService
         try {
           await collectionSettings.onDocumentChange(
             tenant,
-            userId,
+            userId ?? null,
             document.id,
             null,
             data,
@@ -963,7 +965,7 @@ export class CollectionsService
         connection,
         collectionSettings,
         CollectionActionDelete,
-        JSON.parse(oldDocument.data),
+        JSON.parse(oldDocument.data ?? "null"),
       )
     ) {
       return errorResponse(
@@ -1011,7 +1013,7 @@ export class CollectionsService
     tenant: string,
     collection: string,
     collectionSettings: CollectionSettings<any>,
-    userId: string,
+    userId: string | undefined,
     documentId: string,
   ): Promise<boolean> {
     // if there is a on change handler, we need to get the document first
@@ -1044,9 +1046,9 @@ export class CollectionsService
       try {
         await collectionSettings.onDocumentChange(
           tenant,
-          userId,
+          userId ?? null,
           documentId,
-          JSON.parse(oldDocument.data),
+          JSON.parse(oldDocument.data ?? "null"),
           null,
           CollectionActionDelete,
           this,
@@ -1092,7 +1094,7 @@ export class CollectionsService
         connection,
         collectionSettings,
         CollectionActionUpdate,
-        JSON.parse(oldDocument.data),
+        JSON.parse(oldDocument.data ?? "null"),
       )
     ) {
       return errorResponse(
@@ -1105,7 +1107,7 @@ export class CollectionsService
     let [isValid, validationError] = executeValidator(
       collectionSettings.validator,
       connection,
-      JSON.parse(oldDocument.data),
+      JSON.parse(oldDocument.data ?? "null"),
       message.content,
       CollectionActionUpdate,
     );
@@ -1189,7 +1191,7 @@ export class CollectionsService
     let dataTags = collectionSettings.tagsFromDocument
       ? collectionSettings.tagsFromDocument(data)
       : [];
-    let oldAccessTags = oldDoc.access_tags;
+    let oldAccessTags = oldDoc.access_tags ?? [];
     let changeNumber = await this.repo.updateDocument(
       tenant,
       collection,
@@ -1254,7 +1256,7 @@ export class CollectionsService
             document: {
               id: documentId,
               change_number: changeNumber,
-              change_user: userId,
+              change_user: userId || "",
               change_time: new Date(),
               data: data,
             },
@@ -1267,9 +1269,9 @@ export class CollectionsService
       try {
         await collectionSettings.onDocumentChange(
           tenant,
-          userId,
+          userId ?? null,
           documentId,
-          JSON.parse(oldDoc.data),
+          JSON.parse(oldDoc.data ?? "null"),
           data,
           CollectionActionUpdate,
           this,
@@ -1283,12 +1285,14 @@ export class CollectionsService
 }
 
 function executeValidator(
-  validator: (
-    user: UserContext,
-    oldDocument: any,
-    newDocument: any,
-    action: CollectionAccessAction,
-  ) => boolean | string,
+  validator:
+    | ((
+        user: UserContext,
+        oldDocument: any,
+        newDocument: any,
+        action: CollectionAccessAction,
+      ) => boolean | string)
+    | undefined,
   user: UserContext,
   oldDocContent: any,
   doc: any,

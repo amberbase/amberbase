@@ -169,10 +169,11 @@ export class AmberInit {
     otherApp.use(this.config.path, amberApp);
 
     if (!server) {
-      server = http.createServer(otherApp);
+      const newServer = http.createServer(otherApp);
+      server = newServer;
       otherApp.listen = (...args: any) => {
-        server.listen.apply(server, args);
-        return server;
+        newServer.listen.apply(newServer, args);
+        return newServer;
       };
     }
 
@@ -296,6 +297,6 @@ export class Amber {
     port?: number,
     host?: string,
   ): http.Server<typeof http.IncomingMessage, typeof http.ServerResponse> {
-    return this.express.listen(port, host);
+    return http.createServer(this.express).listen(port, host);
   }
 }
