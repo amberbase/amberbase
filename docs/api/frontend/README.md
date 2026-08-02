@@ -1,4 +1,4 @@
-# amber-client
+**amber-client**
 
 ***
 
@@ -6,6 +6,10 @@
   <img src="https://avatars.githubusercontent.com/u/208375923?s=64" alt="Amberbase logo showing an amber gemstone" />
   <h1 align="center">Amberbase Client</h1>
 </p>
+
+## Amberbase client library
+
+This is the client library for Amberbase and helps to connect your frontend code to your Amberbase based backend.
 
 Install the client library in your code:
 
@@ -52,3 +56,10 @@ amberClient.getCollectionsApi().getCollection<ToDoEntity>("todos").createDoc({
   completed: false,
 });
 ```
+
+## Amberbase
+
+Amberbase is an Open Source Node.js backend for realtime applications. This entails a server-side library (Node.js) and a browser-side client library (JS).
+
+> [!note]
+> It is right now a beta version and only suitable for early adopters.

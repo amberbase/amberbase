@@ -6,17 +6,25 @@
 
 # Interface: ActionResult
 
-Defined in: [shared/dtos.ts:52](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L52)
+Defined in: [shared/dtos.ts:58](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L58)
 
-Common result to indicate success or failure of an operation
+Common result to indicate success or failure of an operation. "result" can return additional information
 
 ## Properties
 
 ### error?
 
-> `optional` **error**: `string`
+> `optional` **error?**: `string`
 
-Defined in: [shared/dtos.ts:54](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L54)
+Defined in: [shared/dtos.ts:60](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L60)
+
+***
+
+### result?
+
+> `optional` **result?**: `any`
+
+Defined in: [shared/dtos.ts:61](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L61)
 
 ***
 
@@ -24,4 +32,4 @@ Defined in: [shared/dtos.ts:54](https://github.com/amberbase/amberbase/blob/6464
 
 > **success**: `boolean`
 
-Defined in: [shared/dtos.ts:53](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L53)
+Defined in: [shared/dtos.ts:59](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L59)

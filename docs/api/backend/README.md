@@ -1,4 +1,4 @@
-# amberbase
+**amberbase**
 
 ***
 
@@ -132,3 +132,19 @@ amberClient.getCollectionsApi().getCollection<ToDoEntity>("todos").createDoc({
   completed: false,
 });
 ```
+
+## Development
+
+This repo is a pnpm workspace covering `src/backend`, `src/client`, and `src/ui`. To work on it:
+
+- `pnpm install` at the repo root installs all three packages.
+- `pnpm -r run build` builds every package; `pnpm -r run test` and `pnpm -r run lint` run tests/lint across all of them.
+- Target a single package with `pnpm --filter <name> run <script>`, e.g. `pnpm --filter amberbase run build` or `pnpm --filter amber-ui run dev`.
+
+## Documentation
+
+To get to know and understand `amberbase` beyond the hello world example, you have several options:
+
+- Read about the general [concepts](docs/concept.md) and dive into the available [documentation](docs/overview.md).
+- Try out or checkout the code of the `amberbase-example` that is [available under on Github](https://github.com/amberbase/amberbase-example)
+- Play around with the init API and explore the methods and types offered. Use Typescript to get the best support from your IDE

@@ -6,7 +6,7 @@
 
 # Interface: UserContext
 
-Defined in: [connection.ts:5](https://github.com/amberbase/amberbase/blob/81aedbf4fe970dbf0032c9ddb84e467b0235ae2d/src/backend/src/amber/connection.ts#L5)
+Defined in: [connection.ts:12](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/connection.ts#L12)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [connection.ts:5](https://github.com/amberbase/amberbase/blob/81aedb
 
 > **roles**: `string`[]
 
-Defined in: [connection.ts:7](https://github.com/amberbase/amberbase/blob/81aedbf4fe970dbf0032c9ddb84e467b0235ae2d/src/backend/src/amber/connection.ts#L7)
+Defined in: [connection.ts:14](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/connection.ts#L14)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [connection.ts:7](https://github.com/amberbase/amberbase/blob/81aedb
 
 > **userId**: `string`
 
-Defined in: [connection.ts:6](https://github.com/amberbase/amberbase/blob/81aedbf4fe970dbf0032c9ddb84e467b0235ae2d/src/backend/src/amber/connection.ts#L6)
+Defined in: [connection.ts:13](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/connection.ts#L13)

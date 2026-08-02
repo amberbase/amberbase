@@ -8,4 +8,4 @@
 
 > **ChannelAccessAction** = `"subscribe"` \| `"publish"`
 
-Defined in: [channels.ts:5](https://github.com/amberbase/amberbase/blob/81aedbf4fe970dbf0032c9ddb84e467b0235ae2d/src/backend/src/amber/channels.ts#L5)
+Defined in: [channels.ts:31](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/channels.ts#L31)
