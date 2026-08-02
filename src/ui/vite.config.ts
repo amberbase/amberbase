@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { fileURLToPath, URL } from "node:url";
 
 import { defineConfig } from "vite";
@@ -22,4 +23,8 @@ export default defineConfig(({ mode }) => ({
   },
   base: "./",
   publicDir: "src/assets",
+  test: {
+    environment: "jsdom",
+    include: ["src/**/__tests__/**/*.{test,spec}.ts"],
+  },
 }));

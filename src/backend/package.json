@@ -5,7 +5,8 @@
   "main": "dist/backend/src/index.js",
   "types": "dist/backend/src/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "build": "npx tsc",
     "docs": "npx typedoc src/index.ts --out ../../docs/api/backend --plugin typedoc-plugin-markdown --excludeInternal --tsconfig tsconfig.json"
   },

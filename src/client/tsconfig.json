@@ -13,5 +13,6 @@
     "declarationMap": true,
     "isolatedModules": true /* Ensure that each file can be safely transpiled independently. */
   },
-  "include": ["**/*.ts"]
+  "include": ["**/*.ts"],
+  "exclude": ["src/**/__tests__/*", "vitest.config.ts"]
 }

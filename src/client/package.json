@@ -6,12 +6,15 @@
   "description": "The client library for an Amberbase app",
   "types": "dist/index.d.ts",
   "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
     "build": "tsc",
     "docs": "npx typedoc index.ts --out ../../docs/api/frontend --plugin typedoc-plugin-markdown --excludeInternal --tsconfig tsconfig.json"
   },
   "author": "Christian Messinger, Andreas Müller",
   "license": "MIT",
   "devDependencies": {
+    "jsdom": "^30.0.1",
     "typedoc": "^0.28.20",
     "typedoc-plugin-markdown": "^4.12.0",
     "typescript": "^5.9.3"

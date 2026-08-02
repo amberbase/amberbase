@@ -11,5 +11,5 @@
     "declaration": true
   },
   "include": ["src/**/*.ts", "./../shared/**/*.ts"],
-  "exclude": []
+  "exclude": ["src/**/__tests__/*", "../shared/**/__tests__/*", "vitest.config.ts"]
 }
