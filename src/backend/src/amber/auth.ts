@@ -605,11 +605,11 @@ export class AmberAuthService implements AmberAuth {
   /**
    * @ignore
    */
-  primarySecret: Buffer;
+  primarySecret!: Buffer;
   /**
    * @ignore
    */
-  secondarySecret: Buffer;
+  secondarySecret!: Buffer;
 
   /**
    * @ignore

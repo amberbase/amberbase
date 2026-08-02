@@ -32,7 +32,7 @@ import {
 } from "./connection.js";
 import { amberStats, Stats, StatsProvider } from "./stats.js";
 import * as express from "express";
-import { isString } from "./helper.js";
+import { errorMessage, isString } from "./helper.js";
 export const CollectionActionCreate = "create";
 export const CollectionActionSubscribe = "subscribe";
 export const CollectionActionUpdate = "update";
@@ -321,7 +321,7 @@ export class CollectionsService
           };
           res.send(nu<CollectionDocumentCheckResult>(result));
         } catch (e) {
-          res.status(500).send(error(`Error during validation: ${e.message}`));
+          res.status(500).send(error(`Error during validation: ${errorMessage(e)}`));
         }
       },
     );
@@ -393,7 +393,7 @@ export class CollectionsService
                 res.send(error("Error updating the document"));
               }
             } catch (e) {
-              res.status(500).send(error(`Error during update: ${e.message}`));
+              res.status(500).send(error(`Error during update: ${errorMessage(e)}`));
             }
             return;
           }
@@ -406,7 +406,7 @@ export class CollectionsService
             res.send(success(createResult.id));
           }
         } catch (e) {
-          res.status(500).send(error(`Error during creation: ${e.message}`));
+          res.status(500).send(error(`Error during creation: ${errorMessage(e)}`));
         }
       },
     );
@@ -456,7 +456,7 @@ export class CollectionsService
             nu<CollectionAccessInfo>({ accessTags: accessTags, accessRights: accessRightsInfo }),
           );
         } catch (e) {
-          res.status(500).send(error(`Error getting access tags: ${e.message}`));
+          res.status(500).send(error(`Error getting access tags: ${errorMessage(e)}`));
         }
       },
     );
@@ -1311,6 +1311,6 @@ function executeValidator(
         : "Invalid document";
     return [isValid, errorMessage];
   } catch (e) {
-    return [false, `Validator exception: ${e.message}`];
+    return [false, `Validator exception: ${errorMessage(e)}`];
   }
 }

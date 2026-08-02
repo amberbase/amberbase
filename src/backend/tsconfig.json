@@ -1,8 +1,7 @@
 {
   "compilerOptions": {
     "module": "NodeNext",
-    "noImplicitAny": true,
-    "strictNullChecks": true,
+    "strict": true,
     "removeComments": true,
     "preserveConstEnums": true,
     "sourceMap": true,

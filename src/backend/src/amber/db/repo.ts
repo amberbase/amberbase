@@ -129,7 +129,7 @@ function arraySetToString(a: string[] | undefined): string {
  */
 export class AmberRepo {
   config: Config;
-  pool: mariadb.Pool;
+  pool!: mariadb.Pool;
   cache: Map<string, Promise<any>> = new Map();
 
   constructor(config: Config) {
@@ -502,7 +502,7 @@ export class AmberRepo {
         dataString,
       ]);
     } catch (e) {
-      if (e.code === "ER_DUP_ENTRY") {
+      if ((e as { code?: string })?.code === "ER_DUP_ENTRY") {
         return false; // tenant already exists
       }
       throw e;

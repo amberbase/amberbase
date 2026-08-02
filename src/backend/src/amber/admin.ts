@@ -1,6 +1,7 @@
 import { Express } from "express";
 import { Config } from "./config.js";
 import { AmberRepo } from "./db/repo.js";
+import { errorMessage } from "./helper.js";
 import {
   ActionResult,
   nu,
@@ -44,7 +45,7 @@ export function enableAdminApi(
     try {
       await repo.createTenant(request.id, request.name, request.data);
     } catch (e) {
-      res.status(400).send(error(e.message));
+      res.status(400).send(error(errorMessage(e)));
       return;
     }
 
@@ -57,7 +58,7 @@ export function enableAdminApi(
     try {
       await repo.updateTenant(req.params.tenant, request.name, request.data);
     } catch (e) {
-      res.status(400).send(error(e.message));
+      res.status(400).send(error(errorMessage(e)));
       return;
     }
 
@@ -99,7 +100,7 @@ export function enableAdminApi(
       );
       res.send(nu<ActionResult>({ success: true }));
     } catch (e) {
-      res.status(400).send(error(e.message));
+      res.status(400).send(error(errorMessage(e)));
     }
   });
 
@@ -112,7 +113,7 @@ export function enableAdminApi(
       var passwordResetToken = await authService.createPasswordResetToken(userId, 24 * 7);
       res.send(nu<string>(passwordResetToken));
     } catch (e) {
-      res.status(400).send(error(e.message));
+      res.status(400).send(error(errorMessage(e)));
     }
   });
 

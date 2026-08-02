@@ -5,6 +5,10 @@ export function isString(value: any): boolean {
   return typeof value === "string" || value instanceof String;
 }
 
+export function errorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
 export class BruteProtection {
   heat: number = 0;
   last: number = Date.now();

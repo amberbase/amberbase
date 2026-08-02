@@ -26,7 +26,7 @@ import {
 } from "./connection.js";
 import { amberStats, Stats, StatsProvider } from "./stats.js";
 import * as express from "express";
-import { isString } from "./helper.js";
+import { errorMessage, isString } from "./helper.js";
 
 export type ChannelAccessAction = "subscribe" | "publish";
 
@@ -184,7 +184,7 @@ export class ChannelService implements AmberConnectionMessageHandler, AmberChann
           };
           res.send(nu<ChannelDocumentCheckResult>(result));
         } catch (e) {
-          res.status(500).send(error(`Error during validation: ${e.message}`));
+          res.status(500).send(error(`Error during validation: ${errorMessage(e)}`));
         }
       },
     );
@@ -412,6 +412,6 @@ function executeValidator(
         : "Invalid message";
     return [isValid, errorMessage];
   } catch (e) {
-    return [false, `Validator exception: ${e.message}`];
+    return [false, `Validator exception: ${errorMessage(e)}`];
   }
 }
