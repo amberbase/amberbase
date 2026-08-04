@@ -6,7 +6,7 @@
 
 # Class: AmberClientInit
 
-Defined in: [client.ts:17](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/client.ts#L17)
+Defined in: [client.ts:17](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/client.ts#L17)
 
 ## Methods
 
@@ -14,7 +14,7 @@ Defined in: [client.ts:17](https://github.com/amberbase/amberbase/blob/6464296e6
 
 > **forGlobal**(): `AmberClientInit`
 
-Defined in: [client.ts:69](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/client.ts#L69)
+Defined in: [client.ts:71](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/client.ts#L71)
 
 Request the global tenant. That means that we only want users from the global tenant. This is useful to build a custom management UI for the global management tasks like creating new tenants etc.
 
@@ -30,7 +30,7 @@ Continuation of the fluent API to configure the client.
 
 > **onRolesChanged**(`callback`): `AmberClientInit`
 
-Defined in: [client.ts:194](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/client.ts#L194)
+Defined in: [client.ts:207](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/client.ts#L207)
 
 Register a callback that will be called when the roles of the user or the tenant selected change.
 
@@ -54,7 +54,7 @@ Continuation of the fluent API to configure the client.
 
 > **onUserChanged**(`callback`): `AmberClientInit`
 
-Defined in: [client.ts:184](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/client.ts#L184)
+Defined in: [client.ts:197](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/client.ts#L197)
 
 Register a callback that will be called when the user changes. This is useful if you want to update the UI or perform some actions when the user changes.
 
@@ -78,7 +78,7 @@ Continuation of the fluent API to configure the client.
 
 > **start**(): [`AmberClient`](AmberClient.md)
 
-Defined in: [client.ts:203](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/client.ts#L203)
+Defined in: [client.ts:218](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/client.ts#L218)
 
 Start the client and return the actual
 
@@ -95,13 +95,30 @@ a new
 
 ***
 
+### withAdminRole()
+
+> **withAdminRole**(): `AmberClientInit`
+
+Defined in: [client.ts:91](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/client.ts#L91)
+
+Request the admin role for the user. This will add the "admin" role to the requested roles when logging in. This is useful if you want to build a management UI that requires admin access.
+Note that the user needs to be registered having the admin role in the tenant to be able to get a successful session.
+
+#### Returns
+
+`AmberClientInit`
+
+Continuation of the fluent API to configure the client.
+
+***
+
 ### withAmberUiLogin()
 
 > **withAmberUiLogin**(`returnUrl?`): `AmberClientInit`
 
-Defined in: [client.ts:117](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/client.ts#L117)
+Defined in: [client.ts:131](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/client.ts#L131)
 
-Use the amber ui to login. This will redirect the user to the amber ui login page and handle the login process there. 
+Use the amber ui to login. This will redirect the user to the amber ui login page and handle the login process there.
 It will also handle tenant selection if the tenant is not set.
 
 #### Parameters
@@ -124,7 +141,7 @@ Continuation of the fluent API to configure the client.
 
 > **withCleanUser**(): `AmberClientInit`
 
-Defined in: [client.ts:174](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/client.ts#L174)
+Defined in: [client.ts:187](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/client.ts#L187)
 
 Clean the user and force a new login.
 
@@ -140,7 +157,7 @@ Continuation of the fluent API to configure the client.
 
 > **withCredentialsProvider**(`provider`): `AmberClientInit`
 
-Defined in: [client.ts:106](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/client.ts#L106)
+Defined in: [client.ts:118](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/client.ts#L118)
 
 Set the credentials provider to use for the client when asking for the users credentials in a custom UI. This is useful if you want to provide a custom way to retrieve the user credentials, for example by prompting the user for their credentials.
 It will only be called if the user is not already logged in or if the login fails. This is mutually exclusive to the other methods that handle user login credentials:
@@ -170,7 +187,7 @@ Continuation of the fluent API to configure the client.
 
 > **withPath**(`path`): `AmberClientInit`
 
-Defined in: [client.ts:79](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/client.ts#L79)
+Defined in: [client.ts:81](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/client.ts#L81)
 
 Set the path prefix for the amber api. This is important if you want to use a different path than the default `/amber`.
 
@@ -192,7 +209,7 @@ the path to the amber api.
 
 > **withTenant**(`tenant`): `AmberClientInit`
 
-Defined in: [client.ts:60](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/client.ts#L60)
+Defined in: [client.ts:62](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/client.ts#L62)
 
 Set the tenant to use, from some place. This can be either hardcoded or retrieved from the url in the case that you use the amber ui and get the tenant selected injected into the url.
 If it is not set, the user will be prompted to select a tenant unless the global tenant has explicitly been requested via
@@ -221,7 +238,7 @@ forGlobal.
 
 > **withTenantSelector**(`selector`): `AmberClientInit`
 
-Defined in: [client.ts:165](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/client.ts#L165)
+Defined in: [client.ts:176](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/client.ts#L176)
 
 If you want to build a custom way to select the tenant by a user (that means you do not set the tenant explicitly with
 
@@ -248,9 +265,9 @@ a function that will be called to select the tenant. It will be called with the 
 
 > **withUser**(`email`, `pw`, `stayLoggedIn`): `AmberClientInit`
 
-Defined in: [client.ts:92](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/client.ts#L92)
+Defined in: [client.ts:104](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/client.ts#L104)
 
-Set the user credentials to use for the client. This is useful for testing or if you want to hardcode the credentials or you somehow retrieve the credentials through another mechanism. 
+Set the user credentials to use for the client. This is useful for testing or if you want to hardcode the credentials or you somehow retrieve the credentials through another mechanism.
 It is mutually exclusive to the other methods that handle user login credentials:
 
 #### Parameters

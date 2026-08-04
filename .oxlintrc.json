@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "import"],
+  "categories": {
+    "correctness": "error"
+  },
+  "ignorePatterns": ["dist/**", "docs/**", "node_modules/**"],
+  "overrides": [
+    {
+      "files": ["src/ui/**/*.vue"],
+      "plugins": ["typescript", "unicorn", "import", "vue"]
+    }
+  ]
+}

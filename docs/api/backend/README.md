@@ -8,32 +8,40 @@
 </p>
 
 An Open Source Node.js backend for realtime applications. This entails a server-side library (Node.js) and a browser-side client library (JS).
-It is right now a beta version and only suitable for early adopters.
+
+> [!note]
+> It is right now a beta version and only suitable for early adopters.
 
 ## Why?
-The purpose of amberbase is to offer a library that covers the needs of a applications that are right now based on something like Firebase without the lock-in effect. It offers a simple user management, realtime communication between application instances, data synchronization and more. Since it requires a backend, it offers the opportunity to implement richer use cases through server side code; for example a powerful multi-tiered access rights management. 
+
+The purpose of amberbase is to offer a library that covers the needs of an applications that are right now based on something like Firebase without the lock-in effect. It offers a simple user management, realtime communication between application instances, data synchronization and more. Since it requires a backend, it offers the opportunity to implement richer use cases through server side code; for example a powerful multi-tiered access rights management.
 
 The main design goal is to offer the flexibility and independence from SaaS lock-ins with an even better development experience. That means that the two-tier development model (the client side javascript talks directly to the datastore) is kept as the leading principle. But now you have the power to guide and control your application through *optional* server side code.
 
-Amberbase is by default multi-tenant enabled. That means that everything* is scoped to an app instance with its own data context. 
+Amberbase is by default multi-tenant enabled. That means that everything* is scoped to an app instance with its own data context.
 
->  (*) users are outside of the tenant scope and can have access to multiple tenants.
+> (*) users are outside of the tenant scope and can have access to multiple tenants.
 
-It is up to you to expose the tenants (for e.g. a SaaS concept) or to just use it to distinguish between `production` and `dev`...
-
-## Dependencies
-Amberbase uses mariadb as the database layer and is meant to be hosted in nodejs, ideally in conjunction with expressjs. It is designed for a single nodejs process being the gatekeeper (and single messaging broker) infront of the database.
+It is up to you to expose the tenants (for e.g. a SaaS concept) or to just use it to distinguish between `production` and `dev`.
 
 ## Get Started
 
-If you want to use the library as an early adopter, install it using npm: `npm install amberbase` in your nodejs application.
+Amberbase uses MariaDB as the database layer and is meant to be hosted in Node.js, ideally in conjunction with expressjs. It is designed for a single Node.js process being the gatekeeper (and single messaging broker) infront of the database.
 
-The configuration is done through some fluent builder in your start.js, index.js or app.js file that is the entry point to your application.
+### Backend side
+
+If you want to use the library as an early adopter, install it in your Node application:
+
+```bash
+pnpm install amberbase
+```
+
+The configuration is done through some fluent builder in your entry point file (e.g. index.ts) to your application.
 
 ```ts
-import {amber, CollectionAccessAction, UserContext}  from 'amberbase';
+import { amber, CollectionAccessAction, UserContext } from "amberbase";
 
- //This is just for the demo. Would be in some models.ts file beneficial to use typescript
+// This is just for the demo. Would be in some models.ts file, beneficial to use typescript
 interface ToDoEntity {
   title: string;
   description: string;
@@ -41,37 +49,36 @@ interface ToDoEntity {
 }
 
 var amberInit = amber()
-              .withConfig({
-                db_password:db_password, // e.g. from env variables
-                db_username:db_username,
-                db_name:'amber',
-              })
-              .withPath('/amber')
-            // Example for a simple ToDo app. Everyone with the reader role can read todos. Editors can create, update and delete todos.
-            .withCollection<ToDoEntity>("todos",
-              {
-                accessRights:{
-                  "editor":['create',"update","delete","read"],
-                  "reader":['read']
-                },
-                validator:(user, oldDoc:ToDoEntity, newDoc:ToDoEntity | null, action:CollectionAccessAction) => {
-                  if (action == 'create' || action == 'update') 
-                  {
-                    if (newDoc.title.length < 3) return false; // title must be at least 3 characters long. This is an example validation
-                  }
-                  return true;
-                }
-              }
-            )
-            .withChannel<string>("selected-todo",{ // a simple "share selection id" channel to broadcast the selected item to all clients live at the same time
-              subchannels:false
-            })
-            .withUi({ // offer a user and admin ui under <host>/amber/ui
-               availableRoles: ["editor", "reader"], // roles offered in the user management
-               theme:"dark",
-               loginTargetUrl:"/#/tenant={tenant}",// entry point for the application after a successful login and tenant selection
-               title:"Amberbase Example App",
-            });
+  .withConfig({
+    db_password: db_password, // e.g. from env variables
+    db_username: db_username,
+    db_name: "amber",
+  })
+  .withPath("/amber")
+  // Example for a simple ToDo app. Everyone with the reader role can read todos. Editors can create, update and delete todos.
+  .withCollection<ToDoEntity>("todos", {
+    accessRights: {
+      editor: ["create", "update", "delete", "read"],
+      reader: ["read"],
+    },
+    validator: (user, oldDoc: ToDoEntity, newDoc: ToDoEntity | null, action: CollectionAccessAction) => {
+      if (action == "create" || action == "update") {
+        if (newDoc.title.length < 3) return false; // title must be at least 3 characters long. This is an example validation
+      }
+      return true;
+    },
+  })
+  // a simple "share selection id" channel to broadcast the selected item to all clients live at the same time
+  .withChannel<string>("selected-todo", {
+    subchannels: false,
+  })
+  // offer a user and admin ui under <host>/amber/ui
+  .withUi({
+    availableRoles: ["editor", "reader"], // roles offered in the user management
+    theme: "dark",
+    loginTargetUrl: "/#/tenant={tenant}", // entry point for the application after a successful login and tenant selection
+    title: "Amberbase Example App",
+  });
 
 var amberApp = await amberInit.create(); // we create a new app, could also attach to an existing express app.
 
@@ -79,37 +86,65 @@ amberApp.listen(port, "0.0.0.0");
 ```
 
 ### Client side
-Install the client library in your code via `npm install amberbase-client` and use it similar to the following example:
-```ts
 
+Install the client library in your code:
+
+```bash
+pnpm install amber-client
+```
+
+You can use it similar to the following example:
+
+```ts
 var clientBuilder = amberClient().withPath("/amber").withTenant("production");
 var userName = "";
 var userRoles = [];
 var amberClient = null;
 
-clientBuilder.onUserChanged(u=>{
+clientBuilder.onUserChanged((u) => {
   userName = u.name;
 });
-clientBuilder.onRolesChanged((tenant, roles, user) =>{
-    userRoles = roles;
-    if(roles.find("reader"))
-    {
-       amberClient.getCollectionsApi().getCollection<ToDoEntity>("todos").subscribe(0,
-        doc =>{/** do something with the todo item, e.g. put it into the local cache */},
-        docId => { /** remove the todo item from the local cache */}
-       )
-    }
+clientBuilder.onRolesChanged((tenant, roles, user) => {
+  userRoles = roles;
+  if (roles.includes("reader")) {
+    amberClient
+      .getCollectionsApi()
+      .getCollection<ToDoEntity>("todos")
+      .subscribe(
+        0,
+        (doc) => {
+          /** do something with the todo item, e.g. put it into the local cache */
+        },
+        (docId) => {
+          /** remove the todo item from the local cache */
+        },
+      );
+  }
 });
 
 amberClient = clientBuilder.withAmberUiLogin().start();
 
 // later
 
-amberClient.getCollectionsApi().getCollection<ToDoEntity>("todos")
-.createDoc(
-    {
-        title: "foo",
-        description: "bar",
-        completed: false
-    });
+amberClient.getCollectionsApi().getCollection<ToDoEntity>("todos").createDoc({
+  title: "foo",
+  description: "bar",
+  completed: false,
+});
 ```
+
+## Development
+
+This repo is a pnpm workspace covering `src/backend`, `src/client`, and `src/ui`. To work on it:
+
+- `pnpm install` at the repo root installs all three packages.
+- `pnpm -r run build` builds every package; `pnpm -r run test` and `pnpm -r run lint` run tests/lint across all of them.
+- Target a single package with `pnpm --filter <name> run <script>`, e.g. `pnpm --filter amberbase run build` or `pnpm --filter amber-ui run dev`.
+
+## Documentation
+
+To get to know and understand `amberbase` beyond the hello world example, you have several options:
+
+- Read about the general [concepts](docs/concept.md) and dive into the available [documentation](docs/overview.md).
+- Try out or checkout the code of the `amberbase-example` that is [available under on Github](https://github.com/amberbase/amberbase-example)
+- Play around with the init API and explore the methods and types offered. Use Typescript to get the best support from your IDE

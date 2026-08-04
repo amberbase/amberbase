@@ -6,15 +6,15 @@
 
 # Interface: AmberCollections
 
-Defined in: [collections.ts:120](https://github.com/amberbase/amberbase/blob/81aedbf4fe970dbf0032c9ddb84e467b0235ae2d/src/backend/src/amber/collections.ts#L120)
+Defined in: [collections.ts:181](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/collections.ts#L181)
 
 ## Methods
 
 ### getCollection()
 
-> **getCollection**\<`T`\>(`collection`): [`AmberCollection`](AmberCollection.md)\<`T`\>
+> **getCollection**\<`T`\>(`collection`): [`AmberCollection`](AmberCollection.md)\<`T`\> \| `undefined`
 
-Defined in: [collections.ts:121](https://github.com/amberbase/amberbase/blob/81aedbf4fe970dbf0032c9ddb84e467b0235ae2d/src/backend/src/amber/collections.ts#L121)
+Defined in: [collections.ts:182](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/collections.ts#L182)
 
 #### Type Parameters
 
@@ -30,4 +30,4 @@ Defined in: [collections.ts:121](https://github.com/amberbase/amberbase/blob/81a
 
 #### Returns
 
-[`AmberCollection`](AmberCollection.md)\<`T`\>
+[`AmberCollection`](AmberCollection.md)\<`T`\> \| `undefined`

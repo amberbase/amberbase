@@ -1,8 +1,11 @@
 # Channels
+
 Channels are a simple way to enable communication accross browser based clients with each other. Even though clients might use it to send messages to each other, the server side can act as a gatekeeper on who can be - and what is - sent.
 
 ## Setting up a channel
-The channels are defined in the startup code of your app as a chained call to your amber initialization (see [config](docs/config.md)).
+
+The channels are defined in the startup code of your app as a chained call to your amber initialization (see [config](config.md)).
+
 ```ts
 // server side code
 amber().withPath("/amber")
@@ -13,13 +16,15 @@ amber().withPath("/amber")
     )
     // continue with amber initialization
 ```
-The details of the options can be found in the [ChannelSettings](docs/api/backend/interfaces/ChannelSettings.md) documentation. 
+
+The details of the options can be found in the [ChannelSettings](api/backend/interfaces/ChannelSettings.md) documentation.
 
 On the client side, the counterpart to receive the channel messages is equally simple:
+
 ```ts
 // client side code
  var client = amberClient().withPath("/amber").withAmberUiLogin().start(); // prepare client and start the login process
- var user = await client.getUserInTenant(); // wait until the user is logged in
+ var user = await client.userInTenant(); // wait until the user is logged in
  var channelsApi = client.getChannelsApi();
  var myMessagesChannel = channelsApi.getChannel<MyMessage>("my-messages");
  
@@ -28,12 +33,13 @@ On the client side, the counterpart to receive the channel messages is equally s
     console.log(message.title);
  });
  channelsApi.connect(); // start the synchronization
- setInterval(1000, async ()=>{
+ setInterval(async ()=>{
     await myMessagesChannel.send({title:"I am alive"});
- })
+ }, 1000)
 ```
 
 ## Subchannels
+
 We might want to have more channels than the ones we can statically configure at the startup. For example if we allow users to create their own groups, or if a channel should exist alongside a document from a collection. Even a channel for a user might be helpful for the user to synchronize his or her experience across devices.
 
 For that, you can enable the `subchannel` feature of a channel.
@@ -50,7 +56,7 @@ amber().withPath("/amber")
     )
 ```
 
-Now a client can connect to a subchannel of "my-messages". 
+Now a client can connect to a subchannel of "my-messages".
 
 ```ts
 // client side code
@@ -63,9 +69,10 @@ Now a client can connect to a subchannel of "my-messages".
  //...
 ```
 
-
 ## Validation
+
 The server side can validate messages before they are send to the other clients
+
 ```ts
 // server side code
 amber().withPath("/amber")
@@ -83,10 +90,13 @@ amber().withPath("/amber")
 ```
 
 ## Access Management
+
 We can control who can send or subscribe to channels. For that we have two options: a simple role to action mapping or a code based handler.
 
 ### Access rights mapping
+
 This options adds a simple map between `roles` and the two actions `subscribe` and `publish` to the channel configuration.
+
 ```ts
 // server side code
 amber().withPath("/amber")
@@ -103,7 +113,9 @@ amber().withPath("/amber")
 ```
 
 ### Access rights check with code
-A more powerful option is a javascript handler, that acts as a predicate to decide which action is allowed. Taking the action, user, tenant and subchannel into account.
+
+A more powerful option is a javascript handler, that acts as a predicate to decide which action is allowed. Taking the user, channel, subchannel and action into account.
+
 ```ts
 // server side code
 amber().withPath("/amber")

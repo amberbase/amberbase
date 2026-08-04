@@ -20,7 +20,7 @@ export const amberLightTheme = {
     'border-color': '#000000',
     'border-opacity': 0.12,
     'high-emphasis-opacity': 0.87,
-    'medium-emphasis-opacity': 0.60,
+    'medium-emphasis-opacity': 0.6,
     'disabled-opacity': 0.38,
     'idle-opacity': 0.04,
     'hover-opacity': 0.04,
@@ -33,8 +33,8 @@ export const amberLightTheme = {
     'theme-on-kbd': '#FFFFFF',
     'theme-code': '#F5F5F5',
     'theme-on-code': '#000000',
-  }
-}
+  },
+};
 
 export const amberDarkTheme = {
   dark: true,
@@ -58,7 +58,7 @@ export const amberDarkTheme = {
     'border-color': '#000000',
     'border-opacity': 0.12,
     'high-emphasis-opacity': 0.87,
-    'medium-emphasis-opacity': 0.60,
+    'medium-emphasis-opacity': 0.6,
     'disabled-opacity': 0.38,
     'idle-opacity': 0.04,
     'hover-opacity': 0.04,
@@ -71,5 +71,5 @@ export const amberDarkTheme = {
     'theme-on-kbd': '#FFFFFF',
     'theme-code': '#F5F5F5',
     'theme-on-code': '#000000',
-  }
-}
+  },
+};

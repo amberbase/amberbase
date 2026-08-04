@@ -1,35 +1,35 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <link rel="icon" href="./favicon.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <link rel="icon" href="./favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Amberbase Log In</title>
   </head>
   <body>
     <div id="app"></div>
     <script type="module" src="src/main.ts"></script>
     <script>
-      var amberUiConfig = "**AMBER_UI_CONFIG**";
+      var amberUiConfig = '**AMBER_UI_CONFIG**';
       if (amberUiConfig) {
         try {
           window.amberUiConfig = amberUiConfig;
         } catch (e) {
-          console.error("Failed to parse AMBER_UI_CONFIG:", e);
+          console.error('Failed to parse AMBER_UI_CONFIG:', e);
         }
       } else {
-        console.warn("AMBER_UI_CONFIG is not defined.");
+        console.warn('AMBER_UI_CONFIG is not defined.');
       }
 
-      var amberUiContext = "**AMBER_UI_CONTEXT**";
+      var amberUiContext = '**AMBER_UI_CONTEXT**';
       if (amberUiContext) {
         try {
           window.amberUiContext = amberUiContext;
         } catch (e) {
-          console.error("Failed to parse AMBER_UI_CONTEXT:", e);
+          console.error('Failed to parse AMBER_UI_CONTEXT:', e);
         }
       } else {
-        console.warn("AMBER_UI_CONTEXT is not defined.");
+        console.warn('AMBER_UI_CONTEXT is not defined.');
       }
     </script>
   </body>

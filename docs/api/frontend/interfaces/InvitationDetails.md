@@ -6,7 +6,7 @@
 
 # Interface: InvitationDetails
 
-Defined in: [shared/dtos.ts:279](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L279)
+Defined in: [shared/dtos.ts:297](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L297)
 
 Details about an invitation. This is the response to the /invitations/:invitation endpoint.
 
@@ -16,7 +16,7 @@ Details about an invitation. This is the response to the /invitations/:invitatio
 
 > **expires**: `number`
 
-Defined in: [shared/dtos.ts:300](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L300)
+Defined in: [shared/dtos.ts:318](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L318)
 
 Expiration as a UNIX timestamp (UTC)
 
@@ -26,7 +26,7 @@ Expiration as a UNIX timestamp (UTC)
 
 > **isStillValid**: `boolean`
 
-Defined in: [shared/dtos.ts:291](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L291)
+Defined in: [shared/dtos.ts:309](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L309)
 
 Indicator if the invitation is still valid. This is true if the invitation has not been accepted or expired yet.
 
@@ -36,7 +36,7 @@ Indicator if the invitation is still valid. This is true if the invitation has n
 
 > **roles**: `string`[]
 
-Defined in: [shared/dtos.ts:296](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L296)
+Defined in: [shared/dtos.ts:314](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L314)
 
 Roles the user will gain accepting the invitation
 
@@ -46,7 +46,7 @@ Roles the user will gain accepting the invitation
 
 > **tenantId**: `string`
 
-Defined in: [shared/dtos.ts:283](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L283)
+Defined in: [shared/dtos.ts:301](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L301)
 
 The tenant id the invitation is allowing access to
 
@@ -56,6 +56,6 @@ The tenant id the invitation is allowing access to
 
 > **tenantName**: `string`
 
-Defined in: [shared/dtos.ts:287](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L287)
+Defined in: [shared/dtos.ts:305](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L305)
 
 Human readable name of the tenant
