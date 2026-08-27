@@ -10,7 +10,7 @@
     <div id="app"></div>
     <script type="module" src="src/main.ts"></script>
     <script>
-      var amberUiConfig = '**AMBER_UI_CONFIG**';
+      var amberUiConfig = "**AMBER_UI_CONFIG**"; // This will be replaced with the actual config object during server-side rendering DO NOT ALTER THIS LINE
       if (amberUiConfig) {
         try {
           window.amberUiConfig = amberUiConfig;
@@ -21,7 +21,7 @@
         console.warn('AMBER_UI_CONFIG is not defined.');
       }
 
-      var amberUiContext = '**AMBER_UI_CONTEXT**';
+      var amberUiContext = "**AMBER_UI_CONTEXT**"; // This will be replaced with the actual context object during server-side rendering DO NOT ALTER THIS LINE
       if (amberUiContext) {
         try {
           window.amberUiContext = amberUiContext;
