@@ -6,7 +6,7 @@
 
 # Interface: CollectionDocument\<T\>
 
-Defined in: [shared/dtos.ts:378](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L378)
+Defined in: [shared/dtos.ts:469](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L469)
 
 Collection document with json payload. Generic to allow easy TS static type checks
 
@@ -22,7 +22,7 @@ Collection document with json payload. Generic to allow easy TS static type chec
 
 > **change\_number**: `number`
 
-Defined in: [shared/dtos.ts:386](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L386)
+Defined in: [shared/dtos.ts:477](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L477)
 
 Last change number. It is using a monotonic counter per collection (not document!) that indicates new versions and is used for optimistic concurrency control as a kind of eTag.
 
@@ -32,7 +32,7 @@ Last change number. It is using a monotonic counter per collection (not document
 
 > **change\_time**: `Date`
 
-Defined in: [shared/dtos.ts:396](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L396)
+Defined in: [shared/dtos.ts:487](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L487)
 
 The time of the last change in UTC.
 
@@ -42,7 +42,7 @@ The time of the last change in UTC.
 
 > **change\_user**: `string`
 
-Defined in: [shared/dtos.ts:391](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L391)
+Defined in: [shared/dtos.ts:482](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L482)
 
 The user that made the last change. This is the user id (not the email) of the user that made the change.
 
@@ -52,7 +52,7 @@ The user that made the last change. This is the user id (not the email) of the u
 
 > **data**: `T`
 
-Defined in: [shared/dtos.ts:401](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L401)
+Defined in: [shared/dtos.ts:492](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L492)
 
 The content of the document. This is the actual data of the document. It is a JSON object.
 
@@ -62,6 +62,6 @@ The content of the document. This is the actual data of the document. It is a JS
 
 > **id**: `string`
 
-Defined in: [shared/dtos.ts:382](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L382)
+Defined in: [shared/dtos.ts:473](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L473)
 
 Document id. This is the unique identifier for the document in the collection.

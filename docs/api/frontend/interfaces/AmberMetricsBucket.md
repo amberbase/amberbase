@@ -6,7 +6,7 @@
 
 # Interface: AmberMetricsBucket
 
-Defined in: [shared/dtos.ts:608](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L608)
+Defined in: [shared/dtos.ts:719](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L719)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [shared/dtos.ts:608](https://github.com/amberbase/amberbase/blob/646
 
 > **bucket**: `string`
 
-Defined in: [shared/dtos.ts:609](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L609)
+Defined in: [shared/dtos.ts:720](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L720)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [shared/dtos.ts:609](https://github.com/amberbase/amberbase/blob/646
 
 > **metrics**: [`Metrics`](../type-aliases/Metrics.md)
 
-Defined in: [shared/dtos.ts:610](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L610)
+Defined in: [shared/dtos.ts:721](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L721)

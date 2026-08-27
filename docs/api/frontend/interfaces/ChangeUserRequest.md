@@ -6,7 +6,7 @@
 
 # Interface: ChangeUserRequest
 
-Defined in: [shared/dtos.ts:144](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L144)
+Defined in: [shared/dtos.ts:163](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L163)
 
 Request change a user (as an admin).
 
@@ -14,22 +14,22 @@ Request change a user (as an admin).
 
 ### email?
 
-> `optional` **email**: `string`
+> `optional` **email?**: `string`
 
-Defined in: [shared/dtos.ts:146](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L146)
+Defined in: [shared/dtos.ts:165](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L165)
 
 ***
 
 ### newPassword?
 
-> `optional` **newPassword**: `string`
+> `optional` **newPassword?**: `string`
 
-Defined in: [shared/dtos.ts:147](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L147)
+Defined in: [shared/dtos.ts:166](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L166)
 
 ***
 
 ### userName?
 
-> `optional` **userName**: `string`
+> `optional` **userName?**: `string`
 
-Defined in: [shared/dtos.ts:145](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L145)
+Defined in: [shared/dtos.ts:164](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L164)

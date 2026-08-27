@@ -6,7 +6,7 @@
 
 # Interface: MetricValue
 
-Defined in: [shared/dtos.ts:592](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L592)
+Defined in: [shared/dtos.ts:703](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L703)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [shared/dtos.ts:592](https://github.com/amberbase/amberbase/blob/646
 
 > **count**: `number`
 
-Defined in: [shared/dtos.ts:596](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L596)
+Defined in: [shared/dtos.ts:707](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L707)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [shared/dtos.ts:596](https://github.com/amberbase/amberbase/blob/646
 
 > **max**: `number`
 
-Defined in: [shared/dtos.ts:594](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L594)
+Defined in: [shared/dtos.ts:705](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L705)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [shared/dtos.ts:594](https://github.com/amberbase/amberbase/blob/646
 
 > **min**: `number`
 
-Defined in: [shared/dtos.ts:593](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L593)
+Defined in: [shared/dtos.ts:704](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L704)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [shared/dtos.ts:593](https://github.com/amberbase/amberbase/blob/646
 
 > **sum**: `number`
 
-Defined in: [shared/dtos.ts:595](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L595)
+Defined in: [shared/dtos.ts:706](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L706)

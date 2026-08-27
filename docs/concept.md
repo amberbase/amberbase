@@ -24,17 +24,17 @@ We want to support offline use cases (read-only) and therefore focus on full-dat
 
 The libraries will support the server implementation for Node.js and the client binding in a browser, both in TS/JS.
 The reason to pick NodeJs as the server side technology is to have a single-process that does handle all requests and can share signals and in-memory state to enable the notification to a websocket as a side effect of another request.
-The supported database should be MySql/MariaDB due to their support
+The supported database should be MariaDB due to its support
 
 ## Glossary and Definitions
 
 * `Client` Client library executed in the browser
 * `Tenant` A top-level labeling of all data to host multiple separate instances of the same application on one database. All operations are relative to a tenant and scope to a tenant. Example: SongDrive being hosted once but used by multiple churches.
-    * Some functionality is outside of the scope of a `tenant` (e.g. to create a `tenant`). This is called the `global` scope
+  * Some functionality is outside of the scope of a `tenant` (e.g. to create a `tenant`). This is called the `global` scope
 * `User` An identified user of the web application
 * `Role` A server defined set of permissions that can be given to a user within a `tenant`
-    * There is a special role `admin` that gives build in functionality on the `global` scope or on a `tenant`
-    * The `global` scope can also be used to give `roles` to a user that are inherited into each tenant
+  * There is a special role `admin` that gives build in functionality on the `global` scope or on a `tenant`
+  * The `global` scope can also be used to give `roles` to a user that are inherited into each tenant
 * `Invitation` A token that is not associated to a user yet, but can be used by a new or existing user to gain access to a tenant and to be associated with roles.
 * `Collection` equivalent of a table. It is identified by a name and can store multiple JSON `Documents`
 * `Document` A JSON object stored in the database in one collection, one tenant, and is identifiable via a unique id
@@ -67,12 +67,11 @@ A simple user management system where users can
 
 A client should be able to read data from collections that the logged-in user has access to.
 This will always be a full collection (scoped to the `tenant`).
-The client shall store the data in a way that it is available even when the server is down. 
+The client shall store the data in a way that it is available even when the server is down.
 
 ### Database Synchronization
 
 A client can request subscriptions from the server and the server should send updates to clients to keep the replica up to date. When a network outage occurred, the client should try to reconnect (e.g. in defined time intervals) and a catch-up mechanism should make sure that missing updates are replayed as soon as a connection is established again, including deletions.
-
 
 ### Standard Server-Side Write Operations
 
@@ -137,7 +136,7 @@ flowchart LR;
 flowchart LR;
     subgraph Browser
         inMem[(In Memory Replica)] <--> clientLib
-        app[AppClient.js]-->clientLib[amberbase-client]
+        app[AppClient.js]-->clientLib[amber-client]
         app --> inMem
     end
     
@@ -241,7 +240,7 @@ var config:AmberConfig = {"db_endpoint" : "...", ...};
 var amberApp = amber(config)
     .withCollection("songs", [{"role": "editor", "access" : "rw"},{"role": "reader", "access" : "r"}])
     .withCollection("private", (d:document, u:user, requestedAction:actionType) => {
-        if (u.role == "editor" && requestedAction == "read" && d.dataJson["sharedWith"].find(u.id)) {
+        if (u.role == "editor" && requestedAction == "read" && d.dataJson["sharedWith"].includes(u.id)) {
             return true;
         }
         // other logic for create, delete etc...

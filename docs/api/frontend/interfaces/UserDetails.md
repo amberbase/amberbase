@@ -6,7 +6,7 @@
 
 # Interface: UserDetails
 
-Defined in: [shared/dtos.ts:90](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L90)
+Defined in: [shared/dtos.ts:97](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L97)
 
 User details
 
@@ -16,7 +16,7 @@ User details
 
 > **email**: `string`
 
-Defined in: [shared/dtos.ts:99](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L99)
+Defined in: [shared/dtos.ts:106](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L106)
 
 User email. This is the email used to login. It is stored in lower case.
 
@@ -26,7 +26,7 @@ User email. This is the email used to login. It is stored in lower case.
 
 > **id**: `string`
 
-Defined in: [shared/dtos.ts:94](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L94)
+Defined in: [shared/dtos.ts:101](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L101)
 
 User id. Often used to identify the user. E.g. in access tags
 
@@ -36,7 +36,7 @@ User id. Often used to identify the user. E.g. in access tags
 
 > **name**: `string`
 
-Defined in: [shared/dtos.ts:104](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L104)
+Defined in: [shared/dtos.ts:111](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L111)
 
 User name (descriptive, not unique)
 
@@ -46,7 +46,7 @@ User name (descriptive, not unique)
 
 > **tenants**: `object`
 
-Defined in: [shared/dtos.ts:109](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L109)
+Defined in: [shared/dtos.ts:116](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L116)
 
 Tenants the user has access to and the roles the user has in the tenant
 

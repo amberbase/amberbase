@@ -5,7 +5,8 @@
   "main": "dist/backend/src/index.js",
   "types": "dist/backend/src/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "build": "npx tsc",
     "docs": "npx typedoc src/index.ts --out ../../docs/api/backend --plugin typedoc-plugin-markdown --excludeInternal --tsconfig tsconfig.json"
   },
@@ -14,16 +15,16 @@
   "description": "Amberbase backend library",
   "dependencies": {
     "cookie-parser": "^1.4.7",
-    "express": "^4.21.1",
-    "mariadb": "^3.3.2",
-    "ws": "^8.18.0"
+    "express": "^4.22.2",
+    "mariadb": "^3.5.3",
+    "ws": "^8.21.1"
   },
   "devDependencies": {
-    "@types/cookie-parser": "^1.4.8",
-    "@types/express": "^5.0.0",
-    "@types/ws": "^8.5.12",
-    "typedoc": "^0.28.5",
-    "typedoc-plugin-markdown": "^4.6.4",
-    "typescript": "^5.6.3"
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
+    "@types/ws": "^8.18.1",
+    "typedoc": "^0.28.20",
+    "typedoc-plugin-markdown": "^4.12.0",
+    "typescript": "^5.9.3"
   }
 }

@@ -1,4 +1,5 @@
 # Using Amberbase Sessions for Custom APIs
+
 When you build your application you might need to have more interactions between client and server than just the buildingblocks of Amberbase (like `collections`). But since the users are already logged in as Amberbase users with a role and a tenant, it is best to reuse this trust relationship in your custom APIs. Here is a little guide how to do that.
 
 ## Server side
@@ -33,7 +34,9 @@ app.get("/protected",async (req, res) => {
 //..
 amberApp.listen(3000, "0.0.0.0");
 ```
+
 ## Client side
+
 To use this API with the Amberbase user session, you need to include a header in your API calls from the client:
 
 ```ts

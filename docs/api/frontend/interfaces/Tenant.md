@@ -6,7 +6,7 @@
 
 # Interface: Tenant
 
-Defined in: [shared/dtos.ts:230](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L230)
+Defined in: [shared/dtos.ts:249](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L249)
 
 Details about a tenant
 
@@ -16,7 +16,7 @@ Details about a tenant
 
 > **id**: `string`
 
-Defined in: [shared/dtos.ts:234](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L234)
+Defined in: [shared/dtos.ts:253](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L253)
 
 Tenant id
 
@@ -26,6 +26,6 @@ Tenant id
 
 > **name**: `string`
 
-Defined in: [shared/dtos.ts:238](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L238)
+Defined in: [shared/dtos.ts:257](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L257)
 
 Tenant name

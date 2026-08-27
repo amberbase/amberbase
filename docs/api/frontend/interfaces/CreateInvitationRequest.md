@@ -6,7 +6,7 @@
 
 # Interface: CreateInvitationRequest
 
-Defined in: [shared/dtos.ts:215](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L215)
+Defined in: [shared/dtos.ts:234](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L234)
 
 Request to create a new user invitation (the url path contains the tenant id)
 
@@ -16,7 +16,7 @@ Request to create a new user invitation (the url path contains the tenant id)
 
 > **expiresInDays**: `number`
 
-Defined in: [shared/dtos.ts:224](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L224)
+Defined in: [shared/dtos.ts:243](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L243)
 
 Expiration date in days.
 
@@ -26,6 +26,6 @@ Expiration date in days.
 
 > **roles**: `string`[]
 
-Defined in: [shared/dtos.ts:219](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L219)
+Defined in: [shared/dtos.ts:238](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L238)
 
 Roles to be assigned (added) to the user when accepting the invitation. The user can have more roles than the ones specified here.

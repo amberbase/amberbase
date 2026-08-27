@@ -2,12 +2,12 @@
 
 ## Setup
 
-```sh
-npm install
+```bash
+pnpm install
 ```
 
 ### Compile and copy into backend folder
 
-```sh
-npm run build
+```bash
+pnpm run build
 ```

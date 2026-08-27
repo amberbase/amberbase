@@ -1,15 +1,13 @@
 {
-    "compilerOptions": {
-      "declaration": true, 
-      "declarationMap": true,
-      "rootDir": ".",   
-      "composite": true, 
-      "outDir": "dist",         
-      "target": "es2016",
-      "isolatedModules": true
-    },
-    "include": [
-      "src/**/*.ts",
-    ],
-    "references": []
-  }
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "rootDir": ".",
+    "composite": true,
+    "outDir": "dist",
+    "target": "es2016",
+    "isolatedModules": true
+  },
+  "include": ["src/**/*.ts"],
+  "references": []
+}

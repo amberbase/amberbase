@@ -17,7 +17,7 @@
 - [AmberCollections](interfaces/AmberCollections.md)
 - [ChannelSettings](interfaces/ChannelSettings.md)
 - [CollectionSettings](interfaces/CollectionSettings.md)
-- [ConfigOptionals](interfaces/ConfigOptionals.md)
+- [ConfigOptions](interfaces/ConfigOptions.md)
 - [SessionToken](interfaces/SessionToken.md)
 - [SimpleWebsocket](interfaces/SimpleWebsocket.md)
 - [UserContext](interfaces/UserContext.md)

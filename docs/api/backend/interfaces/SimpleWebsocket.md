@@ -6,7 +6,7 @@
 
 # Interface: SimpleWebsocket
 
-Defined in: [websocket/websocket.ts:9](https://github.com/amberbase/amberbase/blob/81aedbf4fe970dbf0032c9ddb84e467b0235ae2d/src/backend/src/amber/websocket/websocket.ts#L9)
+Defined in: [websocket/websocket.ts:9](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/websocket/websocket.ts#L9)
 
 A simple websocket interface that allows to send and receive JSON messages. It is used to simplify the websocket handling in the amber server.
 
@@ -16,7 +16,7 @@ A simple websocket interface that allows to send and receive JSON messages. It i
 
 > **close**(): `void`
 
-Defined in: [websocket/websocket.ts:25](https://github.com/amberbase/amberbase/blob/81aedbf4fe970dbf0032c9ddb84e467b0235ae2d/src/backend/src/amber/websocket/websocket.ts#L25)
+Defined in: [websocket/websocket.ts:25](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/websocket/websocket.ts#L25)
 
 Close the websocket connection.
 
@@ -30,7 +30,7 @@ Close the websocket connection.
 
 > **onClose**(`callback`): `void`
 
-Defined in: [websocket/websocket.ts:14](https://github.com/amberbase/amberbase/blob/81aedbf4fe970dbf0032c9ddb84e467b0235ae2d/src/backend/src/amber/websocket/websocket.ts#L14)
+Defined in: [websocket/websocket.ts:14](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/websocket/websocket.ts#L14)
 
 Register a callback that is called when the websocket is closed. The callback is called with no arguments.
 
@@ -52,7 +52,7 @@ Callback that is called when the websocket is closed.
 
 > **onMessage**(`callback`): `void`
 
-Defined in: [websocket/websocket.ts:20](https://github.com/amberbase/amberbase/blob/81aedbf4fe970dbf0032c9ddb84e467b0235ae2d/src/backend/src/amber/websocket/websocket.ts#L20)
+Defined in: [websocket/websocket.ts:20](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/websocket/websocket.ts#L20)
 
 Register a callback that is called when a message is received. The callback is called with the parsed JSON message.
 
@@ -74,7 +74,7 @@ Callback that is called when a message is received.
 
 > **sendJson**(`message`): `void`
 
-Defined in: [websocket/websocket.ts:31](https://github.com/amberbase/amberbase/blob/81aedbf4fe970dbf0032c9ddb84e467b0235ae2d/src/backend/src/amber/websocket/websocket.ts#L31)
+Defined in: [websocket/websocket.ts:31](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/websocket/websocket.ts#L31)
 
 Send a JSON message to the client. The message is automatically stringified.
 

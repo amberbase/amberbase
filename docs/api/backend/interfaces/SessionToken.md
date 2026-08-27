@@ -6,7 +6,7 @@
 
 # Interface: SessionToken
 
-Defined in: [auth.ts:385](https://github.com/amberbase/amberbase/blob/81aedbf4fe970dbf0032c9ddb84e467b0235ae2d/src/backend/src/amber/auth.ts#L385)
+Defined in: [auth.ts:452](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L452)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [auth.ts:385](https://github.com/amberbase/amberbase/blob/81aedbf4fe
 
 > **expires**: `string`
 
-Defined in: [auth.ts:389](https://github.com/amberbase/amberbase/blob/81aedbf4fe970dbf0032c9ddb84e467b0235ae2d/src/backend/src/amber/auth.ts#L389)
+Defined in: [auth.ts:456](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L456)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [auth.ts:389](https://github.com/amberbase/amberbase/blob/81aedbf4fe
 
 > **roles**: `string`[]
 
-Defined in: [auth.ts:388](https://github.com/amberbase/amberbase/blob/81aedbf4fe970dbf0032c9ddb84e467b0235ae2d/src/backend/src/amber/auth.ts#L388)
+Defined in: [auth.ts:455](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L455)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [auth.ts:388](https://github.com/amberbase/amberbase/blob/81aedbf4fe
 
 > **tenant**: `string`
 
-Defined in: [auth.ts:387](https://github.com/amberbase/amberbase/blob/81aedbf4fe970dbf0032c9ddb84e467b0235ae2d/src/backend/src/amber/auth.ts#L387)
+Defined in: [auth.ts:454](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L454)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [auth.ts:387](https://github.com/amberbase/amberbase/blob/81aedbf4fe
 
 > **userId**: `string`
 
-Defined in: [auth.ts:386](https://github.com/amberbase/amberbase/blob/81aedbf4fe970dbf0032c9ddb84e467b0235ae2d/src/backend/src/amber/auth.ts#L386)
+Defined in: [auth.ts:453](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L453)

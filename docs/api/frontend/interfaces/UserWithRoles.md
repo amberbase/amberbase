@@ -6,7 +6,7 @@
 
 # Interface: UserWithRoles
 
-Defined in: [shared/dtos.ts:171](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L171)
+Defined in: [shared/dtos.ts:190](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L190)
 
 Details about a user from the perspective of a tenant. Therefore it includes the roles the user has in the tenant.
 
@@ -16,7 +16,7 @@ Details about a user from the perspective of a tenant. Therefore it includes the
 
 > **email**: `string`
 
-Defined in: [shared/dtos.ts:179](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L179)
+Defined in: [shared/dtos.ts:198](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L198)
 
 user email address
 
@@ -26,7 +26,7 @@ user email address
 
 > **id**: `string`
 
-Defined in: [shared/dtos.ts:175](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L175)
+Defined in: [shared/dtos.ts:194](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L194)
 
 User id
 
@@ -36,7 +36,7 @@ User id
 
 > **name**: `string`
 
-Defined in: [shared/dtos.ts:183](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L183)
+Defined in: [shared/dtos.ts:202](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L202)
 
 User name
 
@@ -46,7 +46,7 @@ User name
 
 > **roles**: `string`[]
 
-Defined in: [shared/dtos.ts:187](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L187)
+Defined in: [shared/dtos.ts:206](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L206)
 
 Roles the user has in the tenant
 
@@ -56,6 +56,6 @@ Roles the user has in the tenant
 
 > **singleTenant**: `boolean`
 
-Defined in: [shared/dtos.ts:191](https://github.com/amberbase/amberbase/blob/6464296e6e41acf9a6a91921198b6834f589ce99/src/client/src/shared/dtos.ts#L191)
+Defined in: [shared/dtos.ts:210](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L210)
 
 true if the user has access to only one tenant, false if the user has access to multiple tenants

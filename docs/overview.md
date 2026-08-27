@@ -1,4 +1,5 @@
 # Overview
+
 An introduction to `Amberbase` can be found in the description of the general [concept and idea](concept.md). Afterwards make yourself familiar with the [configuration and startup](config.md).
 Find the backend API documentation starting with the global [entrypoints](api/backend/globals.md).
 
@@ -9,7 +10,7 @@ Find the backend API documentation starting with the global [entrypoints](api/ba
 * [Embedded UI](embedded-ui.md)
 * API Docs
   * [Backend Library `amberbase`](api/backend/globals.md)
-  * [Frontend Library `amberbase-client`](api/frontend/globals.md)
+  * [Frontend Library `amber-client`](api/frontend/globals.md)
 * Deep dive
   * [Database](technical/database.md)
   * [Api Authentication](technical/api-authentication.md)
