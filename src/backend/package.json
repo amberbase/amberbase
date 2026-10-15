@@ -16,7 +16,7 @@
   "dependencies": {
     "cookie-parser": "^1.4.7",
     "express": "^4.22.2",
-    "mariadb": "^3.5.3",
+    "mariadb": "^3.5.4",
     "ws": "^8.21.1"
   },
   "devDependencies": {
