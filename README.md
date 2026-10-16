@@ -20,6 +20,11 @@ Amberbase is by default multi-tenant enabled. That means that everything* is sco
 
 It is up to you to expose the tenants (for e.g. a SaaS concept) or to just use it to distinguish between `production` and `dev`.
 
+## Requirements
+
+- Node.js 22.12 or newer
+- MariaDB 10.6 or newer
+
 ## Get Started
 
 Amberbase uses MariaDB as the database layer and is meant to be hosted in Node.js, ideally in conjunction with expressjs. It is designed for a single Node.js process being the gatekeeper (and single messaging broker) infront of the database.
