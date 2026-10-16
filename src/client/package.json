@@ -14,9 +14,9 @@
   "author": "Christian Messinger, Andreas Müller",
   "license": "MIT",
   "devDependencies": {
-    "jsdom": "^30.0.1",
+    "jsdom": "^30.1.2",
     "typedoc": "^0.28.20",
-    "typedoc-plugin-markdown": "^4.12.0",
+    "typedoc-plugin-markdown": "^4.14.0",
     "typescript": "^5.9.3"
   }
 }
