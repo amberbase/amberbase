@@ -22,7 +22,7 @@ It is up to you to expose the tenants (for e.g. a SaaS concept) or to just use i
 
 ## Requirements
 
-- Node.js 22.12 or newer
+- Node.js 22.22.2 or newer
 - MariaDB 10.6 or newer
 
 ## Get Started
