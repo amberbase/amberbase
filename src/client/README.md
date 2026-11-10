@@ -19,7 +19,7 @@ You can use it similar to the following example:
 var clientBuilder = amberClient().withPath("/amber").withTenant("production");
 var userName = "";
 var userRoles = [];
-var amberClient = null;
+var client = null;
 
 clientBuilder.onUserChanged((u) => {
   userName = u.name;
@@ -27,7 +27,7 @@ clientBuilder.onUserChanged((u) => {
 clientBuilder.onRolesChanged((tenant, roles, user) => {
   userRoles = roles;
   if (roles.includes("reader")) {
-    amberClient
+    client
       .getCollectionsApi()
       .getCollection<ToDoEntity>("todos")
       .subscribe(
@@ -39,14 +39,15 @@ clientBuilder.onRolesChanged((tenant, roles, user) => {
           /** remove the todo item from the local cache */
         },
       );
+    client.getCollectionsApi().connect(); // open the realtime connection, nothing is synchronized before this call
   }
 });
 
-amberClient = clientBuilder.withAmberUiLogin().start();
+client = clientBuilder.withAmberUiLogin().start();
 
 // later
 
-amberClient.getCollectionsApi().getCollection<ToDoEntity>("todos").createDoc({
+client.getCollectionsApi().getCollection<ToDoEntity>("todos").createDoc({
   title: "foo",
   description: "bar",
   completed: false,
