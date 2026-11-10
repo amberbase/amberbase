@@ -9,14 +9,14 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "tsc",
-    "docs": "npx typedoc index.ts --out ../../docs/api/frontend --plugin typedoc-plugin-markdown --excludeInternal --tsconfig tsconfig.json"
+    "docs": "npx typedoc index.ts --out ../../docs/api/frontend --plugin typedoc-plugin-markdown --excludeInternal --tsconfig tsconfig.json --gitRevision main"
   },
   "author": "Christian Messinger, Andreas Müller",
   "license": "MIT",
   "devDependencies": {
-    "jsdom": "^30.1.2",
+    "jsdom": "^31.0.0",
     "typedoc": "^0.28.20",
-    "typedoc-plugin-markdown": "^4.14.0",
-    "typescript": "^5.9.3"
+    "typedoc-plugin-markdown": "^4.14.1",
+    "typescript": "^6.0.3"
   }
 }

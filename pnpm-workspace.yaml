@@ -4,3 +4,5 @@ packages:
   - 'src/ui'
 allowBuilds:
   esbuild: true
+engineStrict: true
+saveWorkspaceProtocol: true

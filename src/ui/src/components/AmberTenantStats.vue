@@ -119,9 +119,9 @@ onUnmounted(() => {
         ></v-btn>
         <h3>Metrics</h3>
         <v-list>
-          <v-list-item-group v-for="metric in metrics" :key="metric">
-            <v-list-item @click="selectedMetric = metric">{{ metric }}</v-list-item>
-          </v-list-item-group>
+          <v-list-item v-for="metric in metrics" :key="metric" @click="selectedMetric = metric">
+            {{ metric }}
+          </v-list-item>
         </v-list>
       </v-col>
       <v-col cols="10">

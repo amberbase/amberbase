@@ -6,7 +6,7 @@
 
 # Class: AmberInit
 
-Defined in: [amber.ts:29](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/amber.ts#L29)
+Defined in: [amber.ts:29](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/amber.ts#L29)
 
 AmberInit is the main entry point for initializing an Amber application.
 It wraps an Express app and provides methods to configure the amber specific details via a fluent interface and start the application.
@@ -17,7 +17,7 @@ It wraps an Express app and provides methods to configure the amber specific det
 
 > **addWebsocketHandler**(`handler`): `AmberInit`
 
-Defined in: [amber.ts:82](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/amber.ts#L82)
+Defined in: [amber.ts:82](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/amber.ts#L82)
 
 Adds a websocket handler for easy websocket usage. The handler is a function that takes the path and protocol as arguments and returns a
 function that takes a socket as an argument if the combination of path (relative to the "withPath" prefix) and protocol is acceptable.
@@ -44,7 +44,7 @@ The AmberInit instance for all that fluidity.
 
 > **create**(`otherApp?`, `server?`): `Promise`\<[`Amber`](Amber.md)\>
 
-Defined in: [amber.ts:134](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/amber.ts#L134)
+Defined in: [amber.ts:134](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/amber.ts#L134)
 
 Initiates and adds the amber application to a given or existing express app. It initializes the database, sets up the authentication and hooks on the websocket handling of the server.
 If a custom server is provided, it will be used, otherwise it will hook into the `listen` call of the express app or just launch it with Amber.listen()
@@ -75,7 +75,7 @@ A promise that resolves to the Amber instance representing the running state of 
 
 > **withChannel**\<`T`\>(`name`, `settings?`): `AmberInit`
 
-Defined in: [amber.ts:106](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/amber.ts#L106)
+Defined in: [amber.ts:106](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/amber.ts#L106)
 
 Adds a channel to the amber application. This is a fluent interface, so it returns the AmberInit instance.
 
@@ -113,7 +113,7 @@ The AmberInit instance for all that fluidity.
 
 > **withCollection**\<`T`\>(`name`, `settings?`): `AmberInit`
 
-Defined in: [amber.ts:94](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/amber.ts#L94)
+Defined in: [amber.ts:94](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/amber.ts#L94)
 
 Adds a collection to the amber application. This is a fluent interface, so it returns the AmberInit instance.
 
@@ -155,7 +155,7 @@ CollectionSettings for more details. If not provided, the default settings will 
 
 > **withConfig**(`config`): `AmberInit`
 
-Defined in: [amber.ts:57](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/amber.ts#L57)
+Defined in: [amber.ts:57](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/amber.ts#L57)
 
 Sets the config for the amber application. This is a fluent interface, so it returns the AmberInit instance.
 It merges the provided config with the default config (e.g. default db_name etc...).
@@ -180,7 +180,7 @@ The AmberInit instance for all that fluidity.
 
 > **withPath**(`path`): `AmberInit`
 
-Defined in: [amber.ts:69](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/amber.ts#L69)
+Defined in: [amber.ts:69](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/amber.ts#L69)
 
 Sets the path prefix for the amber application. It is used to separate the amber specific routes from the rest of the application.
 
@@ -206,7 +206,7 @@ The AmberInit instance for all that fluidity.
 
 > **withUi**(`config?`): `AmberInit`
 
-Defined in: [amber.ts:115](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/amber.ts#L115)
+Defined in: [amber.ts:115](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/amber.ts#L115)
 
 Enable the standard UI for common managment and user profile tasks.
 

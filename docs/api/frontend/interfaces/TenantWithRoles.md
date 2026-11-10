@@ -6,7 +6,7 @@
 
 # Interface: TenantWithRoles
 
-Defined in: [shared/dtos.ts:172](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L172)
+Defined in: [shared/dtos.ts:172](https://github.com/amberbase/amberbase/blob/main/src/client/src/shared/dtos.ts#L172)
 
 Details about a tenant from the perspective of a user. Therefore it includes the roles the user has in the tenant.
 
@@ -16,7 +16,7 @@ Details about a tenant from the perspective of a user. Therefore it includes the
 
 > **id**: `string`
 
-Defined in: [shared/dtos.ts:176](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L176)
+Defined in: [shared/dtos.ts:176](https://github.com/amberbase/amberbase/blob/main/src/client/src/shared/dtos.ts#L176)
 
 Tenant id
 
@@ -26,7 +26,7 @@ Tenant id
 
 > **name**: `string`
 
-Defined in: [shared/dtos.ts:180](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L180)
+Defined in: [shared/dtos.ts:180](https://github.com/amberbase/amberbase/blob/main/src/client/src/shared/dtos.ts#L180)
 
 Tenant name
 
@@ -36,6 +36,6 @@ Tenant name
 
 > **roles**: `string`[]
 
-Defined in: [shared/dtos.ts:184](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L184)
+Defined in: [shared/dtos.ts:184](https://github.com/amberbase/amberbase/blob/main/src/client/src/shared/dtos.ts#L184)
 
 Roles the user has in the tenant

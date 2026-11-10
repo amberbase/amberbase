@@ -6,7 +6,7 @@
 
 # Interface: AmberCollection\<T\>
 
-Defined in: [collections.ts:81](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/collections.ts#L81)
+Defined in: [collections.ts:81](https://github.com/amberbase/amberbase/blob/main/src/client/src/collections.ts#L81)
 
 Interface for a collection in the Amber SDK. This is used to create, update, delete and subscribe to documents in a collection.
 Methods might throw a
@@ -27,7 +27,7 @@ ServerErrorResponse if the operation fails.
 
 > **createDoc**(`content`, `documentId?`): `Promise`\<`string`\>
 
-Defined in: [collections.ts:110](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/collections.ts#L110)
+Defined in: [collections.ts:110](https://github.com/amberbase/amberbase/blob/main/src/client/src/collections.ts#L110)
 
 Create a new document
 
@@ -57,7 +57,7 @@ the document id of the created document. If this call succeeds, the document wil
 
 > **deleteDoc**(`documentId`): `Promise`\<`void`\>
 
-Defined in: [collections.ts:127](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/collections.ts#L127)
+Defined in: [collections.ts:127](https://github.com/amberbase/amberbase/blob/main/src/client/src/collections.ts#L127)
 
 Delete a document. This will delete the document in the collection and return the document id.
 The document will be sent to the client as a sync-delete message before the promise resolves succesfully.
@@ -82,7 +82,7 @@ The document id of the deleted document
 
 > **name**(): `string`
 
-Defined in: [collections.ts:85](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/collections.ts#L85)
+Defined in: [collections.ts:85](https://github.com/amberbase/amberbase/blob/main/src/client/src/collections.ts#L85)
 
 Get the name of the collection
 
@@ -96,7 +96,7 @@ Get the name of the collection
 
 > **subscribe**(`lastReceivedChange`, `onDocument`, `onDocumentDelete`): `void`
 
-Defined in: [collections.ts:92](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/collections.ts#L92)
+Defined in: [collections.ts:92](https://github.com/amberbase/amberbase/blob/main/src/client/src/collections.ts#L92)
 
 Subscribe to a collection. This will start receiving messages for the collection. The lastReceivedChange is used to determine the starting point for the subscription.
 
@@ -130,7 +130,7 @@ Callback for when a document is deleted
 
 > **unsubscribe**(): `void`
 
-Defined in: [collections.ts:101](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/collections.ts#L101)
+Defined in: [collections.ts:101](https://github.com/amberbase/amberbase/blob/main/src/client/src/collections.ts#L101)
 
 Unsubscribe from a collection. This will stop receiving messages for the collection.
 
@@ -144,7 +144,7 @@ Unsubscribe from a collection. This will stop receiving messages for the collect
 
 > **updateDoc**(`documentId`, `changeNumber`, `content`): `Promise`\<`void`\>
 
-Defined in: [collections.ts:119](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/collections.ts#L119)
+Defined in: [collections.ts:119](https://github.com/amberbase/amberbase/blob/main/src/client/src/collections.ts#L119)
 
 Update a document. This will update the document in the collection and return the document id.
 The document will be sent to the client as a sync message before the promise resolves succesfully.

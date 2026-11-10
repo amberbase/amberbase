@@ -8,7 +8,7 @@
 
 > **WebsocketHandler** = (`path`, `protocol`, `sessionToken`) => ((`socket`) => `void`) \| `undefined` \| \{ `err`: `string`; `status`: `number`; \}
 
-Defined in: [websocket/websocket.ts:41](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/websocket/websocket.ts#L41)
+Defined in: [websocket/websocket.ts:41](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/websocket/websocket.ts#L41)
 
 Websocket handler to determine if a websocket request should be processed or not. It is called with the path and protocol of the request as well as a verified session token if it is provided.
 The protocol is the first protocol that does not start with "ambersession.". The session token is the session token encoded in the protocol header that is carrying the AmberSessionProtocolPrefix.

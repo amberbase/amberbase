@@ -6,7 +6,7 @@
 
 # Interface: MetricValue
 
-Defined in: [shared/dtos.ts:703](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L703)
+Defined in: [shared/dtos.ts:703](https://github.com/amberbase/amberbase/blob/main/src/client/src/shared/dtos.ts#L703)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [shared/dtos.ts:703](https://github.com/amberbase/amberbase/blob/f37
 
 > **count**: `number`
 
-Defined in: [shared/dtos.ts:707](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L707)
+Defined in: [shared/dtos.ts:707](https://github.com/amberbase/amberbase/blob/main/src/client/src/shared/dtos.ts#L707)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [shared/dtos.ts:707](https://github.com/amberbase/amberbase/blob/f37
 
 > **max**: `number`
 
-Defined in: [shared/dtos.ts:705](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L705)
+Defined in: [shared/dtos.ts:705](https://github.com/amberbase/amberbase/blob/main/src/client/src/shared/dtos.ts#L705)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [shared/dtos.ts:705](https://github.com/amberbase/amberbase/blob/f37
 
 > **min**: `number`
 
-Defined in: [shared/dtos.ts:704](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L704)
+Defined in: [shared/dtos.ts:704](https://github.com/amberbase/amberbase/blob/main/src/client/src/shared/dtos.ts#L704)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [shared/dtos.ts:704](https://github.com/amberbase/amberbase/blob/f37
 
 > **sum**: `number`
 
-Defined in: [shared/dtos.ts:706](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/shared/dtos.ts#L706)
+Defined in: [shared/dtos.ts:706](https://github.com/amberbase/amberbase/blob/main/src/client/src/shared/dtos.ts#L706)
