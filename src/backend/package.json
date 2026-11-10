@@ -8,7 +8,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "npx tsc",
-    "docs": "npx typedoc src/index.ts --out ../../docs/api/backend --plugin typedoc-plugin-markdown --excludeInternal --tsconfig tsconfig.json"
+    "docs": "npx typedoc src/index.ts --out ../../docs/api/backend --plugin typedoc-plugin-markdown --excludeInternal --tsconfig tsconfig.json --gitRevision main"
   },
   "author": "Christian Messinger, Andreas Müller",
   "license": "MIT",

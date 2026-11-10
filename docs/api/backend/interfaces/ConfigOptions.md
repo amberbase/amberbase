@@ -6,7 +6,7 @@
 
 # Interface: ConfigOptions
 
-Defined in: [config.ts:20](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/config.ts#L20)
+Defined in: [config.ts:20](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/config.ts#L20)
 
 Optional configuration options for the Amberbase app.
 
@@ -16,7 +16,7 @@ Optional configuration options for the Amberbase app.
 
 > `optional` **db\_host?**: `string`
 
-Defined in: [config.ts:32](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/config.ts#L32)
+Defined in: [config.ts:32](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/config.ts#L32)
 
 Database host, defaults to "localhost"
 
@@ -26,7 +26,7 @@ Database host, defaults to "localhost"
 
 > `optional` **db\_name?**: `string`
 
-Defined in: [config.ts:24](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/config.ts#L24)
+Defined in: [config.ts:24](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/config.ts#L24)
 
 Database name, defaults to "amber"
 
@@ -36,7 +36,7 @@ Database name, defaults to "amber"
 
 > **db\_password**: `string`
 
-Defined in: [config.ts:44](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/config.ts#L44)
+Defined in: [config.ts:44](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/config.ts#L44)
 
 Database password
 
@@ -46,7 +46,7 @@ Database password
 
 > `optional` **db\_port?**: `number`
 
-Defined in: [config.ts:36](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/config.ts#L36)
+Defined in: [config.ts:36](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/config.ts#L36)
 
 Database port, defaults to 3306
 
@@ -56,7 +56,7 @@ Database port, defaults to 3306
 
 > `optional` **db\_type?**: `string`
 
-Defined in: [config.ts:28](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/config.ts#L28)
+Defined in: [config.ts:28](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/config.ts#L28)
 
 Database type, defaults to "mariadb"
 
@@ -66,7 +66,7 @@ Database type, defaults to "mariadb"
 
 > **db\_username**: `string`
 
-Defined in: [config.ts:40](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/config.ts#L40)
+Defined in: [config.ts:40](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/config.ts#L40)
 
 Database username
 
@@ -76,6 +76,6 @@ Database username
 
 > `optional` **inviteOnly?**: `boolean`
 
-Defined in: [config.ts:48](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/config.ts#L48)
+Defined in: [config.ts:48](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/config.ts#L48)
 
 Invite only registration (no registration without an invite code), defaults to true

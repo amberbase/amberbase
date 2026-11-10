@@ -6,7 +6,7 @@
 
 # Interface: AmberChannels
 
-Defined in: [channels.ts:63](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/channels.ts#L63)
+Defined in: [channels.ts:63](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/channels.ts#L63)
 
 ## Methods
 
@@ -14,7 +14,7 @@ Defined in: [channels.ts:63](https://github.com/amberbase/amberbase/blob/f37a675
 
 > **publishMessage**\<`T`\>(`tenant`, `channel`, `subchannel`, `message`): `void`
 
-Defined in: [channels.ts:64](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/channels.ts#L64)
+Defined in: [channels.ts:64](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/channels.ts#L64)
 
 #### Type Parameters
 

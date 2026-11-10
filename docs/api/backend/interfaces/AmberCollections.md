@@ -6,7 +6,7 @@
 
 # Interface: AmberCollections
 
-Defined in: [collections.ts:181](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/collections.ts#L181)
+Defined in: [collections.ts:181](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/collections.ts#L181)
 
 ## Methods
 
@@ -14,7 +14,7 @@ Defined in: [collections.ts:181](https://github.com/amberbase/amberbase/blob/f37
 
 > **getCollection**\<`T`\>(`collection`): [`AmberCollection`](AmberCollection.md)\<`T`\> \| `undefined`
 
-Defined in: [collections.ts:182](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/collections.ts#L182)
+Defined in: [collections.ts:182](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/collections.ts#L182)
 
 #### Type Parameters
 

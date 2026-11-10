@@ -6,7 +6,7 @@
 
 # Interface: ChannelSettings\<T\>
 
-Defined in: [channels.ts:33](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/channels.ts#L33)
+Defined in: [channels.ts:33](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/channels.ts#L33)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [channels.ts:33](https://github.com/amberbase/amberbase/blob/f37a675
 
 > `optional` **accessRights?**: \{\[`role`: `string`\]: [`ChannelAccessAction`](../type-aliases/ChannelAccessAction.md)[]; \} \| ((`user`, `channel`, `subchannel`, `action`) => `boolean`)
 
-Defined in: [channels.ts:45](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/channels.ts#L45)
+Defined in: [channels.ts:45](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/channels.ts#L45)
 
 Model the access to the channel. Either as code or just a simple type and role based mapping. Default is allow all access to all roles (still requires a valid user in the tenant)
 Tenant admin can always access all channels.
@@ -31,7 +31,7 @@ Tenant admin can always access all channels.
 
 > `optional` **subchannels?**: `boolean`
 
-Defined in: [channels.ts:39](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/channels.ts#L39)
+Defined in: [channels.ts:39](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/channels.ts#L39)
 
 Set to true if the channel is more a "type" and there are subchannels with their own IDs below that. E.g. "chat" and "chat/room1", "chat/room2", etc.
 If it is set to "false" all subscriptions in a tenant are peered to each other. Default is false.
@@ -48,7 +48,7 @@ false
 
 > `optional` **validator?**: (`user`, `channel`, `subchannel`, `message`) => `string` \| `boolean`
 
-Defined in: [channels.ts:57](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/channels.ts#L57)
+Defined in: [channels.ts:57](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/channels.ts#L57)
 
 Validate a message before it is send to the channel. This is NOT checked for server send messages.
 

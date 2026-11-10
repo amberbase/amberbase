@@ -6,7 +6,7 @@
 
 # Interface: AmberAuth
 
-Defined in: [auth.ts:467](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L467)
+Defined in: [auth.ts:467](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L467)
 
 Server side interface for the AmberAuth service.
 
@@ -16,7 +16,7 @@ Server side interface for the AmberAuth service.
 
 > **addRolesToUser**(`userId`, `tenant`, `roles`): `Promise`\<`void`\>
 
-Defined in: [auth.ts:548](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L548)
+Defined in: [auth.ts:548](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L548)
 
 Add roles to a user in a tenant. If the user does not have the roles yet, they will be added.
 
@@ -52,7 +52,7 @@ The id of the user
 
 > **addUserToTenant**(`email`, `name`, `pw`, `tenant`, `roles`): `Promise`\<`string`\>
 
-Defined in: [auth.ts:558](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L558)
+Defined in: [auth.ts:558](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L558)
 
 Add a user to a tenant with the given roles. If the user does not exist, it will be created.
 
@@ -98,7 +98,7 @@ The roles to add to the user in the tenant
 
 > **changeUser**(`id`, `newName`, `newEmail?`, `newPassword?`): `Promise`\<`boolean`\>
 
-Defined in: [auth.ts:525](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L525)
+Defined in: [auth.ts:525](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L525)
 
 change the user, potentially including the password, therefore take caution.
 
@@ -140,7 +140,7 @@ true if the user was changed, false if the user was not found
 
 > **changeUserPassword**(`id`, `oldpassword`, `newPassword`): `Promise`\<`boolean`\>
 
-Defined in: [auth.ts:494](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L494)
+Defined in: [auth.ts:494](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L494)
 
 Change the password of a user from the user him/herself
 
@@ -176,7 +176,7 @@ true if the password was changed, false if the old password was incorrect or the
 
 > **changeUserPasswordWithResetToken**(`resetToken`, `newPassword`): `Promise`\<`boolean`\>
 
-Defined in: [auth.ts:503](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L503)
+Defined in: [auth.ts:503](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L503)
 
 Change the password of a user from the user him/herself using a reset token (such as from a "forgot password" flow)
 
@@ -206,7 +206,7 @@ true if the password was changed, false if the old password was incorrect or the
 
 > **checkAdmin**(`req`, `res`, `onlyAllowGlobal?`): `boolean`
 
-Defined in: [auth.ts:485](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L485)
+Defined in: [auth.ts:485](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L485)
 
 Utility function to check wether a user is logged in with a session and has the admin role for the given tenant retrieved from a path-parameter called "/:tenant" (or the global tenant).
 If the path does not contain a tenant, it will check for the global tenants admin role.
@@ -244,7 +244,7 @@ Boolean if the use is an admin
 
 > **createPasswordResetToken**(`userId`, `validityHours`): `Promise`\<`string`\>
 
-Defined in: [auth.ts:515](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L515)
+Defined in: [auth.ts:515](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L515)
 
 Create a password reset token for a user that can be used in a "forgot password" flow.
 
@@ -270,7 +270,7 @@ the id of the user to create the token for
 
 > **createUser**(`name`, `email`, `password`): `Promise`\<`string` \| `undefined`\>
 
-Defined in: [auth.ts:539](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L539)
+Defined in: [auth.ts:539](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L539)
 
 Create a new user with the given name, email and password.
 
@@ -306,7 +306,7 @@ The id of the created user or undefined if the user could not be created (e.g. e
 
 > **getSessionToken**(`req`): [`SessionToken`](SessionToken.md) \| `undefined`
 
-Defined in: [auth.ts:474](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L474)
+Defined in: [auth.ts:474](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L474)
 
 Utility function to get the session token from the request header.
 If the session token is not valid or expired, it will return undefined. It will check if a parameter "tenant" is present in the path and validate that the session token is valid for this tenant.
@@ -331,7 +331,7 @@ SessionToken or undefined if not valid
 
 > **getUserRoles**(`userId`, `tenant`): `Promise`\<`string`[]\>
 
-Defined in: [auth.ts:566](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L566)
+Defined in: [auth.ts:566](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L566)
 
 Get the roles of a user in a tenant.
 
@@ -361,7 +361,7 @@ The roles of the user in the tenant
 
 > **validatePasswordResetToken**(`resetToken`): `Promise`\<`UserWithCredential` \| `null`\>
 
-Defined in: [auth.ts:509](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L509)
+Defined in: [auth.ts:509](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L509)
 
 Utility function to validate a password reset token.
 

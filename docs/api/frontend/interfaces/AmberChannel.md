@@ -6,7 +6,7 @@
 
 # Interface: AmberChannel\<T\>
 
-Defined in: [channels.ts:85](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/channels.ts#L85)
+Defined in: [channels.ts:85](https://github.com/amberbase/amberbase/blob/main/src/client/src/channels.ts#L85)
 
 Interface for a channel in the Amber SDK. This is used to send and receive messages on a channel.
 
@@ -22,7 +22,7 @@ Interface for a channel in the Amber SDK. This is used to send and receive messa
 
 > **send**(`content`): `Promise`\<`void`\>
 
-Defined in: [channels.ts:105](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/channels.ts#L105)
+Defined in: [channels.ts:105](https://github.com/amberbase/amberbase/blob/main/src/client/src/channels.ts#L105)
 
 Send a message to the channel. This will send a message to the channel.
 
@@ -44,7 +44,7 @@ The content of the message
 
 > **subscribe**(`onMessage`): `void`
 
-Defined in: [channels.ts:94](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/channels.ts#L94)
+Defined in: [channels.ts:94](https://github.com/amberbase/amberbase/blob/main/src/client/src/channels.ts#L94)
 
 Subscribe to a channel. This will start receiving messages for the channel.
 If a channel has subchannels enabled, the subscription is only for the given subchannel and will throw an error if no subchannel has been selected.
@@ -70,7 +70,7 @@ Callback for when a message is received and the channel name as it was received
 
 > **unsubscribe**(): `void`
 
-Defined in: [channels.ts:99](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/channels.ts#L99)
+Defined in: [channels.ts:99](https://github.com/amberbase/amberbase/blob/main/src/client/src/channels.ts#L99)
 
 Unsubscribe from the channel. This will stop receiving messages
 

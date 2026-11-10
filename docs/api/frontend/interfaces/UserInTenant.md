@@ -6,7 +6,7 @@
 
 # Interface: UserInTenant
 
-Defined in: [login.ts:5](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/login.ts#L5)
+Defined in: [login.ts:5](https://github.com/amberbase/amberbase/blob/main/src/client/src/login.ts#L5)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [login.ts:5](https://github.com/amberbase/amberbase/blob/f37a6750014
 
 > **roles**: `string`[]
 
-Defined in: [login.ts:17](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/login.ts#L17)
+Defined in: [login.ts:17](https://github.com/amberbase/amberbase/blob/main/src/client/src/login.ts#L17)
 
 The roles the user has in the tenant
 
@@ -24,7 +24,7 @@ The roles the user has in the tenant
 
 > **tenant**: `string`
 
-Defined in: [login.ts:13](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/login.ts#L13)
+Defined in: [login.ts:13](https://github.com/amberbase/amberbase/blob/main/src/client/src/login.ts#L13)
 
 The tenant the user is in
 
@@ -34,6 +34,6 @@ The tenant the user is in
 
 > **user**: [`UserDetails`](UserDetails.md)
 
-Defined in: [login.ts:9](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/client/src/login.ts#L9)
+Defined in: [login.ts:9](https://github.com/amberbase/amberbase/blob/main/src/client/src/login.ts#L9)
 
 The user details of the user

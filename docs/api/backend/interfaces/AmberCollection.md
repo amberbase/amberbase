@@ -6,7 +6,7 @@
 
 # Interface: AmberCollection\<T\>
 
-Defined in: [collections.ts:113](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/collections.ts#L113)
+Defined in: [collections.ts:113](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/collections.ts#L113)
 
 The API to be used by the server side app to access and manipulate documents in a collection. You might wonder, why we cannot enumerate all documents in a collection, this is due to the expected cost (memory and database IO). Please use the allDocumentsByTags method to stream documents by tags. This is a more efficient way to access documents since it uses an index.
 
@@ -22,7 +22,7 @@ The API to be used by the server side app to access and manipulate documents in 
 
 > **allDocumentsByTags**(`tenant`, `tags`, `callback?`): `Promise`\<`void`\>
 
-Defined in: [collections.ts:178](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/collections.ts#L178)
+Defined in: [collections.ts:178](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/collections.ts#L178)
 
 #### Parameters
 
@@ -48,7 +48,7 @@ Defined in: [collections.ts:178](https://github.com/amberbase/amberbase/blob/f37
 
 > **createDocument**(`tenant`, `userId`, `data`, `documentId?`): `Promise`\<\{ `error?`: `"internal-error"` \| `"duplicate-id"` \| `"invalid-id"`; `id?`: `string`; \}\>
 
-Defined in: [collections.ts:130](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/collections.ts#L130)
+Defined in: [collections.ts:130](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/collections.ts#L130)
 
 Create a new document in the collection.
 
@@ -90,7 +90,7 @@ The id of the created document or an indication of the error that occured.
 
 > **deleteDocument**(`tenant`, `userId`, `documentId`): `Promise`\<`boolean`\>
 
-Defined in: [collections.ts:144](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/collections.ts#L144)
+Defined in: [collections.ts:144](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/collections.ts#L144)
 
 Delete a document from the collection.
 
@@ -126,7 +126,7 @@ true if the document was deleted, false if the document was not found or the del
 
 > **getDocument**(`tenant`, `documentId`): `Promise`\<`T` \| `undefined`\>
 
-Defined in: [collections.ts:121](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/collections.ts#L121)
+Defined in: [collections.ts:121](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/collections.ts#L121)
 
 Get a document by its id.
 
@@ -154,7 +154,7 @@ The id of the document to get.
 
 > **updateDocument**(`tenant`, `documentId`, `userId`, `data`, `expectedChangeNumber?`): `Promise`\<`boolean`\>
 
-Defined in: [collections.ts:155](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/collections.ts#L155)
+Defined in: [collections.ts:155](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/collections.ts#L155)
 
 Update a document in the collection.
 
@@ -202,7 +202,7 @@ true if the document was updated, false if the document was not found or the upd
 
 > **updateDocumentWithCallback**(`tenant`, `documentId`, `userId`, `change`): `Promise`\<`boolean`\>
 
-Defined in: [collections.ts:170](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/collections.ts#L170)
+Defined in: [collections.ts:170](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/collections.ts#L170)
 
 Update a document in the collection using a callback that receives the old document and returns the new document. This is useful to implement read-modify-write operations.
 

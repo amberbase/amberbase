@@ -6,7 +6,7 @@
 
 # Interface: SessionToken
 
-Defined in: [auth.ts:452](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L452)
+Defined in: [auth.ts:452](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L452)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [auth.ts:452](https://github.com/amberbase/amberbase/blob/f37a675001
 
 > **expires**: `string`
 
-Defined in: [auth.ts:456](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L456)
+Defined in: [auth.ts:456](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L456)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [auth.ts:456](https://github.com/amberbase/amberbase/blob/f37a675001
 
 > **roles**: `string`[]
 
-Defined in: [auth.ts:455](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L455)
+Defined in: [auth.ts:455](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L455)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [auth.ts:455](https://github.com/amberbase/amberbase/blob/f37a675001
 
 > **tenant**: `string`
 
-Defined in: [auth.ts:454](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L454)
+Defined in: [auth.ts:454](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L454)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [auth.ts:454](https://github.com/amberbase/amberbase/blob/f37a675001
 
 > **userId**: `string`
 
-Defined in: [auth.ts:453](https://github.com/amberbase/amberbase/blob/f37a67500140122944ead3d861d98aca78451eef/src/backend/src/amber/auth.ts#L453)
+Defined in: [auth.ts:453](https://github.com/amberbase/amberbase/blob/main/src/backend/src/amber/auth.ts#L453)
